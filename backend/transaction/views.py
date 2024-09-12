@@ -4,6 +4,10 @@ from rest_framework import status
 from .models import PurchaseTransaction, Vendor, Purchase, Scheme,PriceProtection
 from .serializers import PurchaseTransactionSerializer, VendorSerializer,SalesTransactionSerializer,SalesSerializer,Sales,SalesTransaction,SchemeSerializer,PurchaseSerializer,PurchaseTransactionSerializer, PriceProtectionSerializer
 from rest_framework.permissions import IsAuthenticated
+from inventory.models import Item,Brand
+from datetime import date
+from django.utils.dateparse import parse_date
+
 
 class PurchaseTransactionView(APIView):
     permission_classes = [IsAuthenticated]
@@ -123,3 +127,76 @@ class PriceProtectionView(APIView):
         if serializer.is_valid(raise_exception = True):
             serializer.save()
             return Response(serializer.data)
+        
+
+class StatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request):
+
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        if not start_date or not end_date:
+            today = date.today()
+            start_date = today.replace(day=1)  # First day of the current month
+            end_date = today
+        
+        start_date = parse_date(start_date) if isinstance(start_date, str) else start_date
+        end_date = parse_date(end_date) if isinstance(end_date, str) else end_date
+
+        enterprise = request.user.person.enterprise
+    
+        allpurchases = Purchase.objects.filter(purchase_transaction__enterprise = enterprise).count()
+        allsales = Sales.objects.filter(sales_transaction__enterprise = enterprise).count()
+        allstock = Item.objects.filter(phone__brand__enterprise = enterprise).count()
+        allbrands = Brand.objects.filter(enterprise = enterprise).count()
+        monthlypurchases = Purchase.objects.filter(purchase_transaction__enterprise = enterprise,purchase_transaction__date__range=(start_date, end_date)).count()
+        monthlysales = Sales.objects.filter(sales_transaction__enterprise = enterprise,sales_transaction__date__range=(start_date, end_date)).count()
+
+        ptamt = 0
+        allptamt = 0
+        pts = PurchaseTransaction.objects.filter(enterprise = enterprise)
+        if pts:
+            for pt in pts:
+                # print(pt.total_amount)
+                allptamt += pt.total_amount
+
+        pts = pts.filter(date__range=(start_date, end_date))
+        if pts:
+            for pt in pts:
+                # print(pt.total_amount)
+                ptamt += pt.total_amount
+        stamt = 0
+        allstamt = 0
+        sts = SalesTransaction.objects.filter(enterprise=enterprise)
+        if sts:
+            for st in sts:
+                # print(st.total_amount)
+                allstamt += st.total_amount
+
+        sts = sts.filter(date__range=(start_date, end_date))
+        if sts:
+            for st in sts:
+                print(st.total_amount)
+                stamt += st.total_amount
+        stat = { 
+            "enterprise" : enterprise.name,
+            "alltime":{
+                "purchases" : allpurchases,
+                "allptamt":allptamt,
+                "sales": allsales,
+                "allstamt":allstamt,
+                "profit": "Later"
+            },
+            "monthly":{
+                "purchases" : monthlypurchases,
+                "ptamt":ptamt,
+                "stamt":stamt,
+                "sales": monthlysales,
+                "profit": "Later",
+            },
+            "stock": allstock,
+            "brands" : allbrands
+        }
+        return Response(stat)
