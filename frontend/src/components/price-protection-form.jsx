@@ -1,5 +1,3 @@
-'use client'
-
 import React, { useState, useEffect } from 'react';
 import useAxios from '../utils/useAxios';
 import { Button } from "./ui/button"
@@ -13,15 +11,18 @@ import {
 } from "./ui/dialog"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command"
+import { Check, ChevronsUpDown } from "lucide-react"
+import { cn } from "../lib/utils"
 
 function PriceProtectionForm() {
   const api = useAxios()
   const [formData, setFormData] = useState({
     from_date: '',
     to_date: '',
-    new_price: '',
-    phone: '',
+    price_drop: '',
+    phone: '' 
   });
   const [phones, setPhones] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -31,6 +32,8 @@ function PriceProtectionForm() {
   const [showNewBrandDialog, setShowNewBrandDialog] = useState(false);
   const [newPhoneData, setNewPhoneData] = useState({ name: '', brand: '' });
   const [newBrandName, setNewBrandName] = useState('');
+  const [openPhone, setOpenPhone] = useState(false);
+  const [openBrand, setOpenBrand] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -122,7 +125,7 @@ function PriceProtectionForm() {
   };
 
   return (
-    (<div className="max-w-2xl mx-auto bg-gray-100 p-8 rounded-lg shadow-lg">
+    <div className="max-w-2xl mx-auto bg-gray-100 p-8 rounded-lg shadow-lg">
       <h2 className="text-3xl font-bold mb-6 text-gray-900">Add Price Protection</h2>
       {error && <p className="text-red-600 mb-4">{error}</p>}
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -138,7 +141,8 @@ function PriceProtectionForm() {
               value={formData.from_date}
               onChange={handleChange}
               className="border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              required />
+              required
+            />
           </div>
           <div className="flex flex-col">
             <Label htmlFor="to_date" className="text-lg font-medium text-gray-800 mb-2">
@@ -151,7 +155,8 @@ function PriceProtectionForm() {
               value={formData.to_date}
               onChange={handleChange}
               className="border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              required />
+              required
+            />
           </div>
         </div>
 
@@ -159,48 +164,90 @@ function PriceProtectionForm() {
           <Label htmlFor="phone" className="text-lg font-medium text-gray-800 mb-2">
             Phone
           </Label>
-          <Select onValueChange={handlePhoneChange} value={formData.phone}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a phone" />
-            </SelectTrigger>
-            <SelectContent>
-              {!loading && phones.length > 0 ? (
-                <>
+          <Popover open={openPhone} onOpenChange={setOpenPhone}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={openPhone}
+                className="w-full justify-between"
+              >
+                {formData.phone
+                  ? phones.find((phone) => phone.id.toString() === formData.phone)?.name
+                  : "Select phone..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0">
+              <Command>
+                <CommandInput placeholder="Search phone..." />
+                <CommandList>
+                <CommandEmpty>No phone found.</CommandEmpty>
+                <CommandGroup>
                   {phones.map((phone) => (
-                    <SelectItem key={phone.id} value={phone.id.toString()}>
+                    <CommandItem
+                    key={phone.id}
+                    onSelect={() => {
+                      handlePhoneChange(phone.id.toString())
+                      setOpenPhone(false)
+                    }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          formData.phone === phone.id.toString() ? "opacity-100" : "opacity-0"
+                        )}
+                        />
                       {phone.name}
-                    </SelectItem>
+                    </CommandItem>
                   ))}
-                  <SelectItem value="new">Add a new phone</SelectItem>
-                </>
-              ) : loading ? (
-                <SelectItem value="loading">Loading...</SelectItem>
-              ) : (
-                <SelectItem value="no-phones">No phones available</SelectItem>
-              )}
-            </SelectContent>
-          </Select>
+                  <CommandItem onSelect={() => handlePhoneChange('new')}>
+                    Add a new phone
+                  </CommandItem>
+                </CommandGroup>
+                  </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
+        
         <div className="flex flex-col">
-          <Label htmlFor="new_price" className="text-lg font-medium text-gray-800 mb-2">
-            New Price
+          <Label htmlFor="price_drop" className="text-lg font-medium text-gray-800 mb-2">
+            Price Drop
           </Label>
           <Input
             type="number"
-            id="new_price"
-            name="new_price"
-            value={formData.new_price}
+            id="price_drop"
+            name="price_drop"
+            value={formData.price_drop}
             onChange={handleChange}
             className="border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            placeholder="Enter new price"
-            required />
+            placeholder="Enter price drop"
+            required
+          />
         </div>
+{/* 
+        <div className="flex flex-col">
+          <Label htmlFor="receivables" className="text-lg font-medium text-gray-800 mb-2">
+            Receivables
+          </Label>
+          <Input
+            type="number"
+            id="receivables"
+            name="receivables"
+            value={formData.receivables}
+            onChange={handleChange}
+            className="border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="Enter receivables"
+          />
+        </div> */}
 
         <Button type="submit" className="w-full">
           Submit Price Protection
         </Button>
       </form>
+
       <Dialog open={showNewPhoneDialog} onOpenChange={setShowNewPhoneDialog}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -220,26 +267,59 @@ function PriceProtectionForm() {
                 value={newPhoneData.name}
                 onChange={handleNewPhoneChange}
                 className="col-span-3"
-                placeholder="Enter phone name" />
+                placeholder="Enter phone name"
+              />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="newPhoneBrand" className="text-right">
                 Brand
               </Label>
               <div className="col-span-3">
-                <Select onValueChange={handleNewPhoneBrandChange} value={newPhoneData.brand}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a brand" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brands.map((brand) => (
-                      <SelectItem key={brand.id} value={brand.id.toString()}>
-                        {brand.name}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="new">Add a new brand</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Popover open={openBrand} onOpenChange={setOpenBrand}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openBrand}
+                      className="w-full justify-between"
+                    >
+                      {newPhoneData.brand
+                        ? brands.find((brand) => brand.id.toString() === newPhoneData.brand)?.name
+                        : "Select brand..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search brand..." />
+                      <CommandList>
+                      <CommandEmpty>No brand found.</CommandEmpty>
+                      <CommandGroup>
+                        {brands.map((brand) => (
+                          <CommandItem
+                          key={brand.id}
+                          onSelect={() => {
+                            handleNewPhoneBrandChange(brand.id.toString())
+                            setOpenBrand(false)
+                          }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                newPhoneData.brand === brand.id.toString() ? "opacity-100" : "opacity-0"
+                              )}
+                              />
+                            {brand.name}
+                          </CommandItem>
+                        ))}
+                        <CommandItem onSelect={() => handleNewPhoneBrandChange('new')}>
+                          Add a new brand
+                        </CommandItem>
+                      </CommandGroup>
+                    </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </div>
@@ -248,6 +328,7 @@ function PriceProtectionForm() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       <Dialog open={showNewBrandDialog} onOpenChange={setShowNewBrandDialog}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -266,7 +347,8 @@ function PriceProtectionForm() {
                 value={newBrandName}
                 onChange={handleNewBrandChange}
                 className="col-span-3"
-                placeholder="Enter brand name" />
+                placeholder="Enter brand name"
+              />
             </div>
           </div>
           <DialogFooter>
@@ -274,7 +356,7 @@ function PriceProtectionForm() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>)
+    </div>
   );
 }
 

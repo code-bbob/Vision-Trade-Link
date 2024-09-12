@@ -13,8 +13,21 @@ import {
 } from "./ui/dialog"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
-import { PlusCircle, Trash2 } from 'lucide-react'
+import { PlusCircle, Trash2, Check, ChevronsUpDown } from 'lucide-react'
+import { cn } from "../lib/utils"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "./ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "./ui/popover"
+import { CommandList } from 'cmdk';
 
 function SchemeForm() {
   const api = useAxios()
@@ -32,6 +45,8 @@ function SchemeForm() {
   const [showNewBrandDialog, setShowNewBrandDialog] = useState(false);
   const [newPhoneData, setNewPhoneData] = useState({ name: '', brand: '' });
   const [newBrandName, setNewBrandName] = useState('');
+  const [openPhone, setOpenPhone] = useState(false);
+  const [openBrand, setOpenBrand] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -71,6 +86,7 @@ function SchemeForm() {
     } else {
       setFormData({ ...formData, phone: value });
     }
+    setOpenPhone(false);
   };
 
   const handleNewPhoneChange = (e) => {
@@ -84,6 +100,7 @@ function SchemeForm() {
     } else {
       setNewPhoneData({ ...newPhoneData, brand: value });
     }
+    setOpenBrand(false);
   };
 
   const handleNewBrandChange = (e) => {
@@ -142,7 +159,7 @@ function SchemeForm() {
   };
 
   return (
-    (<div className="max-w-2xl mx-auto bg-gray-100 p-8 rounded-lg shadow-lg">
+    <div className="max-w-2xl mx-auto bg-gray-100 p-8 rounded-lg shadow-lg">
       <h2 className="text-3xl font-bold mb-6 text-gray-900">Add Scheme</h2>
       {error && <p className="text-red-600 mb-4">{error}</p>}
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -179,27 +196,57 @@ function SchemeForm() {
           <Label htmlFor="phone" className="text-lg font-medium text-gray-800 mb-2">
             Phone
           </Label>
-          <Select onValueChange={handlePhoneChange} value={formData.phone}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a phone" />
-            </SelectTrigger>
-            <SelectContent>
-              {!loading && phones.length > 0 ? (
-                <>
-                  {phones.map((phone) => (
-                    <SelectItem key={phone.id} value={phone.id.toString()}>
-                      {phone.name}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="new">Add a new phone</SelectItem>
-                </>
-              ) : loading ? (
-                <SelectItem value="loading">Loading...</SelectItem>
-              ) : (
-                <SelectItem value="no-phones">No phones available</SelectItem>
-              )}
-            </SelectContent>
-          </Select>
+          <Popover open={openPhone} onOpenChange={setOpenPhone}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={openPhone}
+                className="w-full justify-between"
+              >
+                {formData.phone
+                  ? phones.find((phone) => phone.id.toString() === formData.phone)?.name
+                  : "Select a phone..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0">
+              <Command>
+                <CommandInput placeholder="Search phone..." />
+                <CommandList>
+                <CommandEmpty>No phone found.</CommandEmpty>
+                <CommandGroup>
+                  {!loading && phones.length > 0 ? (
+                    <>
+                      {phones.map((phone) => (
+                        <CommandItem
+                          key={phone.id}
+                          onSelect={() => handlePhoneChange(phone.id.toString())}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              formData.phone === phone.id.toString() ? "opacity-100" : "opacity-0"
+                            )}
+                            />
+                          {phone.name}
+                        </CommandItem>
+                      ))}
+                      <CommandItem onSelect={() => handlePhoneChange('new')}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add a new phone
+                      </CommandItem>
+                    </>
+                  ) : loading ? (
+                    <CommandItem>Loading...</CommandItem>
+                  ) : (
+                    <CommandItem>No phones available</CommandItem>
+                  )}
+                </CommandGroup>
+                  </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <h3 className="text-xl font-semibold mb-2">Subschemes</h3>
@@ -305,19 +352,49 @@ function SchemeForm() {
                 Brand
               </Label>
               <div className="col-span-3">
-                <Select onValueChange={handleNewPhoneBrandChange} value={newPhoneData.brand}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a brand" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brands.map((brand) => (
-                      <SelectItem key={brand.id} value={brand.id.toString()}>
-                        {brand.name}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="new">Add a new brand</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Popover open={openBrand} onOpenChange={setOpenBrand}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openBrand}
+                      className="w-full justify-between"
+                    >
+                      {newPhoneData.brand
+                        ? brands.find((brand) => brand.id.toString() === newPhoneData.brand)?.name
+                        : "Select a brand..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search brand..." />
+                      <CommandList>
+                      <CommandEmpty>No brand found.</CommandEmpty>
+                      <CommandGroup>
+                        {brands.map((brand) => (
+                          <CommandItem
+                          key={brand.id}
+                            onSelect={() => handleNewPhoneBrandChange(brand.id.toString())}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                newPhoneData.brand === brand.id.toString() ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {brand.name}
+                          </CommandItem>
+                        ))}
+                        <CommandItem onSelect={() => handleNewPhoneBrandChange('new')}>
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                          Add a new brand
+                        </CommandItem>
+                      </CommandGroup>
+                              </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </div>
@@ -352,7 +429,7 @@ function SchemeForm() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>)
+    </div>
   );
 }
 

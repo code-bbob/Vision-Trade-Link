@@ -13,11 +13,22 @@ import {
 } from "./ui/dialog"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2, Check, ChevronsUpDown } from 'lucide-react'
 import { useNavigate } from "react-router-dom";
-
-
+import { cn } from "../lib/utils"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "./ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "./ui/popover"
+import { CommandList } from 'cmdk';
 
 function SalesTransactionForm() {
   const api = useAxios()
@@ -33,6 +44,8 @@ function SalesTransactionForm() {
   const [showNewBrandDialog, setShowNewBrandDialog] = useState(false);
   const [newPhoneData, setNewPhoneData] = useState({ name: '', brand: '' });
   const [newBrandName, setNewBrandName] = useState('');
+  const [openPhone, setOpenPhone] = useState(Array(formData.sales.length).fill(false));
+  const [openBrand, setOpenBrand] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -70,6 +83,9 @@ function SalesTransactionForm() {
       newSales[index] = { ...newSales[index], phone: value };
       setFormData({ ...formData, sales: newSales });
     }
+    const newOpenPhone = [...openPhone];
+    newOpenPhone[index] = false;
+    setOpenPhone(newOpenPhone);
   };
 
   const handleNewPhoneChange = (e) => {
@@ -83,6 +99,7 @@ function SalesTransactionForm() {
     } else {
       setNewPhoneData({ ...newPhoneData, brand: value });
     }
+    setOpenBrand(false);
   };
 
   const handleNewBrandChange = (e) => {
@@ -94,11 +111,14 @@ function SalesTransactionForm() {
       ...formData,
       sales: [...formData.sales, { phone: '', imei_number: '', unit_price: '' }]
     });
+    setOpenPhone([...openPhone, false]);
   };
 
   const handleRemoveSale = (index) => {
     const newSales = formData.sales.filter((_, i) => i !== index);
     setFormData({ ...formData, sales: newSales });
+    const newOpenPhone = openPhone.filter((_, i) => i !== index);
+    setOpenPhone(newOpenPhone);
   };
 
   const handleSubmit = async (e) => {
@@ -168,27 +188,61 @@ function SalesTransactionForm() {
                 <Label htmlFor={`phone-${index}`} className="text-sm font-medium text-gray-800 mb-1">
                   Phone
                 </Label>
-                <Select onValueChange={(value) => handlePhoneChange(index, value)} value={sale.phone}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a phone" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {!loading && phones.length > 0 ? (
-                      <>
-                        {phones.map((phone) => (
-                          <SelectItem key={phone.id} value={phone.id.toString()}>
-                            {phone.name}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="new">Add a new phone</SelectItem>
-                      </>
-                    ) : loading ? (
-                      <SelectItem value="loading">Loading...</SelectItem>
-                    ) : (
-                      <SelectItem value="no-phones">No phones available</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+                <Popover open={openPhone[index]} onOpenChange={(open) => {
+                  const newOpenPhone = [...openPhone];
+                  newOpenPhone[index] = open;
+                  setOpenPhone(newOpenPhone);
+                }}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openPhone[index]}
+                      className="w-full justify-between"
+                    >
+                      {sale.phone
+                        ? phones.find((phone) => phone.id.toString() === sale.phone)?.name
+                        : "Select a phone..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search phone..." />
+                      <CommandList>
+                      <CommandEmpty>No phone found.</CommandEmpty>
+                      <CommandGroup>
+                        {!loading && phones.length > 0 ? (
+                          <>
+                            {phones.map((phone) => (
+                              <CommandItem
+                                key={phone.id}
+                                onSelect={() => handlePhoneChange(index, phone.id.toString())}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    sale.phone === phone.id.toString() ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {phone.name}
+                              </CommandItem>
+                            ))}
+                            <CommandItem onSelect={() => handlePhoneChange(index, 'new')}>
+                              <PlusCircle className="mr-2 h-4 w-4" />
+                              Add a new phone
+                            </CommandItem>
+                          </>
+                        ) : loading ? (
+                          <CommandItem>Loading...</CommandItem>
+                        ) : (
+                          <CommandItem>No phones available</CommandItem>
+                        )}
+                      </CommandGroup>
+                                    </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="flex flex-col">
                 <Label htmlFor={`imei-${index}`} className="text-sm font-medium text-gray-800 mb-1">
@@ -273,19 +327,49 @@ function SalesTransactionForm() {
                 Brand
               </Label>
               <div className="col-span-3">
-                <Select onValueChange={handleNewPhoneBrandChange} value={newPhoneData.brand}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a brand" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brands.map((brand) => (
-                      <SelectItem key={brand.id} value={brand.id.toString()}>
-                        {brand.name}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="new">Add a new brand</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Popover open={openBrand} onOpenChange={setOpenBrand}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openBrand}
+                      className="w-full justify-between"
+                    >
+                      {newPhoneData.brand
+                        ? brands.find((brand) => brand.id.toString() === newPhoneData.brand)?.name
+                        : "Select a brand..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search brand..." />
+                      <CommandList>
+                      <CommandEmpty>No brand found.</CommandEmpty>
+                      <CommandGroup>
+                        {brands.map((brand) => (
+                          <CommandItem
+                            key={brand.id}
+                            onSelect={() => handleNewPhoneBrandChange(brand.id.toString())}
+                            >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                newPhoneData.brand === brand.id.toString() ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {brand.name}
+                          </CommandItem>
+                        ))}
+                        <CommandItem onSelect={() => handleNewPhoneBrandChange('new')}>
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                          Add a new brand
+                        </CommandItem>
+                      </CommandGroup>
+                                </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </div>

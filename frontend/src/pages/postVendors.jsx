@@ -1,6 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import useAxios from '../utils/useAxios';
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { Check, ChevronsUpDown } from "lucide-react"
+import { cn } from "../lib/utils"
 import { Button } from "../components/ui/button"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "../components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../components/ui/popover"
 import {
   Dialog,
   DialogContent,
@@ -11,87 +26,91 @@ import {
 } from "../components/ui/dialog"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
 
-function VendorForm() {
+// Assuming you have a custom hook for axios
+import useAxios from '../utils/useAxios'
+import { CommandList } from 'cmdk'
+
+export default function VendorForm() {
   const api = useAxios()
   const [formData, setFormData] = useState({
     name: '',
     brand: '',
     due: 0,
-  });
-  const [brands, setBrands] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [showNewBrandDialog, setShowNewBrandDialog] = useState(false);
-  const [newBrandName, setNewBrandName] = useState('');
+  })
+  const [brands, setBrands] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [showNewBrandDialog, setShowNewBrandDialog] = useState(false)
+  const [newBrandName, setNewBrandName] = useState('')
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const response = await api.get('inventory/brand/');
-        setBrands(response.data);
-        setLoading(false);
+        const response = await api.get('inventory/brand/')
+        setBrands(response.data)
+        setLoading(false)
       } catch (error) {
-        console.error('Error fetching brands:', error);
-        setError('Failed to fetch brands');
-        setLoading(false);
+        console.error('Error fetching brands:', error)
+        setError('Failed to fetch brands')
+        setLoading(false)
       }
-    };
+    }
 
-    fetchBrands();
-  }, []);
+    fetchBrands()
+  }, [])
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value } = e.target
     setFormData((prevState) => ({
       ...prevState,
       [name]: value,
-    }));
-  };
+    }))
+  }
 
   const handleBrandChange = (value) => {
     if (value === 'new') {
-      setShowNewBrandDialog(true);
+      setShowNewBrandDialog(true)
     } else {
       setFormData((prevState) => ({
         ...prevState,
         brand: value,
-      }));
+      }))
     }
-  };
+  }
 
   const handleNewBrandChange = (e) => {
-    setNewBrandName(e.target.value);
-  };
+    setNewBrandName(e.target.value)
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
     try {
-      const response = await api.post('transaction/vendor/', formData);
-      console.log('Response:', response.data);
+      const response = await api.post('transaction/vendor/', formData)
+      console.log('Response:', response.data)
       // Optionally clear the form or show a success message
     } catch (error) {
-      console.error('Error posting data:', error);
+      console.error('Error posting data:', error)
     }
-  };
+  }
 
   const handleAddBrand = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
     try {
-      const response = await api.post('inventory/brand/', { name: newBrandName });
-      console.log('New Brand Added:', response.data);
-      setBrands((prevBrands) => [...prevBrands, response.data]);
+      const response = await api.post('inventory/brand/', { name: newBrandName })
+      console.log('New Brand Added:', response.data)
+      setBrands((prevBrands) => [...prevBrands, response.data])
       setFormData((prevState) => ({
         ...prevState,
         brand: response.data.id.toString(),
-      }));
-      setNewBrandName('');
-      setShowNewBrandDialog(false);
+      }))
+      setNewBrandName('')
+      setShowNewBrandDialog(false)
     } catch (error) {
-      console.error('Error adding brand:', error);
+      console.error('Error adding brand:', error)
     }
-  };
+  }
 
   return (
     <div className="max-w-lg mx-auto bg-gray-100 p-8 rounded-lg shadow-lg">
@@ -118,27 +137,51 @@ function VendorForm() {
           <Label htmlFor="brand" className="text-lg font-medium text-gray-800 mb-2">
             Brand
           </Label>
-          <Select onValueChange={handleBrandChange} value={formData.brand}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a brand" />
-            </SelectTrigger>
-            <SelectContent>
-              {!loading && brands.length > 0 ? (
-                <>
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className="w-full justify-between"
+              >
+                {formData.brand
+                  ? brands.find((brand) => brand.id.toString() === formData.brand)?.name
+                  : "Select brand..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0">
+              <Command>
+                <CommandInput placeholder="Search brand..." />
+                <CommandList>
+                <CommandEmpty>No brand found.</CommandEmpty>
+                <CommandGroup>
                   {brands.map((brand) => (
-                    <SelectItem key={brand.id} value={brand.id.toString()}>
+                    <CommandItem
+                    key={brand.id}
+                    onSelect={() => {
+                      handleBrandChange(brand.id.toString())
+                      setOpen(false)
+                    }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          formData.brand === brand.id.toString() ? "opacity-100" : "opacity-0"
+                        )}
+                        />
                       {brand.name}
-                    </SelectItem>
+                    </CommandItem>
                   ))}
-                  <SelectItem value="new">Add a new brand</SelectItem>
-                </>
-              ) : loading ? (
-                <SelectItem value="loading">Loading...</SelectItem>
-              ) : (
-                <SelectItem value="no-brands">No brands available</SelectItem>
-              )}
-            </SelectContent>
-          </Select>
+                  <CommandItem onSelect={() => handleBrandChange('new')}>
+                    Add a new brand
+                  </CommandItem>
+                </CommandGroup>
+                  </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="flex flex-col">
@@ -192,7 +235,5 @@ function VendorForm() {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }
-
-export default VendorForm;

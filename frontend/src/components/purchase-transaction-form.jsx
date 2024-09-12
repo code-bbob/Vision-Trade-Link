@@ -13,8 +13,21 @@ import {
 } from "./ui/dialog"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
-import { PlusCircle, Trash2 } from 'lucide-react'
+import { PlusCircle, Trash2, Check, ChevronsUpDown } from 'lucide-react'
+import { cn } from "../lib/utils"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "./ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "./ui/popover"
+import { CommandList, CommandLoading } from 'cmdk';
 
 function PurchaseTransactionForm() {
   const api = useAxios()
@@ -34,6 +47,9 @@ function PurchaseTransactionForm() {
   const [newPhoneData, setNewPhoneData] = useState({ name: '', brand: '' });
   const [newVendorData, setNewVendorData] = useState({ name: '', brand: '' });
   const [newBrandName, setNewBrandName] = useState('');
+  const [openPhone, setOpenPhone] = useState(Array(formData.purchase.length).fill(false));
+  const [openVendor, setOpenVendor] = useState(false);
+  const [openBrand, setOpenBrand] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -77,6 +93,9 @@ function PurchaseTransactionForm() {
       newPurchase[index] = { ...newPurchase[index], phone: value };
       setFormData({ ...formData, purchase: newPurchase });
     }
+    const newOpenPhone = [...openPhone];
+    newOpenPhone[index] = false;
+    setOpenPhone(newOpenPhone);
   };
 
   const handleVendorChange = (value) => {
@@ -85,6 +104,7 @@ function PurchaseTransactionForm() {
     } else {
       setFormData({ ...formData, vendor: value });
     }
+    setOpenVendor(false);
   };
 
   const handleNewPhoneChange = (e) => {
@@ -103,6 +123,7 @@ function PurchaseTransactionForm() {
     } else {
       setNewPhoneData({ ...newPhoneData, brand: value });
     }
+    setOpenBrand(false);
   };
 
   const handleNewVendorBrandChange = (value) => {
@@ -111,6 +132,7 @@ function PurchaseTransactionForm() {
     } else {
       setNewVendorData({ ...newVendorData, brand: value });
     }
+    setOpenBrand(false);
   };
 
   const handleNewBrandChange = (e) => {
@@ -122,11 +144,14 @@ function PurchaseTransactionForm() {
       ...formData,
       purchase: [...formData.purchase, { phone: '', imei_number: '', unit_price: '' }]
     });
+    setOpenPhone([...openPhone, false]);
   };
 
   const handleRemovePurchase = (index) => {
     const newPurchase = formData.purchase.filter((_, i) => i !== index);
     setFormData({ ...formData, purchase: newPurchase });
+    const newOpenPhone = openPhone.filter((_, i) => i !== index);
+    setOpenPhone(newOpenPhone);
   };
 
   const handleSubmit = async (e) => {
@@ -206,30 +231,63 @@ function PurchaseTransactionForm() {
           <Label htmlFor="vendor" className="text-lg font-medium text-gray-800 mb-2">
             Vendor
           </Label>
-          <Select onValueChange={handleVendorChange} value={formData.vendor}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a vendor" />
-            </SelectTrigger>
-            <SelectContent>
-              {!loading && vendors.length > 0 ? (
-                <>
-                  {vendors.map((vendor) => (
-                    <SelectItem key={vendor?.id} value={vendor?.id?.toString()}>
-                      {vendor.name}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="new">Add a new vendor</SelectItem>
-                </>
-              ) : loading ? (
-                <SelectItem value="loading">Loading...</SelectItem>
-              ) : (
-                <>
-                <SelectItem value="no-vendors">No vendors available</SelectItem>
-                <SelectItem value="new">Add a new vendor</SelectItem>
-                </>
-              )}
-            </SelectContent>
-          </Select>
+          <Popover open={openVendor} onOpenChange={setOpenVendor}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={openVendor}
+                className="w-full justify-between"
+              >
+                {formData.vendor
+                  ? vendors.find((vendor) => vendor.id.toString() === formData.vendor)?.name
+                  : "Select a vendor..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0">
+              <Command>
+                <CommandInput placeholder="Search vendor..." />
+                <CommandList>
+                <CommandEmpty>No vendor found.</CommandEmpty>
+                <CommandGroup>
+                  {!loading && vendors.length > 0 ? (
+                    <>
+                      {vendors.map((vendor) => (
+                        <CommandItem
+                        key={vendor.id}
+                          onSelect={() => handleVendorChange(vendor.id.toString())}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              formData.vendor === vendor.id.toString() ? "opacity-100" : "opacity-0"
+                            )}
+                            />
+                          {vendor.name}
+                        </CommandItem>
+                      ))}
+                      <CommandItem onSelect={() => handleVendorChange('new')}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add a new vendor
+                      </CommandItem>
+                    </>
+                  ) : loading ? (
+                    <CommandItem>Loading...</CommandItem>
+                  ) : (
+                    <>
+                      <CommandItem>No vendors available</CommandItem>
+                      <CommandItem onSelect={() => handleVendorChange('new')}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add a new vendor
+                      </CommandItem>
+                    </>
+                  )}
+                </CommandGroup>
+                  </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <h3 className="text-xl font-semibold mb-2">Purchases</h3>
@@ -241,30 +299,67 @@ function PurchaseTransactionForm() {
                 <Label htmlFor={`phone-${index}`} className="text-sm font-medium text-gray-800 mb-1">
                   Phone
                 </Label>
-                <Select onValueChange={(value) => handlePhoneChange(index, value)} value={purchase.phone}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a phone" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {!loading && phones.length > 0 ? (
-                      <>
-                        {phones.map((phone) => (
-                          <SelectItem key={phone.id} value={phone.id.toString()}>
-                            {phone.name}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="new">Add a new phone</SelectItem>
-                      </>
-                    ) : loading ? (
-                      <SelectItem value="loading">Loading...</SelectItem>
-                    ) : (
-                      <>
-                      <SelectItem value="no-phones">No phones available</SelectItem>
-                      <SelectItem value="new">Add a new phone</SelectItem>
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
+                <Popover open={openPhone[index]} onOpenChange={(open) => {
+                  const newOpenPhone = [...openPhone];
+                  newOpenPhone[index] = open;
+                  setOpenPhone(newOpenPhone);
+                }}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openPhone[index]}
+                      className="w-full justify-between"
+                    >
+                      {purchase.phone
+                        ? phones.find((phone) => phone.id.toString() === purchase.phone)?.name
+                        : "Select a phone..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search phone..." />
+                      <CommandList>
+                      <CommandEmpty>No phone found.</CommandEmpty>
+                      <CommandGroup>
+                        {!loading && phones.length > 0 ? (
+                          <>
+                            {phones.map((phone) => (
+                              <CommandItem
+                                key={phone.id}
+                                onSelect={() => handlePhoneChange(index, phone.id.toString())}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    purchase.phone === phone.id.toString() ? "opacity-100" : "opacity-0"
+                                  )}
+                                  />
+                                {phone.name}
+                              </CommandItem>
+                            ))}
+                            <CommandItem onSelect={() => handlePhoneChange(index, 'new')}>
+                              <PlusCircle className="mr-2 h-4 w-4" />
+                              Add a new phone
+                            </CommandItem>
+                          </>
+                        ) : loading ? (
+                          <CommandItem>Loading...</CommandItem>
+                        ) : (
+                          <>
+                            <CommandItem>No phones available</CommandItem>
+                            <CommandItem onSelect={() => handlePhoneChange(index, 'new')}>
+                              <PlusCircle className="mr-2 h-4 w-4" />
+                              Add a new phone
+                            </CommandItem>
+                          </>
+                        )}
+                      </CommandGroup>
+                        </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="flex flex-col">
                 <Label htmlFor={`imei-${index}`} className="text-sm font-medium text-gray-800 mb-1">
@@ -349,19 +444,49 @@ function PurchaseTransactionForm() {
                 Brand
               </Label>
               <div className="col-span-3">
-                <Select onValueChange={handleNewPhoneBrandChange} value={newPhoneData.brand}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a brand" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brands.map((brand) => (
-                      <SelectItem key={brand.id} value={brand.id.toString()}>
-                        {brand.name}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="new">Add a new brand</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Popover open={openBrand} onOpenChange={setOpenBrand}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openBrand}
+                      className="w-full justify-between"
+                    >
+                      {newPhoneData.brand
+                        ? brands.find((brand) => brand.id.toString() === newPhoneData.brand)?.name
+                        : "Select a brand..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search brand..." />
+                      <CommandList>
+                      <CommandEmpty>No brand found.</CommandEmpty>
+                      <CommandGroup>
+                        {brands.map((brand) => (
+                          <CommandItem
+                          key={brand.id}
+                            onSelect={() => handleNewPhoneBrandChange(brand.id.toString())}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                newPhoneData.brand === brand.id.toString() ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {brand.name}
+                          </CommandItem>
+                        ))}
+                        <CommandItem onSelect={() => handleNewPhoneBrandChange('new')}>
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                          Add a new brand
+                        </CommandItem>
+                      </CommandGroup>
+                          </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </div>
@@ -398,19 +523,49 @@ function PurchaseTransactionForm() {
                 Brand
               </Label>
               <div className="col-span-3">
-                <Select onValueChange={handleNewVendorBrandChange} value={newVendorData.brand}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a brand" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brands.map((brand) => (
-                      <SelectItem key={brand.id} value={brand.id.toString()}>
-                        {brand.name}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="new">Add a new brand</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Popover open={openBrand} onOpenChange={setOpenBrand}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openBrand}
+                      className="w-full justify-between"
+                    >
+                      {newVendorData.brand
+                        ? brands.find((brand) => brand.id.toString() === newVendorData.brand)?.name
+                        : "Select a brand..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search brand..." />
+                      <CommandList>
+                      <CommandEmpty>No brand found.</CommandEmpty>
+                      <CommandGroup>
+                        {brands.map((brand) => (
+                          <CommandItem
+                            key={brand.id}
+                            onSelect={() => handleNewVendorBrandChange(brand.id.toString())}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                newVendorData.brand === brand.id.toString() ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {brand.name}
+                          </CommandItem>
+                        ))}
+                        <CommandItem onSelect={() => handleNewVendorBrandChange('new')}>
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                          Add a new brand
+                        </CommandItem>
+                      </CommandGroup>
+                        </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </div>

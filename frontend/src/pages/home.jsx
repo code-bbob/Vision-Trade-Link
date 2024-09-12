@@ -8,6 +8,7 @@ import SalesTransactionForm from '../components/sales-transaction-form';
 import SchemeForm from '../components/scheme-form';
 import PurchaseTransactionForm from '../components/purchase-transaction-form';
 import PriceProtectionForm from '../components/price-protection-form';
+import  LandingPage  from '../components/landing-page';
 
 const Homepage = () => {
   const [vendors, setVendors] = useState([]);
@@ -19,13 +20,14 @@ const Homepage = () => {
       <div>
         {/* <GetVendors/> */}
         {/* <VendorForm/> */}
+        <LandingPage/>
         {/* <GetBrands/> */}
         {/* <GetSales/> */}
-        {/* <SalesTransactionForm/> */}
-        {/* <SchemeForm/> */}
-        {/* <PurchaseTransactionForm/> */}
+        <SalesTransactionForm/>
+        <SchemeForm/>
+        <PurchaseTransactionForm/>
         <PriceProtectionForm/>
-      <h1>Homepage</h1>
+      {/* <h1>Homepage</h1> */}
       <ul>
         {vendors.map((vendor, index) => (
           <li key={index}>{vendor.name}</li>
