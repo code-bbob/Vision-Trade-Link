@@ -2,29 +2,41 @@ from rest_framework import serializers
 from .models import Vendor, Phone, Purchase, PurchaseTransaction,Sales, SalesTransaction,Scheme,Subscheme,Item, PriceProtection
 
 class PurchaseSerializer(serializers.ModelSerializer):
+    phone_name = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = Purchase
-        fields = ['phone', 'imei_number', 'unit_price']
-
+        fields = ['phone', 'imei_number', 'unit_price','phone_name']
+    
+    
+    def get_phone_name(self,obj):
+        return obj.phone.name
 class PurchaseTransactionSerializer(serializers.ModelSerializer):
     purchase = PurchaseSerializer(many=True)
     vendor_name = serializers.SerializerMethodField(read_only=True)
-    
+    date = serializers.DateTimeField()
+
     class Meta:
         model = PurchaseTransaction
-        fields = ['date', 'vendor', 'vendor_name', 'total_amount', 'purchase','enterprise']
+        fields = ['date', 'vendor', 'vendor_name', 'total_amount', 'purchase', 'enterprise']
 
     def create(self, validated_data):
         purchase_data = validated_data.pop('purchase')
         transaction = PurchaseTransaction.objects.create(**validated_data)
         for data in purchase_data:
             Purchase.objects.create(purchase_transaction=transaction, **data)
-            
+        
         transaction.calculate_total_amount()
         return transaction
-    
+
     def get_vendor_name(self, obj):
         return obj.vendor.name
+    
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Format the date in 'YYYY-MM-DD' format for the response
+        representation['date'] = instance.date.strftime('%Y-%m-%d')
+        return representation
 
 class VendorSerializer(serializers.ModelSerializer):
     brand_name = serializers.SerializerMethodField(read_only=True)

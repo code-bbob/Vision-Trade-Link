@@ -9,6 +9,7 @@ import UserRegister from './pages/userRegister'
 import Homepage from './pages/home';
 import { InventoryPageComponent } from './pages/inventory-page';
 import BrandPhones from './pages/singleBrand';
+import PurchaseTransactions from './pages/purchase';
 
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
     <Route path="/" element={<Homepage/>}/>
     <Route path="/inventory" element={<InventoryPageComponent/>} />
     <Route path = "/brand/:id" element={<BrandPhones/>}/>
+    <Route path = "/purchases/" element={<PurchaseTransactions/>} />
 
         </Route>
 

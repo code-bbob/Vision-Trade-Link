@@ -13,7 +13,7 @@ class Vendor(models.Model):
         return self.name
 
 class PurchaseTransaction(models.Model):
-    date = models.DateField()
+    date = models.DateTimeField()
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
     total_amount = models.FloatField(null=True, blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
@@ -69,7 +69,7 @@ class Purchase(models.Model):
         super().save(*args, **kwargs)
 
 class SalesTransaction(models.Model):
-    date = models.DateField()
+    date = models.DateTimeField()
     # vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
     total_amount = models.FloatField(null=True, blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
@@ -244,6 +244,8 @@ class Subscheme(models.Model):
 #     def __str__(self):
 #         return f"{self.lowerbound} to {self.upperbound} => {self.cashback}"
 # Register your signal handlers to calculate the total amount after saving a PurchaseTransaction
+
+
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 

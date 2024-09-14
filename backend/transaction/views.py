@@ -5,8 +5,11 @@ from .models import PurchaseTransaction, Vendor, Purchase, Scheme,PriceProtectio
 from .serializers import PurchaseTransactionSerializer, VendorSerializer,SalesTransactionSerializer,SalesSerializer,Sales,SalesTransaction,SchemeSerializer,PurchaseSerializer,PurchaseTransactionSerializer, PriceProtectionSerializer
 from rest_framework.permissions import IsAuthenticated
 from inventory.models import Item,Brand
-from datetime import date
+from datetime import date, datetime
 from django.utils.dateparse import parse_date
+from rest_framework.pagination import PageNumberPagination
+
+
 
 
 class PurchaseTransactionView(APIView):
@@ -15,13 +18,54 @@ class PurchaseTransactionView(APIView):
     def get(self, request):
         user = request.user
         enterprise = user.person.enterprise
+        search = request.GET.get('search')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        if search:
+            print(search)
+        else:
+            print("NO QUERY")
         transactions = PurchaseTransaction.objects.filter(enterprise=enterprise)
-        serializer = PurchaseTransactionSerializer(transactions, many=True)
-        return Response(serializer.data)
-    
+        
+        if search:
+            phone_transactions = transactions.filter(purchase__phone__name__icontains = search)
+            vendor_trasactions = transactions.filter(vendor__name__icontains = search)
+            transactions = phone_transactions.union(vendor_trasactions)
+        
+        if start_date and end_date:
+            start_date = parse_date(start_date)
+            end_date = parse_date(end_date)
+
+        if start_date and end_date:
+            start_date = datetime.combine(start_date, datetime.min.time())
+            end_date = datetime.combine(end_date, datetime.max.time())
+            
+            transactions = PurchaseTransaction.objects.filter(
+                date__range=(start_date, end_date)
+            )
+
+        transactions = transactions.order_by('-date')
+
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 2  # Set the page size here
+        paginated_transactions = paginator.paginate_queryset(transactions, request)
+
+        serializer = PurchaseTransactionSerializer(paginated_transactions, many=True)
+        return paginator.get_paginated_response(serializer.data)
+        
     def post(self, request, *args, **kwargs):
         data = request.data
-        data["enterprise"]=request.user.person.enterprise.id
+        data["enterprise"] = request.user.person.enterprise.id
+        
+        # Only process the date if it's provided, otherwise, it will take the default value from the model.
+        if "date" in data:
+            date_str = data["date"]
+            # Assuming the format is 'YYYY-MM-DD'
+            date_object = datetime.strptime(date_str, '%Y-%m-%d').date()
+            datetime_with_current_time = datetime.combine(date_object, datetime.now().time())
+            data["date"] = datetime_with_current_time.isoformat()
+        
         serializer = PurchaseTransactionSerializer(data=data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
@@ -179,7 +223,7 @@ class StatsView(APIView):
         if sts:
             for st in sts:
                 print(st.total_amount)
-                stamt += st.total_amount
+                stamt += st.total_amount    
         stat = { 
             "enterprise" : enterprise.name,
             "alltime":{

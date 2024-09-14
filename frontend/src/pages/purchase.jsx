@@ -2,79 +2,128 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
-import { Button } from ".ui/button"
-import { Input } from ".ui/input"
-import { Label } from ".ui/label"
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
+import { Button } from "../components/ui/button"
+import { Input } from "../components/ui/input"
+import { Label } from "../components/ui/label"
 import { Calendar, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import useAxios from '../utils/useAxios'
 import { format } from 'date-fns'
 
 export default function PurchaseTransactions() {
   const api = useAxios()
-  const navigate = useNavigate()
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [searchTerm, setSearchTerm] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [localSearchTerm, setLocalSearchTerm] = useState('')
+  const [metadata, setMetadata] = useState({
+    next: null,
+    previous: null,
+    count: 0
+  })
 
-  const fetchTransactions = async (page, search, start, end) => {
+  async function fetchPaginatedData(url) {
+    setLoading(true)
     try {
-      setLoading(true)
-      let url = `transaction/purchasetransaction/?page=${page}`
-      if (search) url += `&search=${search}`
-      if (start) url += `&start_date=${start}`
-      if (end) url += `&end_date=${end}`
-      
       const response = await api.get(url)
       setTransactions(response.data.results)
+      setMetadata({
+        next: response.data.next,
+        previous: response.data.previous,
+        count: response.data.count
+      })
       setTotalPages(Math.ceil(response.data.count / 10)) // Assuming 10 items per page
-      setLoading(false)
     } catch (err) {
-      console.error('Error fetching transactions:', err)
-      setError('Failed to load transactions')
+      setError('Failed to fetch data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchInitData = async () => {
+    try {
+      const response = await api.get("transaction/purchasetransaction/")
+      setTransactions(response.data.results)
+      setMetadata({
+        next: response.data.next,
+        previous: response.data.previous,
+        count: response.data.count
+      })
+      setTotalPages(Math.ceil(response.data.count / 10)) // Assuming 10 items per page
+    } catch (err) {
+      setError('Failed to fetch initial data')
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+  useEffect(() => {
+    fetchInitData()
+  }, [])
+
+  const handleSearch = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const response = await api.get(`transaction/purchasetransaction/?search=${localSearchTerm}`)
+      setTransactions(response.data.results)
+      setMetadata({
+        next: response.data.next,
+        previous: response.data.previous,
+        count: response.data.count
+      })
+      setTotalPages(Math.ceil(response.data.count / 10)) // Assuming 10 items per page
+      setCurrentPage(1)
+    } catch (err) {
+      setError('Failed to search transactions')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDateSearch = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const response = await api.get(`transaction/purchasetransaction/?start_date=${startDate}&end_date=${endDate}`)
+      setTransactions(response.data.results)
+      setMetadata({
+        next: response.data.next,
+        previous: response.data.previous,
+        count: response.data.count
+      })
+      setTotalPages(Math.ceil(response.data.count / 10)) // Assuming 10 items per page
+      setCurrentPage(1)
+    } catch (err) {
+      setError('Failed to filter transactions by date')
+    } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchTransactions(currentPage, searchTerm, startDate, endDate)
-  }, [currentPage, searchTerm, startDate, endDate])
+    console.log('Transactions updated:', transactions)
+  }, [transactions])
 
-  const handleSearch = () => {
-    e.preventDefault()
-    setSearchTerm(localSearchTerm)
-    setCurrentPage(1)
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
+        Loading...
+      </div>
+    )
   }
 
-  const handleDateSearch = () => {
-    e.preventDefault()
-    fetchTransactions(1, searchTerm, startDate, endDate)
-    setCurrentPage(1)
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-red-500">
+        {error}
+      </div>
+    )
   }
-
-  const filteredTransactions = transactions.filter(transaction =>
-    transaction.vendor_name.toLowerCase().includes(localSearchTerm.toLowerCase()) ||
-    transaction.purchase.some(p => p.phone_name.toLowerCase().includes(localSearchTerm.toLowerCase()))
-  )
-
-  if (loading) return (
-    <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
-      Loading...
-    </div>
-  )
-
-  if (error) return (
-    <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-red-500">
-      {error}
-    </div>
-  )
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-8">
@@ -129,37 +178,41 @@ export default function PurchaseTransactions() {
           </form>
         </div>
 
-        {filteredTransactions.map((transaction) => (
-          <Card key={`${transaction.date}-${transaction.vendor}`} className="mb-6 bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg">
-            <CardHeader className="border-b border-slate-700">
-              <CardTitle className="text-xl font-medium text-white flex justify-between items-center">
-                <span>{transaction.vendor_name}</span>
-                <span>{format(new Date(transaction.date), 'dd MMM yyyy')}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {transaction.purchase.map((item, index) => (
-                <div key={index} className="mb-4 last:mb-0 p-4 bg-slate-800 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-white font-medium">{item.phone_name}</span>
-                    <span className="text-purple-400">IMEI: {item.imei_number}</span>
+        {transactions.length > 0 ? (
+          transactions.map((transaction) => (
+            <Card key={`${transaction.id}-${transaction.date}`} className="mb-6 bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg">
+              <CardHeader className="border-b border-slate-700">
+                <CardTitle className="text-xl font-medium text-white flex justify-between items-center">
+                  <span>{transaction.vendor_name}</span>
+                  <span>{format(new Date(transaction.date), 'dd MMM yyyy')}</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {transaction.purchase.map((item, index) => (
+                  <div key={`${transaction.id}-${index}`} className="mb-4 last:mb-0 p-4 bg-slate-800 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-white font-medium">{item.phone_name}</span>
+                      <span className="text-purple-400">IMEI: {item.imei_number}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm text-slate-300">
+                      <span>Unit Price: RS. {item.unit_price.toLocaleString()}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center text-sm text-slate-300">
-                    <span>Unit Price: RS. {item.unit_price.toLocaleString()}</span>
-                  </div>
+                ))}
+                <div className="mt-4 text-right text-white font-bold">
+                  Total Amount: RS. {transaction.total_amount.toLocaleString()}
                 </div>
-              ))}
-              <div className="mt-4 text-right text-white font-bold">
-                Total Amount: RS. {transaction.total_amount.toLocaleString()}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <div className="text-center text-white">No transactions found.</div>
+        )}
 
         <div className="flex justify-center mt-6 space-x-4">
           <Button
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
+            onClick={() => fetchPaginatedData(metadata.previous)}
+            disabled={!metadata.previous}
             className="bg-slate-700 hover:bg-slate-600 text-white"
           >
             <ChevronLeft className="w-4 h-4 mr-2" />
@@ -167,8 +220,8 @@ export default function PurchaseTransactions() {
           </Button>
           <span className="text-white self-center">Page {currentPage} of {totalPages}</span>
           <Button
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
+            onClick={() => fetchPaginatedData(metadata.next)}
+            disabled={!metadata.next}
             className="bg-slate-700 hover:bg-slate-600 text-white"
           >
             Next

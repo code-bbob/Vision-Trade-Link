@@ -6,11 +6,12 @@ import GetBrands from './getBrands';
 import GetSales from './Sales';
 import SalesTransactionForm from '../components/sales-transaction-form';
 import SchemeForm from '../components/scheme-form';
-import PurchaseTransactionForm from './purchase-transaction-form';
+import PurchaseTransactionForm from '../components/purchase-transaction-form';
 import  LandingPage  from '../components/landing-page';
 import { InventoryPageComponent } from './inventory-page';
 import  BrandPhones  from './singleBrand';
 import  PurchaseTransactions  from './purchase';
+import PriceProtectionForm from '../components/price-protection-form';
 
 const Homepage = () => {
   const [vendors, setVendors] = useState([]);
@@ -22,7 +23,7 @@ const Homepage = () => {
       <div>
         {/* <GetVendors/> */}
         {/* <VendorForm/> */}
-        {/* <LandingPage/> */}
+        <LandingPage/>
         {/* <BrandPhones/> */}
         {/* <GetBrands/> */}
         {/* <GetSales/> */}

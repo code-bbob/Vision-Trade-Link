@@ -12,6 +12,16 @@ class BrandView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self,request,*args, **kwargs):
+        id = request.GET.get("id")
+        if id:
+            brand = Brand.objects.get(id=id)
+            phones = Phone.objects.filter(brand = brand)
+            print(phones)
+            if phones:
+                serializer = PhoneSerializer(phones,many=True)
+                return Response(serializer.data)
+            else:
+                return Response("NONE")
         brands = Brand.objects.filter(enterprise = request.user.person.enterprise)
         serializer = BrandSerializer(brands,many=True)
         return Response(serializer.data)
