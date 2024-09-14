@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import useAxios from '../utils/useAxios';
-import VendorForm from './postVendors';
+// import VendorForm from './postVendors';
 import GetVendors from './getVendors';
 import GetBrands from './getBrands';
 import GetSales from './Sales';
 import SalesTransactionForm from '../components/sales-transaction-form';
 import SchemeForm from '../components/scheme-form';
-import PurchaseTransactionForm from '../components/purchase-transaction-form';
-import PriceProtectionForm from '../components/price-protection-form';
+import PurchaseTransactionForm from './purchase-transaction-form';
 import  LandingPage  from '../components/landing-page';
+import { InventoryPageComponent } from './inventory-page';
+import  BrandPhones  from './singleBrand';
+import  PurchaseTransactions  from './purchase';
 
 const Homepage = () => {
   const [vendors, setVendors] = useState([]);
@@ -20,9 +22,11 @@ const Homepage = () => {
       <div>
         {/* <GetVendors/> */}
         {/* <VendorForm/> */}
-        <LandingPage/>
+        {/* <LandingPage/> */}
+        {/* <BrandPhones/> */}
         {/* <GetBrands/> */}
         {/* <GetSales/> */}
+        <PurchaseTransactions/>
         <SalesTransactionForm/>
         <SchemeForm/>
         <PurchaseTransactionForm/>

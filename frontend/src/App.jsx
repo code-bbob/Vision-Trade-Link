@@ -7,6 +7,8 @@ import { useSelector } from "react-redux";
 import ProtectedRoute from './redux/protectedRoute'
 import UserRegister from './pages/userRegister'
 import Homepage from './pages/home';
+import { InventoryPageComponent } from './pages/inventory-page';
+import BrandPhones from './pages/singleBrand';
 
 
 function App() {
@@ -15,6 +17,8 @@ function App() {
    <Routes>
     <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
     <Route path="/" element={<Homepage/>}/>
+    <Route path="/inventory" element={<InventoryPageComponent/>} />
+    <Route path = "/brand/:id" element={<BrandPhones/>}/>
 
         </Route>
 
