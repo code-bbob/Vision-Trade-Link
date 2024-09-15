@@ -25,22 +25,24 @@ import {
 } from "recharts";
 import { useDispatch } from "react-redux";
 import { login, logout } from "../redux/accessSlice";
+// import { useNavigate } from "react-router-dom";
 
 
 export default function Sidebar(){
 
+    const navigate = useNavigate()
     return(
 
 <motion.div
-        className="w-64 bg-slate-800 shadow-xl"
+        className="w-64 bg-slate-800 shadow-xl h-screen fixed"
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
         <div className="p-6">
-          <h2 className="text-2xl font-bold mb-6 text-white">
+          <div className="text-2xl font-bold mb-6 text-white" onClick={()=>navigate('/')}>
             Inventory System
-          </h2>
+          </div>
           <nav className="space-y-2">
             <Link to="/inventory">
               <Button

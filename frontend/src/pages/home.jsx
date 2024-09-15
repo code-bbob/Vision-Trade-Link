@@ -12,6 +12,7 @@ import { InventoryPageComponent } from './inventory-page';
 import  BrandPhones  from './singleBrand';
 import  PurchaseTransactions  from './purchase';
 import PriceProtectionForm from '../components/price-protection-form';
+import SchemePageComponent from './schemes';
 
 const Homepage = () => {
   const [vendors, setVendors] = useState([]);
@@ -24,6 +25,7 @@ const Homepage = () => {
         {/* <GetVendors/> */}
         {/* <VendorForm/> */}
         <LandingPage/>
+        <SchemePageComponent/>
         {/* <BrandPhones/> */}
         {/* <GetBrands/> */}
         {/* <GetSales/> */}

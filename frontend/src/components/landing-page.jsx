@@ -119,7 +119,7 @@ export default function LandingPage() {
       <Sidebar/>
 
       {/* Main Content */}
-      <div className="flex-1 p-10 overflow-y-auto">
+      <div className="flex-1 ml-64 p-10 overflow-y-auto">
         <div className="relative mb-8">
           <motion.div
             initial={{ opacity: 0, x: -1000 }}

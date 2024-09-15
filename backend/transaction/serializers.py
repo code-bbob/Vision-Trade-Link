@@ -53,16 +53,21 @@ class VendorSerializer(serializers.ModelSerializer):
         return obj.enterprise.name
 
 class SalesSerializer(serializers.ModelSerializer):
+    phone_name = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = Sales
-        fields = ['phone', 'imei_number', 'unit_price']
+        fields = ['phone', 'imei_number', 'unit_price','phone_name']
+    
+    def get_phone_name(self,obj):
+        return obj.phone.name
 
 class SalesTransactionSerializer(serializers.ModelSerializer):
     sales = SalesSerializer(many=True)
 
     class Meta:
         model = SalesTransaction
-        fields = ['date', 'total_amount', 'sales','enterprise']
+        fields = ['date', 'total_amount', 'sales','enterprise','name']
 
     def create(self, validated_data):
         sales_data = validated_data.pop('sales')
@@ -72,6 +77,12 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
         transaction.calculate_total_amount()
         return transaction
     
+    
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Format the date in 'YYYY-MM-DD' format for the response
+        representation['date'] = instance.date.strftime('%Y-%m-%d')
+        return representation
     # def get_vendor_name(self, obj):
     #     return obj.vendor.name
 
@@ -82,10 +93,12 @@ class SubSchemeSerializer(serializers.ModelSerializer):
     
 class SchemeSerializer(serializers.ModelSerializer):
     subscheme = SubSchemeSerializer(many=True)
-    
+    phone_name = serializers.SerializerMethodField(read_only = True)
+    sold = serializers.SerializerMethodField(read_only=True)
+    brand_name = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = Scheme
-        fields = ['from_date','to_date','phone','enterprise','subscheme']
+        fields = ['id','from_date','to_date','phone','enterprise','subscheme','phone_name','receivable','sold','brand','brand_name','status']
 
     def create(self, validated_data):
         print("YAHA SAMMA")
@@ -105,6 +118,15 @@ class SchemeSerializer(serializers.ModelSerializer):
             Subscheme.objects.create(scheme=scheme, **subscheme_data)
 
         return scheme
+    
+    def get_phone_name(self,obj):
+        return obj.phone.name
+    
+    def get_sold(self,obj):
+        return obj.sales.count()
+    
+    def get_brand_name(self,obj):
+        return obj.brand.name
 
 
 class PriceProtectionSerializer(serializers.ModelSerializer):

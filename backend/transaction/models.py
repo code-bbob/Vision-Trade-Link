@@ -71,6 +71,7 @@ class Purchase(models.Model):
 class SalesTransaction(models.Model):
     date = models.DateTimeField()
     # vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
+    name = models.CharField(max_length=30)
     total_amount = models.FloatField(null=True, blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
 
@@ -184,12 +185,18 @@ class Sales(models.Model):
 
 
 class Scheme(models.Model):
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('expired', 'Expired'),
+    ]
     from_date = models.DateField()
     to_date = models.DateField()
     phone = models.ForeignKey(Phone,on_delete=models.CASCADE, related_name='scheme_phones')
     sales = models.ManyToManyField(Sales,related_name="scheme",blank=True)  #error was here
     enterprise = models.ForeignKey(Enterprise,on_delete=models.CASCADE,related_name='scheme_enterprise')
     receivable = models.IntegerField(null = True)
+    brand = models.ForeignKey(Brand, related_name="scheme_brand", on_delete=models.CASCADE)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
 
     def calculate_receivable(self):
         sales = self.sales.all()
@@ -285,4 +292,5 @@ class PPItems(models.Model):
         pp.receivables = (self.cashback + pp.receivables) if pp.receivables is not None else self.cashback
         pp.save()
         self.save()
+        
         

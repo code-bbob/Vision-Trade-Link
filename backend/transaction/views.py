@@ -4,10 +4,12 @@ from rest_framework import status
 from .models import PurchaseTransaction, Vendor, Purchase, Scheme,PriceProtection
 from .serializers import PurchaseTransactionSerializer, VendorSerializer,SalesTransactionSerializer,SalesSerializer,Sales,SalesTransaction,SchemeSerializer,PurchaseSerializer,PurchaseTransactionSerializer, PriceProtectionSerializer
 from rest_framework.permissions import IsAuthenticated
-from inventory.models import Item,Brand
+from inventory.models import Item,Brand,Phone
 from datetime import date, datetime
 from django.utils.dateparse import parse_date
 from rest_framework.pagination import PageNumberPagination
+from django.shortcuts import get_object_or_404
+from django.db import models
 
 
 
@@ -89,18 +91,60 @@ class SalesTransactionView(APIView):
     def get(self, request):
         user = request.user
         enterprise = user.person.enterprise
+        user = request.user
+        enterprise = user.person.enterprise
+        search = request.GET.get('search')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
         transactions = SalesTransaction.objects.filter(enterprise=enterprise)
-        serializer = SalesTransactionSerializer(transactions, many=True)
-        return Response(serializer.data)
+
+        if search:
+            phone_transactions = transactions.filter(sales__phone__name__icontains = search)
+            customer_trasactions = transactions.filter(name__icontains = search)
+            transactions = phone_transactions.union(customer_trasactions)
+        
+        if start_date and end_date:
+            start_date = parse_date(start_date)
+            end_date = parse_date(end_date)
+
+        if start_date and end_date:
+            start_date = datetime.combine(start_date, datetime.min.time())
+            end_date = datetime.combine(end_date, datetime.max.time())
+            
+            transactions = PurchaseTransaction.objects.filter(
+                date__range=(start_date, end_date)
+            )
+        
+        transactions = transactions.order_by('-date')
+
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 2  # Set the page size here
+        paginated_transactions = paginator.paginate_queryset(transactions, request)
+
+        serializer = SalesTransactionSerializer(paginated_transactions, many=True)
+        return paginator.get_paginated_response(serializer.data)
     
     def post(self, request, *args, **kwargs):
+
         data = request.data
-        data["enterprise"]=request.user.person.enterprise.id
+        data["enterprise"] = request.user.person.enterprise.id
+        
+        # Only process the date if it's provided, otherwise, it will take the default value from the model.
+        if "date" in data:
+            date_str = data["date"]
+            # Assuming the format is 'YYYY-MM-DD'
+            date_object = datetime.strptime(date_str, '%Y-%m-%d').date()
+            datetime_with_current_time = datetime.combine(date_object, datetime.now().time())
+            data["date"] = datetime_with_current_time.isoformat()
+        
         serializer = SalesTransactionSerializer(data=data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class SalesView(APIView):
     permission_classes = [IsAuthenticated]
@@ -145,6 +189,10 @@ class SchemeView(APIView):
         data = request.data 
         data["enterprise"]= request.user.person.enterprise.id 
         print(data)
+        id = data["phone"]
+        brand = Phone.objects.get(id=id).brand
+        data["brand"] = brand.id
+        print("HERE IS DATA",data)
         serializer = SchemeSerializer(data=data)
         print("HERE")
         print(data)
@@ -153,6 +201,61 @@ class SchemeView(APIView):
             serializer.save()
             print("XAINA")
             return Response(serializer.data)
+    
+    def patch(self,request,pk):
+        
+        scheme = get_object_or_404(Scheme, pk=pk)
+        
+        # Pass `partial=True` to allow partial updates
+        serializer = SchemeSerializer(scheme, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()  # Save the changes
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class SchemePhoneView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request,id):
+        user = request.user
+        enterprise = user.person.enterprise
+        search = request.GET.get('search')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        schemes = Scheme.objects.filter(enterprise=enterprise,brand=id)
+
+        if search:
+            schemes_phone = schemes.filter(phone__name__icontains = search)
+            schemes_imei = schemes.filter(sales__phone__item__imei_number__icontains = search)
+            schemes = schemes_phone.union(schemes_imei)
+        
+        if start_date and end_date:
+            start_date = parse_date(start_date)
+            end_date = parse_date(end_date)
+
+        if start_date and end_date:
+            start_date = datetime.combine(start_date, datetime.min.time())
+            end_date = datetime.combine(end_date, datetime.max.time())
+            
+            schemes = Scheme.objects.filter(
+                from_date__range=(start_date, end_date)
+            )
+        
+        schemes = schemes.order_by('-from_date')
+
+
+        # paginator = PageNumberPagination()
+        # paginator.page_size = 2  # Set the page size here
+        # paginated_transactions = paginator.paginate_queryset(transactions, request)
+
+        serializer = SchemeSerializer(schemes, many=True)
+        # return paginator.get_paginated_response(serializer.data)
+        return Response(serializer.data)
+
+
         
 
 class PriceProtectionView(APIView):
@@ -244,3 +347,63 @@ class StatsView(APIView):
             "brands" : allbrands
         }
         return Response(stat)
+    
+class SchemeBrandView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        enterprise = user.person.enterprise
+
+        # Get all brands with schemes under the user's enterprise
+        brands_with_schemes = Brand.objects.filter(enterprise=enterprise, scheme_brand__isnull=False).distinct()
+
+        active_result = []
+        expired_result = []
+
+        # Loop through each brand
+        for brand in brands_with_schemes:
+            # Filter active schemes
+            active_schemes = Scheme.objects.filter(
+                enterprise=enterprise, 
+                brand=brand, 
+                status = "active"  # Schemes with to_date in the future
+            )
+            # Filter expired schemes
+            expired_schemes = Scheme.objects.filter(
+                enterprise=enterprise, 
+                brand=brand, 
+                status="expired"  # Schemes with to_date in the past
+            )
+
+            # Calculate total receivables for active schemes
+            active_count = active_schemes.count()
+            active_receivables = active_schemes.aggregate(total_receivable=models.Sum('receivable'))['total_receivable'] or 0
+
+            # Calculate total receivables for expired schemes
+            expired_count = expired_schemes.count()
+            expired_receivables = expired_schemes.aggregate(total_receivable=models.Sum('receivable'))['total_receivable'] or 0
+
+            # Add to active list if there are active schemes
+            if active_count > 0:
+                active_result.append({
+                    "id": brand.id,
+                    "brand": brand.name,
+                    "count": active_count,
+                    "total_receivables": active_receivables
+                })
+
+            # Add to expired list if there are expired schemes
+            if expired_count > 0:
+                expired_result.append({
+                    "id": brand.id,
+                    "brand": brand.name,
+                    "count": expired_count,
+                    "total_receivables": expired_receivables
+                })
+
+        # Return both active and expired lists
+        return Response({
+            "active_schemes": active_result,
+            "expired_schemes": expired_result
+        })

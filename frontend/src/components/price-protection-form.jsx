@@ -13,8 +13,11 @@ import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command"
-import { Check, ChevronsUpDown } from "lucide-react"
+import { Check, ChevronsUpDown, ArrowLeft } from "lucide-react"
 import { cn } from "../lib/utils"
+import { useNavigate } from 'react-router-dom';
+import Sidebar from './sidebar';
+import { text } from '@fortawesome/fontawesome-svg-core';
 
 function PriceProtectionForm() {
   const api = useAxios()
@@ -34,6 +37,7 @@ function PriceProtectionForm() {
   const [newBrandName, setNewBrandName] = useState('');
   const [openPhone, setOpenPhone] = useState(false);
   const [openBrand, setOpenBrand] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -125,13 +129,28 @@ function PriceProtectionForm() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-gray-100 p-8 rounded-lg shadow-lg">
-      <h2 className="text-3xl font-bold mb-6 text-gray-900">Add Price Protection</h2>
+    <div className="min-h-screen ml-64 flex bg-gradient-to-br from-slate-900 to-slate-800">
+      
+      <Sidebar/>
+      <div div className=''>
+      <Button
+                onClick={() => navigate('/')}
+                variant="outline"
+                className="w-full sm:w-auto px-5 text-slate-900 border-white hover:bg-gray-500 mx-9 m-4 hover:text-slate-900 items-right"
+              >
+                <ArrowLeft className="mr-2 h-4 w-3" />
+                Back to Dashboard
+              </Button>
+
+      
+      <div className="max-w-2xl mx-auto ml-60 items-center bg-slate-800 p-8 m-8 rounded-lg shadow-lg">
+      
+      <h2 className="text-3xl font-bold mb-6 text-white">Add Price Protection</h2>
       {error && <p className="text-red-600 mb-4">{error}</p>}
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex flex-col">
-            <Label htmlFor="from_date" className="text-lg font-medium text-gray-800 mb-2">
+            <Label htmlFor="from_date" className="text-lg font-medium text-white mb-2">
               From Date
             </Label>
             <Input
@@ -140,12 +159,12 @@ function PriceProtectionForm() {
               name="from_date"
               value={formData.from_date}
               onChange={handleChange}
-              className="border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white"
               required
             />
           </div>
           <div className="flex flex-col">
-            <Label htmlFor="to_date" className="text-lg font-medium text-gray-800 mb-2">
+            <Label htmlFor="to_date" className="text-lg font-medium text-white mb-2">
               To Date
             </Label>
             <Input
@@ -154,14 +173,14 @@ function PriceProtectionForm() {
               name="to_date"
               value={formData.to_date}
               onChange={handleChange}
-              className="border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="border border-gray-300 text-white rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               required
             />
           </div>
         </div>
 
         <div className="flex flex-col">
-          <Label htmlFor="phone" className="text-lg font-medium text-gray-800 mb-2">
+          <Label htmlFor="phone" className="text-lg font-medium text-white mb-2">
             Phone
           </Label>
           <Popover open={openPhone} onOpenChange={setOpenPhone}>
@@ -170,7 +189,7 @@ function PriceProtectionForm() {
                 variant="outline"
                 role="combobox"
                 aria-expanded={openPhone}
-                className="w-full justify-between"
+                className="w-full justify-between  bg-slate-700 border-slate-600 text-white  hover:bg-slate-600  "
               >
                 {formData.phone
                   ? phones.find((phone) => phone.id.toString() === formData.phone)?.name
@@ -179,13 +198,14 @@ function PriceProtectionForm() {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-full p-0">
-              <Command>
-                <CommandInput placeholder="Search phone..." />
+              <Command className='bg-slate-700 border-slate-600'>
+                <CommandInput className="bg-slate-700 text-white" placeholder="Search phone..." />
                 <CommandList>
-                <CommandEmpty>No phone found.</CommandEmpty>
+                <CommandEmpty >No phone found.</CommandEmpty>
                 <CommandGroup>
                   {phones.map((phone) => (
                     <CommandItem
+                    className="bg-slate-700 text-white"
                     key={phone.id}
                     onSelect={() => {
                       handlePhoneChange(phone.id.toString())
@@ -201,7 +221,7 @@ function PriceProtectionForm() {
                       {phone.name}
                     </CommandItem>
                   ))}
-                  <CommandItem onSelect={() => handlePhoneChange('new')}>
+                  <CommandItem className="bg-slate-700 text-white" onSelect={() => handlePhoneChange('new')}>
                     Add a new phone
                   </CommandItem>
                 </CommandGroup>
@@ -213,7 +233,7 @@ function PriceProtectionForm() {
 
         
         <div className="flex flex-col">
-          <Label htmlFor="price_drop" className="text-lg font-medium text-gray-800 mb-2">
+          <Label htmlFor="price_drop" className="text-lg font-medium text-white mb-2">
             Price Drop
           </Label>
           <Input
@@ -222,7 +242,7 @@ function PriceProtectionForm() {
             name="price_drop"
             value={formData.price_drop}
             onChange={handleChange}
-            className="border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="border border-gray-300 rounded-lg text-white py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             placeholder="Enter price drop"
             required
           />
@@ -243,7 +263,7 @@ function PriceProtectionForm() {
           />
         </div> */}
 
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full hover:bg-green-300 hover:text-black">
           Submit Price Protection
         </Button>
       </form>
@@ -281,7 +301,7 @@ function PriceProtectionForm() {
                       variant="outline"
                       role="combobox"
                       aria-expanded={openBrand}
-                      className="w-full justify-between"
+                      className="w-full justify-between  bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
                     >
                       {newPhoneData.brand
                         ? brands.find((brand) => brand.id.toString() === newPhoneData.brand)?.name
@@ -289,9 +309,9 @@ function PriceProtectionForm() {
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Search brand..." />
+                  <PopoverContent className="w-full p-0 bg-slate-700 border-slate-600 ">
+                    <Command className="bg-slate-700 border-slate-600">
+                      <CommandInput className="bg-slate-700 border-slate-600 text-white" placeholder="Search brand..." />
                       <CommandList>
                       <CommandEmpty>No brand found.</CommandEmpty>
                       <CommandGroup>
@@ -305,7 +325,7 @@ function PriceProtectionForm() {
                           >
                             <Check
                               className={cn(
-                                "mr-2 h-4 w-4",
+                                "mr-2 h-4 w-4 text-white",
                                 newPhoneData.brand === brand.id.toString() ? "opacity-100" : "opacity-0"
                               )}
                               />
@@ -329,7 +349,7 @@ function PriceProtectionForm() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showNewBrandDialog} onOpenChange={setShowNewBrandDialog}>
+      <Dialog className="bg-black" open={showNewBrandDialog} onOpenChange={setShowNewBrandDialog}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Add New Brand</DialogTitle>
@@ -356,6 +376,8 @@ function PriceProtectionForm() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+    </div>
     </div>
   );
 }

@@ -24,3 +24,6 @@ class Item(models.Model):
     imei_number = models.CharField(max_length=20)
     phone = models.ForeignKey(Phone, related_name="item",on_delete=models.CASCADE)
 
+    def __str__(self):
+        return self.phone.name
+

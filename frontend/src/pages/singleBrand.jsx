@@ -9,6 +9,7 @@ import useAxios from '../utils/useAxios'
 import { useParams } from 'react-router-dom'
 import { Button } from "../components/ui/button"
 import { useNavigate } from 'react-router-dom'
+import Sidebar from '../components/sidebar';
 
 
 
@@ -70,17 +71,18 @@ export default function BrandPhones() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex">
+        <Sidebar />
+      <div className="max-w-4xl ml-72 mt-10 ">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className='flex justify-between'
+          className='flex '
         >
-          <h1 className="text-4xl font-bold mb-8 text-white">{brandName} Phones</h1>
-          <div className="relative w-60 mb-6">
-            <Search className="absolute left-3 top-5 transform -translate-y-1/2 text-gray-400" />
+          <h1 className="text-4xl font-bold mb-8 mx-5 text-white">{brandName} Phones</h1>
+          <div className="relative w-60 mb-6 mx-5 ">
+            <Search className="absolute left-3 top-5 transform  -translate-y-1/2 text-gray-400" />
             <Input
               type="text"
               placeholder="Search phones..."
@@ -92,7 +94,7 @@ export default function BrandPhones() {
           <Button
                 onClick={() => navigate('/inventory')}
                 variant="outline"
-                className="w-full sm:w-auto text-slate-900 border-white hover:bg-gray-500 hover:text-slate-900"
+                className="w-full sm:w-auto px-5 text-slate-900 border-white hover:bg-gray-500 mx-9 hover:text-slate-900"
               >
                 <ArrowLeft className="mr-2 h-4 w-3" />
                 Back to Inventory
@@ -117,6 +119,7 @@ export default function BrandPhones() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
+                onClick={()=>navigate(`/phone/${phone.id}`)}
                 className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-800 transition-colors duration-200"
               >
                 <div className="col-span-6 flex items-center">
@@ -146,5 +149,6 @@ export default function BrandPhones() {
         )}
       </div>
     </div>
+
   )
 }

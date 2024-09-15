@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
-import { Calendar, ChevronLeft, ChevronRight, Search, Plus } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Search, Plus, ArrowLeft } from 'lucide-react'
 import useAxios from '../utils/useAxios'
 import { format } from 'date-fns'
 import { useNavigate } from 'react-router-dom';
+import Sidebar from '../components/sidebar';
 
 export default function PurchaseTransactions() {
 const api = useAxios()
@@ -129,14 +130,24 @@ if (error) {
 }
 
 return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-8">
-    <div className="max-w-6xl mx-auto">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+        <Sidebar />
+    <div className="max-w-6xl ml-64 p-6 mx-auto">
         <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        className="flex justify-between pb-8"
         >
         <h1 className="text-4xl font-bold mb-8 text-white">Purchase Transactions</h1>
+        <Button
+                onClick={() => navigate('/')}
+                variant="outline"
+                className="w-full sm:w-auto px-5 text-slate-900 border-white hover:bg-gray-500 mx-9 hover:text-slate-900"
+              >
+                <ArrowLeft className="mr-2 h-4 w-3" />
+                Back to Dashboard
+              </Button>
         </motion.div>
 
         <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0 md:space-x-4">

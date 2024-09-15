@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .models import Brand, Phone
+from .models import Brand, Phone, Item
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -49,3 +49,19 @@ class PhoneView(APIView):
         if serializer.is_valid(raise_exception = True):
             serializer.save()
             return Response(serializer.data)
+        
+
+class PhoneIMEIView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request,id):
+        user = request.user
+        phone = Phone.objects.filter(id = id).first()
+        print(phone)
+        items = Item.objects.filter(phone=phone)
+        imei_list = []
+        for item in items:
+            imei_list.append(item.imei_number)
+            
+        return Response({"phone":phone.name,"list":imei_list})

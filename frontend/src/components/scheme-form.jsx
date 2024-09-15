@@ -13,7 +13,7 @@ import {
 } from "./ui/dialog"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
-import { PlusCircle, Trash2, Check, ChevronsUpDown } from 'lucide-react'
+import { PlusCircle, Trash2, Check, ChevronsUpDown, ArrowLeft } from 'lucide-react'
 import { cn } from "../lib/utils"
 import {
   Command,
@@ -28,6 +28,8 @@ import {
   PopoverTrigger,
 } from "./ui/popover"
 import { CommandList } from 'cmdk';
+import Sidebar from './sidebar';
+import { useNavigate } from 'react-router-dom';
 
 function SchemeForm() {
   const api = useAxios()
@@ -37,6 +39,7 @@ function SchemeForm() {
     phone: '',
     subscheme: [{ lowerbound: '', upperbound: '', cashback: '' }]
   });
+  const navigate = useNavigate()
   const [phones, setPhones] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -128,6 +131,9 @@ function SchemeForm() {
     } catch (error) {
       console.error('Error posting data:', error);
     }
+    finally{
+      navigate('/schemes/')
+    }
   };
 
   const handleAddPhone = async (e) => {
@@ -159,13 +165,28 @@ function SchemeForm() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-gray-100 p-8 rounded-lg shadow-lg">
-      <h2 className="text-3xl font-bold mb-6 text-gray-900">Add Scheme</h2>
+    <div className="min-h-screen flex bg-gradient-to-br from-slate-900 to-slate-800">
+      
+      <Sidebar/>
+      <div div className=''>
+      <Button
+                onClick={() => navigate('/')}
+                variant="outline"
+                className="w-full sm:w-auto px-5 text-slate-900  border-white hover:bg-gray-500 ml-64 hover:text-slate-900 items-right"
+              >
+                <ArrowLeft className="mr-2 h-4 w-3" />
+                Back to Dashboard
+              </Button>
+
+      
+      <div className="max-w-2xl mx-auto ml-96 items-center bg-slate-800 p-8 m-8 rounded-lg shadow-lg">
+      
+      <h2 className="text-3xl font-bold mb-6 text-white">Add Scheme</h2>
       {error && <p className="text-red-600 mb-4">{error}</p>}
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex flex-col">
-            <Label htmlFor="from_date" className="text-lg font-medium text-gray-800 mb-2">
+            <Label htmlFor="from_date" className="text-lg font-medium text-white mb-2">
               From Date
             </Label>
             <Input
@@ -174,11 +195,11 @@ function SchemeForm() {
               name="from_date"
               value={formData.from_date}
               onChange={handleChange}
-              className="border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="border border-gray-300 text-white rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               required />
           </div>
           <div className="flex flex-col">
-            <Label htmlFor="to_date" className="text-lg font-medium text-gray-800 mb-2">
+            <Label htmlFor="to_date" className="text-lg font-medium text-white mb-2">
               To Date
             </Label>
             <Input
@@ -187,13 +208,13 @@ function SchemeForm() {
               name="to_date"
               value={formData.to_date}
               onChange={handleChange}
-              className="border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:outline-none text-white focus:ring-2 focus:ring-indigo-500"
               required />
           </div>
         </div>
 
         <div className="flex flex-col">
-          <Label htmlFor="phone" className="text-lg font-medium text-gray-800 mb-2">
+          <Label htmlFor="phone" className="text-lg font-medium text-white mb-2">
             Phone
           </Label>
           <Popover open={openPhone} onOpenChange={setOpenPhone}>
@@ -202,7 +223,7 @@ function SchemeForm() {
                 variant="outline"
                 role="combobox"
                 aria-expanded={openPhone}
-                className="w-full justify-between"
+                className="w-full justify-between bg-slate-800 text-white"
               >
                 {formData.phone
                   ? phones.find((phone) => phone.id.toString() === formData.phone)?.name
@@ -210,16 +231,16 @@ function SchemeForm() {
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-full p-0">
-              <Command>
-                <CommandInput placeholder="Search phone..." />
+            <PopoverContent className="w-full p-0 bg-slate-800">
+              <Command className="bg-slate-800">
+                <CommandInput className="bg-slate-800 text-white" placeholder="Search phone..." />
                 <CommandList>
-                <CommandEmpty>No phone found.</CommandEmpty>
+                <CommandEmpty >No phone found.</CommandEmpty>
                 <CommandGroup>
                   {!loading && phones.length > 0 ? (
                     <>
                       {phones.map((phone) => (
-                        <CommandItem
+                        <CommandItem 
                           key={phone.id}
                           onSelect={() => handlePhoneChange(phone.id.toString())}
                         >
@@ -249,15 +270,15 @@ function SchemeForm() {
           </Popover>
         </div>
 
-        <h3 className="text-xl font-semibold mb-2">Subschemes</h3>
+        <h3 className="text-xl font-semibold text-white mb-2">Subschemes</h3>
         {formData.subscheme.map((subscheme, index) => (
-          <div key={index} className="bg-white p-4 rounded-md shadow">
-            <h4 className="text-lg font-semibold mb-2">Subscheme {index + 1}</h4>
+          <div key={index} className=" bg-slate-800 border border-gray-300 p-4 rounded-md shadow">
+            <h4 className="text-lg font-semibold text-white mb-2">Subscheme {index + 1}</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex flex-col">
                 <Label
                   htmlFor={`lowerbound-${index}`}
-                  className="text-sm font-medium text-gray-800 mb-1">
+                  className="text-sm font-medium text-white mb-1">
                   Lower Bound
                 </Label>
                 <Input
@@ -266,14 +287,14 @@ function SchemeForm() {
                   name="lowerbound"
                   value={subscheme.lowerbound}
                   onChange={(e) => handleSubschemeChange(index, e)}
-                  className="border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="border border-gray-300 text-white rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="Enter lower bound"
                   required />
               </div>
               <div className="flex flex-col">
                 <Label
                   htmlFor={`upperbound-${index}`}
-                  className="text-sm font-medium text-gray-800 mb-1">
+                  className="text-sm font-medium text-white mb-1">
                   Upper Bound
                 </Label>
                 <Input
@@ -282,14 +303,14 @@ function SchemeForm() {
                   name="upperbound"
                   value={subscheme.upperbound}
                   onChange={(e) => handleSubschemeChange(index, e)}
-                  className="border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="border border-gray-300 rounded-lg text-white py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="Enter upper bound"
                   required />
               </div>
               <div className="flex flex-col">
                 <Label
                   htmlFor={`cashback-${index}`}
-                  className="text-sm font-medium text-gray-800 mb-1">
+                  className="text-sm font-medium text-white mb-1">
                   Cashback
                 </Label>
                 <Input
@@ -298,7 +319,7 @@ function SchemeForm() {
                   name="cashback"
                   value={subscheme.cashback}
                   onChange={(e) => handleSubschemeChange(index, e)}
-                  className="border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="border border-gray-300 rounded-lg text-white py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="Enter cashback amount"
                   required />
               </div>
@@ -308,7 +329,7 @@ function SchemeForm() {
                 type="button"
                 variant="destructive"
                 size="sm"
-                className="mt-2"
+                className="mt-2 hover:bg-red-800"
                 onClick={() => handleRemoveSubscheme(index)}>
                 <Trash2 className="w-4 h-4 mr-2" />
                 Remove Subscheme
@@ -317,12 +338,12 @@ function SchemeForm() {
           </div>
         ))}
 
-        <Button type="button" onClick={handleAddSubscheme} className="w-full">
-          <PlusCircle className="w-4 h-4 mr-2" />
+        <Button type="button" onClick={handleAddSubscheme} className="w-full hover:bg-green-100 hover:text-black">
+          <PlusCircle className="w-4 h-4 mr-2 " />
           Add Another Subscheme
         </Button>
 
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full hover:bg-green-300 hover:text-black">
           Submit Scheme
         </Button>
       </form>
@@ -358,7 +379,7 @@ function SchemeForm() {
                       variant="outline"
                       role="combobox"
                       aria-expanded={openBrand}
-                      className="w-full justify-between"
+                      className="w-full justify-between bg-slate-800"
                     >
                       {newPhoneData.brand
                         ? brands.find((brand) => brand.id.toString() === newPhoneData.brand)?.name
@@ -367,8 +388,8 @@ function SchemeForm() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Search brand..." />
+                    <Command className="bg-slate-800">
+                      <CommandInput className="bg-slate-800 text-white" placeholder="Search brand..." />
                       <CommandList>
                       <CommandEmpty>No brand found.</CommandEmpty>
                       <CommandGroup>
@@ -429,6 +450,8 @@ function SchemeForm() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+    </div>
     </div>
   );
 }

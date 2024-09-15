@@ -13,7 +13,7 @@ import {
 } from "./ui/dialog"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
-import { PlusCircle, Trash2, Check, ChevronsUpDown } from 'lucide-react'
+import { PlusCircle, Trash2, Check, ChevronsUpDown, ArrowLeft } from 'lucide-react'
 import { useNavigate } from "react-router-dom";
 import { cn } from "../lib/utils"
 import {
@@ -29,11 +29,13 @@ import {
   PopoverTrigger,
 } from "./ui/popover"
 import { CommandList } from 'cmdk';
+import Sidebar from './sidebar';
 
 function SalesTransactionForm() {
   const api = useAxios()
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
+    name: '',
     sales: [{ phone: '', imei_number: '', unit_price: '' }]
   });
   const [phones, setPhones] = useState([]);
@@ -126,7 +128,7 @@ function SalesTransactionForm() {
     try {
       const response = await api.post('transaction/salestransaction/', formData);
       console.log('Response:', response.data);
-      navigate('/login')
+      navigate('/sales')
       // Optionally clear the form or show a success message
     } catch (error) {
       console.error('Error posting data:', error);
@@ -161,12 +163,25 @@ function SalesTransactionForm() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-gray-100 p-8 rounded-lg shadow-lg">
-      <h2 className="text-3xl font-bold mb-6 text-gray-900">Add Sales Transaction</h2>
+    <div className="min-h-screen flex bg-gradient-to-br from-slate-900 to-slate-800">
+      <Sidebar/>
+      <div div className=''>
+      <Button
+                onClick={() => navigate('/')}
+                variant="outline"
+                className="w-full sm:w-auto px-5 text-slate-900 border-white hover:bg-gray-500 ml-80 mt-4 hover:text-slate-900 items-right"
+              >
+                <ArrowLeft className="mr-2 h-4 w-3" />
+                Back to Dashboard
+              </Button>
+              <div className="max-w-2xl mx-auto ml-96 bg-slate-800 p-8 m-8 rounded-lg shadow-lg">
+
+      <h2 className="text-3xl font-bold mb-6 text-white">Add Sales Transaction</h2>
       {error && <p className="text-red-600 mb-4">{error}</p>}
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="flex flex-col">
-          <Label htmlFor="date" className="text-lg font-medium text-gray-800 mb-2">
+        <Label htmlFor="date" className="text-lg font-medium text-white mb-2">
+
             Date
           </Label>
           <Input
@@ -175,17 +190,32 @@ function SalesTransactionForm() {
             name="date"
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            className="border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+
+            required
+          />
+        </div>
+        <div className="flex flex-col">
+        <Label htmlFor="name" className="text-lg font-medium text-white mb-2">
+            Customer name
+          </Label>
+          <Input
+            type="text"
+            id="name"
+            name="name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            className="border border-slate-600 text-white rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             required
           />
         </div>
 
         {formData.sales.map((sale, index) => (
-          <div key={index} className="bg-white p-4 rounded-md shadow">
+          <div key={index} className="text-white p-4 rounded-md shadow">
             <h3 className="text-lg font-semibold mb-2">Sale {index + 1}</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex flex-col">
-                <Label htmlFor={`phone-${index}`} className="text-sm font-medium text-gray-800 mb-1">
+                <Label htmlFor={`phone-${index}`} className="text-sm font-medium text-white mb-1">
                   Phone
                 </Label>
                 <Popover open={openPhone[index]} onOpenChange={(open) => {
@@ -198,7 +228,8 @@ function SalesTransactionForm() {
                       variant="outline"
                       role="combobox"
                       aria-expanded={openPhone[index]}
-                      className="w-full justify-between"
+                  className="w-full justify-between bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                      
                     >
                       {sale.phone
                         ? phones.find((phone) => phone.id.toString() === sale.phone)?.name
@@ -207,8 +238,8 @@ function SalesTransactionForm() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Search phone..." />
+                    <Command className='bg-slate-700 border-slate-600'>
+                      <CommandInput className="bg-slate-700 text-white" placeholder="Search phone..." />
                       <CommandList>
                       <CommandEmpty>No phone found.</CommandEmpty>
                       <CommandGroup>
@@ -218,6 +249,7 @@ function SalesTransactionForm() {
                               <CommandItem
                                 key={phone.id}
                                 onSelect={() => handlePhoneChange(index, phone.id.toString())}
+                                className="bg-slate-700 text-white"
                               >
                                 <Check
                                   className={cn(
@@ -228,7 +260,7 @@ function SalesTransactionForm() {
                                 {phone.name}
                               </CommandItem>
                             ))}
-                            <CommandItem onSelect={() => handlePhoneChange(index, 'new')}>
+                            <CommandItem className="bg-slate-700 text-white" onSelect={() => handlePhoneChange(index, 'new')}>
                               <PlusCircle className="mr-2 h-4 w-4" />
                               Add a new phone
                             </CommandItem>
@@ -245,7 +277,7 @@ function SalesTransactionForm() {
                 </Popover>
               </div>
               <div className="flex flex-col">
-                <Label htmlFor={`imei-${index}`} className="text-sm font-medium text-gray-800 mb-1">
+                <Label htmlFor={`imei-${index}`} className="text-sm font-medium text-white mb-1">
                   IMEI Number
                 </Label>
                 <Input
@@ -259,8 +291,9 @@ function SalesTransactionForm() {
                   required
                 />
               </div>
+              
               <div className="flex flex-col">
-                <Label htmlFor={`price-${index}`} className="text-sm font-medium text-gray-800 mb-1">
+                <Label htmlFor={`price-${index}`} className="text-sm font-medium text-white mb-1">
                   Unit Price
                 </Label>
                 <Input
@@ -300,8 +333,8 @@ function SalesTransactionForm() {
         </Button>
       </form>
 
-      <Dialog open={showNewPhoneDialog} onOpenChange={setShowNewPhoneDialog}>
-        <DialogContent className="sm:max-w-[425px]">
+      <Dialog open={showNewPhoneDialog} onOpenChange={setShowNewPhoneDialog} >
+        <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
           <DialogHeader>
             <DialogTitle>Add New Phone</DialogTitle>
             <DialogDescription>
@@ -333,7 +366,8 @@ function SalesTransactionForm() {
                       variant="outline"
                       role="combobox"
                       aria-expanded={openBrand}
-                      className="w-full justify-between"
+                      className="w-full justify-between bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                      
                     >
                       {newPhoneData.brand
                         ? brands.find((brand) => brand.id.toString() === newPhoneData.brand)?.name
@@ -342,8 +376,8 @@ function SalesTransactionForm() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Search brand..." />
+                    <Command className="bg-slate-700 border-slate-600">
+                      <CommandInput className="bg-slate-700 text-white" placeholder="Search brand..." />
                       <CommandList>
                       <CommandEmpty>No brand found.</CommandEmpty>
                       <CommandGroup>
@@ -351,6 +385,7 @@ function SalesTransactionForm() {
                           <CommandItem
                             key={brand.id}
                             onSelect={() => handleNewPhoneBrandChange(brand.id.toString())}
+                            className="text-white hover:bg-slate-600"
                             >
                             <Check
                               className={cn(
@@ -361,7 +396,7 @@ function SalesTransactionForm() {
                             {brand.name}
                           </CommandItem>
                         ))}
-                        <CommandItem onSelect={() => handleNewPhoneBrandChange('new')}>
+                        <CommandItem className="text-white hover:bg-slate-600" onSelect={() => handleNewPhoneBrandChange('new')}>
                           <PlusCircle className="mr-2 h-4 w-4" />
                           Add a new brand
                         </CommandItem>
@@ -380,7 +415,7 @@ function SalesTransactionForm() {
       </Dialog>
 
       <Dialog open={showNewBrandDialog} onOpenChange={setShowNewBrandDialog}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
           <DialogHeader>
             <DialogTitle>Add New Brand</DialogTitle>
             <DialogDescription>
@@ -406,6 +441,8 @@ function SalesTransactionForm() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+    </div>
     </div>
   );
 }
