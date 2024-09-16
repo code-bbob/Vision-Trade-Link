@@ -16,14 +16,15 @@ const Login = () => {
   const [isLoading,setIsLoading] = useState(false)
   const navigate = useNavigate('');
   const dispatch = useDispatch();
-  const url = `${import.meta.env.VITE_BACKEND_URL}/userauth/login/`
+  const url = `https://ezinventory.pythonanywhere.com/userauth/login/`;
+
   console.log(url)
   const handleSubmit = async (e) => {
     
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await fetch(url, {
+      const response = await fetch(`https://ezinventory.pythonanywhere.com/userauth/login/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
