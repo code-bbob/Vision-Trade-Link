@@ -32,6 +32,10 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
         vendor.due = (vendor.due + amount) if vendor.due is not None else amount
         vendor.save()
         return transaction
+    
+    # def update(self, validated_data):
+    #     purchase_data = validated_data.pop('purchase')
+        
 
     def get_vendor_name(self, obj):
         return obj.vendor.name

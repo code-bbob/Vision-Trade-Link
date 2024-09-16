@@ -26,28 +26,11 @@ class PurchaseTransaction(models.Model):
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
+    def delete(self, *args, **kwargs):
+        for purchase in self.purchase.all():
+            purchase.delete()  # This will trigger the custom delete logic in Purchase
+        super().delete(*args, **kwargs)
     
-    # def checkit(self):
-    #     purchases = self.purchase.all()
-    #     scheme_list = []
-    #     for purchase in purchases:
-    #         print(f"Checking for phone: {purchase.phone} on date: {self.date}")
-    #         schemes = Scheme.objects.filter(
-    #             phone=purchase.phone, 
-    #             from_date__lte=self.date, 
-    #             to_date__gte=self.date
-    #         )
-    #         if schemes.exists():
-    #             for scheme in schemes:
-    #                 scheme.purchases.add(purchase)
-    #                 scheme.calculate_receivable()
-    #                 scheme.save()
-    #             scheme_list.append(scheme)
-    #         else:
-    #             print("No matching scheme found.")
-    #     print(scheme_list)
-         
-
     def __str__(self):
         return f"Transaction on {self.date} with {self.vendor}"
 

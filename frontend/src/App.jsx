@@ -25,6 +25,7 @@ import PriceProtectionForm from './components/price-protection-form';
 import LandingPage from './components/landing-page';
 import { VendorPage } from './pages/vendors';
 import VendorBrand from './pages/vendorsbrand';
+import EditPurchaseTransactionForm from './components/editpurchase';
 
 
 function App() {
@@ -39,6 +40,7 @@ function App() {
     <Route path = "/purchases/" >
     <Route path = "" element = {<PurchaseTransactions/>} />
     <Route path = "form" element = {<PurchaseTransactionForm/>}/>
+    <Route path = "editform/:purchaseId" element = {<EditPurchaseTransactionForm/>} />
     </Route>
     <Route path = "/sales/" >
     <Route path = "" element = {<SalesTransactions/>}/>
@@ -64,6 +66,8 @@ function App() {
     <Route path = "" element = {<VendorPage/>} />
     <Route path = "brand/:id" element = {<VendorBrand/>} />
     </Route>
+
+
 
     <Route path="/login" element={<Login/>}/>
     <Route path="/signup" element={<Signup/>}/>
