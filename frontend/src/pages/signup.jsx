@@ -12,6 +12,8 @@ export default function Signup() {
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
 
+  
+  console.log(import.meta.env.VITE_BACKEND_URL)
   const handleSubmit = async (event) => {
     event.preventDefault()
     setIsLoading(true)
