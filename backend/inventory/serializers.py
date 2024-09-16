@@ -14,6 +14,7 @@ class BrandSerializer(serializers.ModelSerializer):
 
 class PhoneSerializer(serializers.ModelSerializer):
     brand_name = serializers.SerializerMethodField(read_only = True)
+    imeis = serializers.SerializerMethodField(read_only= True)
 
     class Meta:
         model = Phone 
@@ -22,3 +23,10 @@ class PhoneSerializer(serializers.ModelSerializer):
     
     def get_brand_name(self,obj):
         return obj.brand.name
+
+    def get_imeis(self,obj):
+        imeis = obj.item.all()
+        list = []
+        for imei in imeis:
+            list.append(imei.imei_number)
+        return list

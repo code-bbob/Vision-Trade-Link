@@ -196,7 +196,7 @@ export default function LandingPage() {
             title="Brands"
             value={stats.brands}
             icon={<Shield className="h-6 w-6 text-indigo-400" />}
-            onClick={() => navigate("/brands")}
+            onClick={() => navigate("/inventory")}
           />
         </div>
 

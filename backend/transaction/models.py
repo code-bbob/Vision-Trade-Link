@@ -22,6 +22,7 @@ class PurchaseTransaction(models.Model):
         total = sum(purchase.unit_price for purchase in self.purchase.all())
         self.total_amount = total
         self.save()
+        return self.total_amount
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -62,11 +63,30 @@ class Purchase(models.Model):
     
     def save(self, *args, **kwargs):
         if self.pk is None:  # Only update stock for new purchases
-            self.phone.quantity = (self.phone.quantity + 1) if self.phone.quantity is not None else 1
+            print("HI I AM HERE")
+            print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+            phone = Phone.objects.filter(id=self.phone.id).first()
+            print("in self.phone before section",phone.quantity)
+
+            phone.quantity = (phone.quantity + 1) if phone.quantity is not None else 1
+            print("in self.phone section",phone.quantity)
             item = Item.objects.create(imei_number = self.imei_number,phone=self.phone)
-            self.phone.save()
+            print(item)
+            phone.save()
 
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        print("Delete method called for Purchase")
+        item = Item.objects.filter(imei_number=self.imei_number).first()
+        if item:
+            print("Deleting related item")
+            item.delete()
+            phone = Phone.objects.filter(id = self.phone.id).first()
+            phone.quantity -= 1
+            phone.save()
+        super().delete(*args, **kwargs)
+
 
 class SalesTransaction(models.Model):
     date = models.DateTimeField()
@@ -262,13 +282,19 @@ def update_total_amount(sender, instance, **kwargs):
 
 
 class PriceProtection(models.Model):
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('expired', 'Expired'),
+    ]
     from_date = models.DateField(null=True)
     to_date = models.DateField(null = True)
     price_drop = models.FloatField()
     sales = models.ManyToManyField(Sales, related_name="priceprotection_sales",blank=True)
     phone = models.ForeignKey(Phone,related_name="priceprotection_phone",on_delete=models.CASCADE)
     enterprise = models.ForeignKey(Enterprise,on_delete=models.CASCADE,related_name='pp_enterprise')
-    receivables = models.FloatField(null=True)
+    brand = models.ForeignKey(Brand, on_delete=models.CASCADE, related_name='pp_brand')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
+    receivable = models.FloatField(null=True)
         
 
 

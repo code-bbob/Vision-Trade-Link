@@ -129,21 +129,21 @@ function PriceProtectionForm() {
   };
 
   return (
-    <div className="min-h-screen ml-64 flex bg-gradient-to-br from-slate-900 to-slate-800">
+    <div className="min-h-screen flex bg-gradient-to-br from-slate-900 to-slate-800">
       
       <Sidebar/>
-      <div div className=''>
+      <div className=''>
       <Button
                 onClick={() => navigate('/')}
                 variant="outline"
-                className="w-full sm:w-auto px-5 text-slate-900 border-white hover:bg-gray-500 mx-9 m-4 hover:text-slate-900 items-right"
+                className="w-full sm:w-auto px-5 text-slate-900 border-white hover:bg-gray-500 mx-9 ml-80 mt-3 hover:text-slate-900 items-right"
               >
                 <ArrowLeft className="mr-2 h-4 w-3" />
                 Back to Dashboard
               </Button>
 
       
-      <div className="max-w-2xl mx-auto ml-60 items-center bg-slate-800 p-8 m-8 rounded-lg shadow-lg">
+      <div className="max-w-3xl w-[600px] mx-auto ml-96 items-center bg-slate-800 p-8 m-8 rounded-lg shadow-lg">
       
       <h2 className="text-3xl font-bold mb-6 text-white">Add Price Protection</h2>
       {error && <p className="text-red-600 mb-4">{error}</p>}

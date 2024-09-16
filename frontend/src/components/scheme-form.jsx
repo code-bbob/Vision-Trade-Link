@@ -172,7 +172,7 @@ function SchemeForm() {
       <Button
                 onClick={() => navigate('/')}
                 variant="outline"
-                className="w-full sm:w-auto px-5 text-slate-900  border-white hover:bg-gray-500 ml-64 hover:text-slate-900 items-right"
+                className="w-full sm:w-auto px-5 text-slate-900  border-white hover:bg-gray-500 ml-80 mt-4 hover:text-slate-900 items-right"
               >
                 <ArrowLeft className="mr-2 h-4 w-3" />
                 Back to Dashboard

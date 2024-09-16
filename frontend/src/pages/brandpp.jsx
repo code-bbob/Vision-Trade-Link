@@ -13,12 +13,12 @@ import useAxios from '../utils/useAxios'
 import { format } from 'date-fns'
 import Sidebar from '../components/sidebar'
 
-export default function BrandSchemePage() {
+export default function BrandPPPage() {
   const api = useAxios()
 const navigate = useNavigate();
 const id = useParams();
-  const [schemes, setSchemes] = useState([])
-  const [filteredSchemes, setFilteredSchemes] = useState([])
+  const [pps, setPps] = useState([])
+  const [filteredPps, setFilteredPps] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -27,24 +27,24 @@ const id = useParams();
   const [showExpired, setShowExpired] = useState(false)
 
   useEffect(() => {
-    const fetchSchemes = async () => {
+    const fetchPps = async () => {
       if (!id.id) return
       setLoading(true)
       try {
-        const response = await api.get(`transaction/scheme/brand/${id.id}/`)
-        setSchemes(response.data)
+        const response = await api.get(`transaction/pp/brand/${id.id}/`)
+        setPps(response.data)
         const filtered = response.data.filter(scheme => !showExpired ? scheme.status === 'active' : scheme.status === 'expired')
-        setFilteredSchemes(filtered)
+        setFilteredPps(filtered)
         // setFilteredSchemes(response.data)
       } catch (err) {
-        console.error('Error fetching schemes:', err)
-        setError('Failed to load schemes')
+        console.error('Error fetching price-protections:', err)
+        setError('Failed to load price-protections')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchSchemes()
+    fetchPps()
   }, [id.id])
 
   const handleSearch = async (e) => {
@@ -52,11 +52,11 @@ const id = useParams();
     if (!id.id) return
     setLoading(true)
     try {
-      const response = await api.get(`transaction/scheme/brand/${id.id}/?search=${searchTerm}`)
-      setFilteredSchemes(response.data)
+      const response = await api.get(`transaction/pp/brand/${id.id}/?search=${searchTerm}`)
+      setFilteredPps(response.data)
     } catch (err) {
-      console.error('Error searching schemes:', err)
-      setError('Failed to search schemes')
+      console.error('Error searching price-protections:', err)
+      setError('Failed to search price-protections')
     } finally {
       setLoading(false)
     }
@@ -67,8 +67,8 @@ const id = useParams();
     if (!id.id) return
     setLoading(true)
     try {
-      const response = await api.get(`transaction/scheme/brand/${id.id}/?start_date=${startDate}&end_date=${endDate}`)
-      setFilteredSchemes(response.data)
+      const response = await api.get(`transaction/pp/brand/${id.id}/?start_date=${startDate}&end_date=${endDate}`)
+      setFilteredPps(response.data)
     } catch (err) {
       console.error('Error filtering schemes by date:', err)
       setError('Failed to filter schemes by date')
@@ -79,8 +79,8 @@ const id = useParams();
 
   const handleToggleExpired = () => {
     setShowExpired(!showExpired)
-    const filtered = schemes.filter(scheme => showExpired ? scheme.status === 'active' : scheme.status === 'expired')
-    setFilteredSchemes(filtered)
+    const filtered = pps.filter(pp => showExpired ? pp.status === 'active' : pp.status === 'expired')
+    setFilteredPps(filtered)
   }
 
   if (loading) {
@@ -109,14 +109,14 @@ const id = useParams();
           transition={{ duration: 0.5 }}
           className="flex justify-between pb-8"
         >
-          <h1 className="text-4xl font-bold mb-8 text-white">Brand Schemes</h1>
+          <h1 className="text-4xl font-bold mb-8 text-white">Brand Price Protections</h1>
           <Button
-            onClick={() => navigate('/schemes')}
+            onClick={() => navigate(-1)}
             variant="outline"
             className="w-full sm:w-auto px-5 text-slate-900 border-white hover:bg-gray-500 mx-9 hover:text-slate-900"
           >
             <ArrowLeft className="mr-2 h-4 w-3" />
-            Back to Scheme
+            Back to Price Protection
           </Button>
         </motion.div>
 
@@ -140,7 +140,7 @@ const id = useParams();
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <Input
                 type="text"
-                placeholder="Search schemes..."
+                placeholder="Search price-protections..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 w-full md:w-64 bg-slate-700 text-white border-gray-600 focus:border-purple-500 focus:ring-purple-500"
@@ -179,15 +179,15 @@ const id = useParams();
         </div>
         
 
-        {filteredSchemes.length > 0 ? (
-          filteredSchemes.map((scheme) => (
-            <Card key={scheme.id} onClick={()=> navigate(`/schemes/${scheme.id}`)} className="mb-6 bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg">
+        {filteredPps.length > 0 ? (
+          filteredPps.map((pp) => (
+            <Card key={pp.id} onClick={()=> navigate(`/price-protection/${pp.id}`)} className="mb-6 bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg">
               <CardHeader className="border-b border-slate-700">
                 <CardTitle className="text-xl font-medium text-white flex justify-between items-center">
-                  <span>{scheme.phone_name}</span>
-                  <span>{format(new Date(scheme.from_date), 'dd MMM yyyy')} - {format(new Date(scheme.to_date), 'dd MMM yyyy')}</span>
-                  <span className={`text-sm px-2 py-1 rounded ${scheme.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`}>
-                    {scheme.status}
+                  <span>{pp.phone_name}</span>
+                  <span>{format(new Date(pp.from_date), 'dd MMM yyyy')} - {format(new Date(pp.to_date), 'dd MMM yyyy')}</span>
+                  <span className={`text-sm px-2 py-1 rounded ${pp.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`}>
+                    {pp.status}
                   </span>
                 </CardTitle>
               </CardHeader>
@@ -195,7 +195,7 @@ const id = useParams();
                 <div className="mb-4 text-white">
                 
                 </div>
-                <div className="bg-slate-800 rounded-lg p-4">
+                {/* <div className="bg-slate-800 rounded-lg p-4">
                   <h3 className="text-lg font-semibold text-white mb-2">Subschemes</h3>
                   {scheme.subscheme.map((sub, index) => (
                     <div key={index} className="mb-2 last:mb-0 p-2 bg-slate-700 text-center justify-center  rounded">
@@ -203,21 +203,21 @@ const id = useParams();
                       <p className="text-purple-400">Cashback: RS. {sub.cashback}</p>
                     </div>
                   ))}
-                </div>
+                </div> */}
               </CardContent>
               <CardFooter className='text-white pb-3 flex justify-between px-3'>
-              <span className='text-blue-400'>Sold: {scheme.sold}</span>
-              <span className='text-green-400'>Receivable: RS. {scheme.receivable}</span>
+              <span className='text-blue-400'>Sold: {pp.sold}</span>
+              <span className='text-green-400'>Receivable: RS. {pp.receivable}</span>
               </CardFooter>
             </Card>
           ))
         ) : (
-          <div className="text-center text-white">No schemes found.</div>
+          <div className="text-center text-white">No price protections found.</div>
         )}
       </div>
       <Button
         className="fixed bottom-8 right-8 rounded-full w-16 h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={() => navigate('/schemes/new')}
+        onClick={() => navigate('/price-protection/new')}
       >
         <Plus className="w-8 h-8" />
       </Button>

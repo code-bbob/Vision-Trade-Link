@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Vendor, Phone, Purchase, PurchaseTransaction,Sales, SalesTransaction,Scheme,Subscheme,Item, PriceProtection
+from inventory.models import Brand
 
 class PurchaseSerializer(serializers.ModelSerializer):
     phone_name = serializers.SerializerMethodField(read_only=True)
@@ -8,9 +9,9 @@ class PurchaseSerializer(serializers.ModelSerializer):
         model = Purchase
         fields = ['phone', 'imei_number', 'unit_price','phone_name']
     
-    
     def get_phone_name(self,obj):
         return obj.phone.name
+    
 class PurchaseTransactionSerializer(serializers.ModelSerializer):
     purchase = PurchaseSerializer(many=True)
     vendor_name = serializers.SerializerMethodField(read_only=True)
@@ -18,15 +19,18 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PurchaseTransaction
-        fields = ['date', 'vendor', 'vendor_name', 'total_amount', 'purchase', 'enterprise']
+        fields = ['id','date', 'vendor', 'vendor_name', 'total_amount', 'purchase', 'enterprise']
 
     def create(self, validated_data):
         purchase_data = validated_data.pop('purchase')
         transaction = PurchaseTransaction.objects.create(**validated_data)
         for data in purchase_data:
             Purchase.objects.create(purchase_transaction=transaction, **data)
-        
-        transaction.calculate_total_amount()
+
+        amount = transaction.calculate_total_amount()
+        vendor = transaction.vendor
+        vendor.due = (vendor.due + amount) if vendor.due is not None else amount
+        vendor.save()
         return transaction
 
     def get_vendor_name(self, obj):
@@ -130,6 +134,30 @@ class SchemeSerializer(serializers.ModelSerializer):
 
 
 class PriceProtectionSerializer(serializers.ModelSerializer):
+    phone_name = serializers.SerializerMethodField(read_only = True)
+    sold = serializers.SerializerMethodField(read_only=True)
+    brand_name = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = PriceProtection
         fields = '__all__'
+    
+    def get_phone_name(self,obj):
+        return obj.phone.name
+    
+    def get_sold(self,obj):
+        return obj.sales.count()
+    
+    def get_brand_name(self,obj):
+        return obj.brand.name
+    
+class VendorBrandSerializer(serializers.ModelSerializer):
+    count = serializers.SerializerMethodField(read_only = True)
+
+    class Meta:
+        model = Brand
+        fields = '__all__'
+    
+    def get_count(self,obj):
+        vendors = Vendor.objects.filter(enterprise = obj.enterprise, brand = obj).count()
+        return vendors

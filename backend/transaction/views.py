@@ -2,7 +2,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import PurchaseTransaction, Vendor, Purchase, Scheme,PriceProtection
-from .serializers import PurchaseTransactionSerializer, VendorSerializer,SalesTransactionSerializer,SalesSerializer,Sales,SalesTransaction,SchemeSerializer,PurchaseSerializer,PurchaseTransactionSerializer, PriceProtectionSerializer
+from .serializers import PurchaseTransactionSerializer, VendorSerializer,SalesTransactionSerializer,SalesSerializer,Sales,SalesTransaction,SchemeSerializer,PurchaseSerializer,PurchaseTransactionSerializer, PriceProtectionSerializer, VendorBrandSerializer
+from inventory.serializers import BrandSerializer
 from rest_framework.permissions import IsAuthenticated
 from inventory.models import Item,Brand,Phone
 from datetime import date, datetime
@@ -10,6 +11,7 @@ from django.utils.dateparse import parse_date
 from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import get_object_or_404
 from django.db import models
+from rest_framework import generics
 
 
 
@@ -73,6 +75,12 @@ class PurchaseTransactionView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PurchaseTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = PurchaseTransaction.objects.all()
+    serializer_class = PurchaseTransactionSerializer
+
 
 class PurchaseView(APIView):
     permission_classes = [IsAuthenticated]
@@ -267,6 +275,23 @@ class PriceProtectionView(APIView):
         serializer = PriceProtectionSerializer(pps,many=True)
         return Response(serializer.data)
     
+    
+    def patch(self,request,pk):
+        
+        pps = get_object_or_404(PriceProtection, pk=pk)
+        print(pps)
+        
+        # Pass `partial=True` to allow partial updates
+        serializer = PriceProtectionSerializer(pps, data=request.data, partial=True)
+
+        
+        if serializer.is_valid():
+            serializer.save()  # Save the changes
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    
     def post(self,request,*args, **kwargs):
         data = request.data
         data["enterprise"] = request.user.person.enterprise.id 
@@ -407,3 +432,172 @@ class SchemeBrandView(APIView):
             "active_schemes": active_result,
             "expired_schemes": expired_result
         })
+    
+class SingleScheme(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request,id):
+        scheme = Scheme.objects.filter(id=id).first()
+        sales = scheme.sales.all().order_by('-sales_transaction__date')
+        list = []
+        if sales:
+            for sale in sales:
+                list.append(sale.imei_number)
+        dict = {
+            "phone":scheme.phone.name,
+            "list":list,
+            "receivables":scheme.receivable,
+            "status":scheme.status
+        }
+        return Response(dict)
+    
+
+class PPBrandView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        enterprise = user.person.enterprise
+
+        # Get all brands with schemes under the user's enterprise
+        brands_with_pp = Brand.objects.filter(enterprise=enterprise, pp_brand__isnull=False).distinct()
+
+        active_result = []
+        expired_result = []
+
+        # Loop through each brand
+        for brand in brands_with_pp:
+            # Filter active schemes
+            active_pps = PriceProtection.objects.filter(
+                enterprise=enterprise, 
+                brand=brand, 
+                status = "active"  # Schemes with to_date in the future
+            )
+            # Filter expired schemes
+            expired_pps = PriceProtection.objects.filter(
+                enterprise=enterprise, 
+                brand=brand, 
+                status="expired"  # Schemes with to_date in the past
+            )
+
+            # Calculate total receivables for active schemes
+            active_count = active_pps.count()
+            active_receivables = active_pps.aggregate(total_receivable=models.Sum('receivable'))['total_receivable'] or 0
+
+            # Calculate total receivables for expired schemes
+            expired_count = expired_pps.count()
+            expired_receivables = expired_pps.aggregate(total_receivable=models.Sum('receivable'))['total_receivable'] or 0
+
+            # Add to active list if there are active schemes
+            if active_count > 0:
+                active_result.append({
+                    "id": brand.id,
+                    "brand": brand.name,
+                    "count": active_count,
+                    "total_receivables": active_receivables
+                })
+
+            # Add to expired list if there are expired schemes
+            if expired_count > 0:
+                expired_result.append({
+                    "id": brand.id,
+                    "brand": brand.name,
+                    "count": expired_count,
+                    "total_receivables": expired_receivables
+                })
+
+        # Return both active and expired lists
+        return Response({
+            "active_pps": active_result,
+            "expired_pps": expired_result
+        })
+    
+class SinglePP(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request,id):
+        pp = PriceProtection.objects.filter(id=id).first()
+        sales = pp.sales.all().order_by('-sales_transaction__date')
+        list = []
+        if sales:
+            for sale in sales:
+                list.append(sale.imei_number)
+        dict = {
+            "phone":pp.phone.name,
+            "list":list,
+            "receivables":pp.receivable,
+            "status":pp.status
+        }
+        return Response(dict)
+    
+
+
+class PPPhoneView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request,id):
+        user = request.user
+        enterprise = user.person.enterprise
+        search = request.GET.get('search')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        pps = PriceProtection.objects.filter(enterprise=enterprise,brand=id)
+
+        if search:
+            pps_phone = pps.filter(phone__name__icontains = search)
+            pps_imei = pps.filter(sales__phone__item__imei_number__icontains = search)
+            pps = pps_phone.union(pps_imei)
+        
+        if start_date and end_date:
+            start_date = parse_date(start_date)
+            end_date = parse_date(end_date)
+
+        if start_date and end_date:
+            start_date = datetime.combine(start_date, datetime.min.time())
+            end_date = datetime.combine(end_date, datetime.max.time())
+            
+            pps = PriceProtection.objects.filter(
+                from_date__range=(start_date, end_date)
+            )
+        
+        pps = pps.order_by('-from_date')
+
+
+        # paginator = PageNumberPagination()
+        # paginator.page_size = 2  # Set the page size here
+        # paginated_transactions = paginator.paginate_queryset(transactions, request)
+
+        serializer = PriceProtectionSerializer(pps, many=True)
+        # return paginator.get_paginated_response(serializer.data)
+        return Response(serializer.data)
+
+
+class VendorBrandsView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # id = request.GET.get("id")
+        # if id:
+        #     brand = Brand.objects.get(id=id)
+        #     phones = Phone.objects.filter(brand = brand)
+        #     print(phones)
+        #     if phones:
+        #         serializer = PhoneSerializer(phones,many=True)
+        #         return Response(serializer.data)
+        #     else:
+        #         return Response("NONE")
+        brands = Brand.objects.filter(enterprise = request.user.person.enterprise)
+        serializer = VendorBrandSerializer(brands,many=True)
+
+
+        return Response(serializer.data)
+
+class SingleVendorBrandView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request,id):
+        vendors = Vendor.objects.filter(enterprise = request.user.person.enterprise, brand=id)
+        serializer = VendorSerializer(vendors, many=True)
+        return Response(serializer.data)

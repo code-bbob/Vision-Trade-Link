@@ -7,10 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
-import { Switch } from "../components/ui/switch"
 import { Smartphone, ArrowLeft, Search, Plus } from 'lucide-react'
 import useAxios from '../utils/useAxios'
-import Sidebar from '../components/sidebar'
+import Sidebar from '../components/sidebar';
 import {
   Dialog,
   DialogContent,
@@ -21,65 +20,57 @@ import {
   DialogTrigger,
 } from "../components/ui/dialog"
 
-export default function SchemePageComponent() {
+export function VendorPage() {
   const api = useAxios()
   const navigate = useNavigate()
-  const [activeSchemes, setActiveSchemes] = useState([])
-  const [expiredSchemes, setExpiredSchemes] = useState([])
-  const [filteredSchemes, setFilteredSchemes] = useState([])
+  const [brands, setBrands] = useState([])
+  const [filteredBrands, setFilteredBrands] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [newSchemeBrand, setNewSchemeBrand] = useState('')
-  const [showExpired, setShowExpired] = useState(false)
+  const [newBrandName, setNewBrandName] = useState('')
 
   useEffect(() => {
-    const fetchSchemes = async () => {
+    const fetchBrands = async () => {
       try {
-        const response = await api.get('transaction/schemebrands/')
-        setActiveSchemes(response.data.active_schemes)
-        setExpiredSchemes(response.data.expired_schemes)
-        setFilteredSchemes(response.data.active_schemes)
+        const response = await api.get('transaction/vendorbrand/')
+        setBrands(response.data)
+        setFilteredBrands(response.data)
         setLoading(false)
       } catch (err) {
-        console.error('Error fetching schemes:', err)
-        setError('Failed to load schemes')
+        console.error('Error fetching brands:', err)
+        setError('Failed to load brands')
         setLoading(false)
       }
     }
 
-    fetchSchemes()
+    fetchBrands()
   }, [])
 
   useEffect(() => {
-    const schemesToFilter = showExpired ? expiredSchemes : activeSchemes
-    const results = schemesToFilter.filter(scheme =>
-      scheme.brand.toLowerCase().includes(searchTerm.toLowerCase())
+    const results = brands.filter(brand =>
+      brand.name.toLowerCase().includes(searchTerm.toLowerCase())
     )
-    setFilteredSchemes(results)
-  }, [searchTerm, showExpired, activeSchemes, expiredSchemes])
+    setFilteredBrands(results)
+  }, [searchTerm, brands])
 
   const handleSearch = (event) => {
     setSearchTerm(event.target.value)
   }
 
-  const handleAddScheme = async (e) => {
+  const handleAddBrand = async (e) => {
     e.preventDefault()
     try {
-      const response = await api.post('transaction/schemebrands/', { brand: newSchemeBrand })
-      console.log('New Scheme Added:', response.data)
-      setActiveSchemes([...activeSchemes, response.data])
-      setFilteredSchemes([...filteredSchemes, response.data])
-      setNewSchemeBrand('')
+      const response = await api.post('inventory/brand/', { name: newBrandName })
+      console.log('New Brand Added:', response.data)
+      setBrands([...brands, response.data])
+      setFilteredBrands([...filteredBrands, response.data])
+      setNewBrandName('')
       setIsDialogOpen(false)
     } catch (error) {
-      console.error('Error adding scheme:', error)
+      console.error('Error adding brand:', error)
     }
-  }
-
-  const handleToggleExpired = () => {
-    setShowExpired(!showExpired)
   }
 
   if (loading) return (
@@ -105,28 +96,17 @@ export default function SchemePageComponent() {
             transition={{ duration: 0.5 }}
             className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 space-y-4 md:space-y-0 md:space-x-4"
           >
-            <h1 className="text-4xl font-bold text-white">Scheme Brands</h1>
+            <h1 className="text-4xl font-bold text-white">Vendor Brands</h1>
 
             <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full md:w-auto">
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Search schemes..."
+                  placeholder="Search brands..."
                   value={searchTerm}
                   onChange={handleSearch}
                   className="pl-10 w-full bg-slate-700 text-white border-gray-600 focus:border-purple-500 focus:ring-purple-500"
-                />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Label htmlFor="show-expired" className="text-white">
-                  {showExpired ? 'Expired' : 'Active'}
-                </Label>
-                <Switch
-                  id="show-expired"
-                  checked={showExpired}
-                  onCheckedChange={handleToggleExpired}
                 />
               </div>
 
@@ -142,40 +122,70 @@ export default function SchemePageComponent() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSchemes.map((scheme) => (
-              <SchemeCard
-                key={scheme.id}
-                scheme={scheme}
-                onClick={() => navigate(`/schemes/brand/${scheme.id}`)}
+            {filteredBrands.map((brand) => (
+              <BrandCard
+                key={brand.id}
+                brand={brand}
+                onClick={() => navigate(`/vendors/brand/${brand.id}`)}
               />
             ))}
           </div>
 
-          {filteredSchemes.length === 0 && (
+          {filteredBrands.length === 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
               className="text-center text-white mt-8"
             >
-              No schemes found matching your search.
+              No brands found matching your search.
             </motion.div>
           )}
         </div>
 
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
             <Button
               className="fixed bottom-8 right-8 rounded-full w-16 h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-              onClick={() => navigate('/schemes/new')}
+              onClick={() => setIsDialogOpen(true)}
             >
               <Plus className="w-8 h-8" />
             </Button>
-  
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
+            <DialogHeader>
+              <DialogTitle>Add New Brand</DialogTitle>
+              <DialogDescription className="text-slate-400">
+                Enter the name of the new brand you want to add.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="newBrandName" className="text-right">
+                  Brand Name
+                </Label>
+                <Input
+                  id="newBrandName"
+                  value={newBrandName}
+                  onChange={(e) => setNewBrandName(e.target.value)}
+                  className="col-span-3 bg-slate-700 text-white border-gray-600 focus:border-purple-500 focus:ring-purple-500"
+                  placeholder="Enter brand name"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" onClick={handleAddBrand} className="bg-purple-600 hover:bg-purple-700 text-white">
+                Add Brand
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )
 }
 
-function SchemeCard({ scheme, onClick }) {
+function BrandCard({ brand, onClick }) {
   return (
     <motion.div
       whileHover={{ scale: 1.05 }}
@@ -191,16 +201,16 @@ function SchemeCard({ scheme, onClick }) {
         <div className="absolute inset-0 bg-purple-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
           <CardTitle className="text-xl font-medium text-slate-300 group-hover:text-white transition-colors duration-300">
-            {scheme.brand}
+            {brand.name}
           </CardTitle>
           <Smartphone className="h-6 w-6 text-purple-400" />
         </CardHeader>
         <CardContent className="relative z-10">
           <div className="text-sm text-slate-400 group-hover:text-purple-200 transition-colors duration-300">
-            Count: {scheme.count}
+            Vendors: {brand.count}
           </div>
-          <div className="text-sm text-slate-400 group-hover:text-purple-200 transition-colors duration-300 mt-1">
-            Total Receivables: ${scheme.total_receivables}
+          <div className="text-sm text-slate-400 mt-1 group-hover:text-purple-200 transition-colors duration-300">
+            {/* Enterprise: {brand.enterprise} */}
           </div>
         </CardContent>
       </Card>

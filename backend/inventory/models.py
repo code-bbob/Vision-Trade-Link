@@ -1,6 +1,7 @@
 from django.db import models
 from enterprise.models import Enterprise
 
+
 # Create your models here.
 
 class Brand(models.Model):

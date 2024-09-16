@@ -21,26 +21,26 @@ import {
   DialogTrigger,
 } from "../components/ui/dialog"
 
-export default function SchemePageComponent() {
+export default function PPPageComponent() {
   const api = useAxios()
   const navigate = useNavigate()
-  const [activeSchemes, setActiveSchemes] = useState([])
-  const [expiredSchemes, setExpiredSchemes] = useState([])
-  const [filteredSchemes, setFilteredSchemes] = useState([])
+  const [activePps, setActivePps] = useState([])
+  const [expiredPps, setExpiredPps] = useState([])
+  const [filteredPps, setFilteredPps] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [newSchemeBrand, setNewSchemeBrand] = useState('')
+  const [newPpBrand, setNewPpBrand] = useState('')
   const [showExpired, setShowExpired] = useState(false)
 
   useEffect(() => {
-    const fetchSchemes = async () => {
+    const fetchPps = async () => {
       try {
-        const response = await api.get('transaction/schemebrands/')
-        setActiveSchemes(response.data.active_schemes)
-        setExpiredSchemes(response.data.expired_schemes)
-        setFilteredSchemes(response.data.active_schemes)
+        const response = await api.get('transaction/ppbrands/')
+        setActivePps(response.data.active_pps)
+        setExpiredPps(response.data.expired_pps)
+        setFilteredPps(response.data.active_pps)
         setLoading(false)
       } catch (err) {
         console.error('Error fetching schemes:', err)
@@ -49,16 +49,17 @@ export default function SchemePageComponent() {
       }
     }
 
-    fetchSchemes()
+    fetchPps()
   }, [])
 
   useEffect(() => {
-    const schemesToFilter = showExpired ? expiredSchemes : activeSchemes
-    const results = schemesToFilter.filter(scheme =>
-      scheme.brand.toLowerCase().includes(searchTerm.toLowerCase())
+    const ppsToFilter = showExpired ? expiredPps : activePps
+    const results = ppsToFilter?.filter(pp =>
+      pp.brand.toLowerCase().includes(searchTerm.toLowerCase())
     )
-    setFilteredSchemes(results)
-  }, [searchTerm, showExpired, activeSchemes, expiredSchemes])
+    console.log(results)
+    setFilteredPps(results)
+  }, [searchTerm, showExpired, activePps, expiredPps])
 
   const handleSearch = (event) => {
     setSearchTerm(event.target.value)
@@ -67,14 +68,14 @@ export default function SchemePageComponent() {
   const handleAddScheme = async (e) => {
     e.preventDefault()
     try {
-      const response = await api.post('transaction/schemebrands/', { brand: newSchemeBrand })
+      const response = await api.post('transaction/ppbrands/', { brand: newPpBrand })
       console.log('New Scheme Added:', response.data)
-      setActiveSchemes([...activeSchemes, response.data])
-      setFilteredSchemes([...filteredSchemes, response.data])
+      setActivePps([...activePps, response.data])
+      setFilteredPps([...filteredPps, response.data])
       setNewSchemeBrand('')
       setIsDialogOpen(false)
     } catch (error) {
-      console.error('Error adding scheme:', error)
+      console.error('Error adding pp:', error)
     }
   }
 
@@ -105,7 +106,7 @@ export default function SchemePageComponent() {
             transition={{ duration: 0.5 }}
             className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 space-y-4 md:space-y-0 md:space-x-4"
           >
-            <h1 className="text-4xl font-bold text-white">Scheme Brands</h1>
+            <h1 className="text-4xl font-bold text-white">Price Protection Brands</h1>
 
             <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full md:w-auto">
               <div className="relative w-full sm:w-64">
@@ -142,16 +143,16 @@ export default function SchemePageComponent() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSchemes.map((scheme) => (
-              <SchemeCard
-                key={scheme.id}
-                scheme={scheme}
-                onClick={() => navigate(`/schemes/brand/${scheme.id}`)}
+            {filteredPps?.map((pp) => (
+              <PpCard
+                key={pp.id}
+                pp={pp}
+                onClick={() => navigate(`/price-protection/brand/${pp.id}`)}
               />
             ))}
           </div>
 
-          {filteredSchemes.length === 0 && (
+          {filteredPps?.length === 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -165,7 +166,7 @@ export default function SchemePageComponent() {
 
             <Button
               className="fixed bottom-8 right-8 rounded-full w-16 h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-              onClick={() => navigate('/schemes/new')}
+              onClick={() => navigate('/price-protection/new')}
             >
               <Plus className="w-8 h-8" />
             </Button>
@@ -175,7 +176,7 @@ export default function SchemePageComponent() {
   )
 }
 
-function SchemeCard({ scheme, onClick }) {
+function PpCard({ pp, onClick }) {
   return (
     <motion.div
       whileHover={{ scale: 1.05 }}
@@ -191,16 +192,16 @@ function SchemeCard({ scheme, onClick }) {
         <div className="absolute inset-0 bg-purple-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
           <CardTitle className="text-xl font-medium text-slate-300 group-hover:text-white transition-colors duration-300">
-            {scheme.brand}
+            {pp?.brand}
           </CardTitle>
           <Smartphone className="h-6 w-6 text-purple-400" />
         </CardHeader>
         <CardContent className="relative z-10">
           <div className="text-sm text-slate-400 group-hover:text-purple-200 transition-colors duration-300">
-            Count: {scheme.count}
+            Count: {pp.count}
           </div>
           <div className="text-sm text-slate-400 group-hover:text-purple-200 transition-colors duration-300 mt-1">
-            Total Receivables: ${scheme.total_receivables}
+            Total Receivables: ${pp.total_receivables}
           </div>
         </CardContent>
       </Card>

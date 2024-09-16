@@ -12,6 +12,7 @@ import {
   Zap,
   Shield,
   LogOut,
+  BookUser
 } from "lucide-react";
 import useAxios from "../utils/useAxios";
 import { Link, useNavigate } from "react-router-dom";
@@ -87,6 +88,15 @@ export default function Sidebar(){
               >
                 <Shield className="mr-2 h-4 w-4" />
                 Price Protection
+              </Button>
+            </Link>
+            <Link to="/vendors">
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
+              >
+                <BookUser className="mr-2 h-4 w-4" />
+                Vendors
               </Button>
             </Link>
           </nav>

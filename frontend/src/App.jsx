@@ -16,6 +16,15 @@ import SalesTransactionForm from './components/sales-transaction-form';
 import SalesTransactions from './pages/sales';
 import SchemePageComponent from './pages/schemes';
 import BrandSchemePage from './pages/brandscheme';
+import SchemeForm from './components/scheme-form';
+import SingleScheme from './pages/singlescheme';
+import PPPageComponent from './pages/priceprotection';
+import BrandPPPage from './pages/brandpp';
+import SinglePP from './pages/singlepp';
+import PriceProtectionForm from './components/price-protection-form';
+import LandingPage from './components/landing-page';
+import { VendorPage } from './pages/vendors';
+import VendorBrand from './pages/vendorsbrand';
 
 
 function App() {
@@ -23,7 +32,7 @@ function App() {
   return (
    <Routes>
     <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
-    <Route path="/" element={<Homepage/>}/>
+    <Route path="/" element={<LandingPage/>}/>
     <Route path="/inventory" element={<InventoryPageComponent/>} />
     <Route path = "/brand/:id" element={<BrandPhones/>}/>
     <Route path = "/phone/:id" element={<SinglePhone/>}/>
@@ -38,8 +47,22 @@ function App() {
     </Route>
     <Route path = "/schemes/" >
     <Route path = "" element = {<SchemePageComponent/>} />
-    <Route path = ":id" element = {<BrandSchemePage/>} />
+    <Route path = "brand/:id" element = {<BrandSchemePage/>} />
+    <Route path = "new" element = {<SchemeForm/>} />
+    <Route path = ":id" element = {<SingleScheme/>} />
 
+    </Route>
+
+    <Route path = "/price-protection/" >
+    <Route path='' element = {<PPPageComponent/>}/>
+    <Route path = "brand/:id" element = {<BrandPPPage/>} />
+    <Route path = ":id" element = {<SinglePP/>} />
+    <Route path = "new" element = {<PriceProtectionForm/>} />
+    </Route>
+
+    <Route path = "/vendors/"  >
+    <Route path = "" element = {<VendorPage/>} />
+    <Route path = "brand/:id" element = {<VendorBrand/>} />
     </Route>
 
     <Route path="/login" element={<Login/>}/>
