@@ -20,7 +20,7 @@ export default function Signup() {
 
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/userauth/signup/`,
+        `${import.meta.env.VITE_BACKEND_URL}/userauth/signup/`,
         { email },
         { withCredentials: true }
       )
