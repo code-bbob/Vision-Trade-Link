@@ -24,7 +24,7 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await fetch(` http://e`, {
+      const response = await fetch(`https://ezinventory.pythonanywhere.com/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
