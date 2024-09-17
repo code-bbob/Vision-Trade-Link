@@ -296,6 +296,15 @@ class SchemeSerializer(serializers.ModelSerializer):
         for subscheme_data in subschemes_data:
             Subscheme.objects.create(scheme=scheme, **subscheme_data)
 
+        enterprise = scheme.enterprise
+
+
+        sales = Sales.objects.filter(sales_transaction__enterprise = enterprise, sales_transaction__date__gte=scheme.from_date,sales_transaction__date__lte=scheme.to_date )
+        print(sales)
+        for sale in sales:
+            sale.checkit()
+        scheme.calculate_receivable()
+
         return scheme
     
     def update(self, instance, validated_data):
@@ -365,6 +374,18 @@ class PriceProtectionSerializer(serializers.ModelSerializer):
         model = PriceProtection
         fields = '__all__'
 
+
+    def create(self, validated_data):
+        pp = PriceProtection.objects.create(**validated_data)
+        sales = Sales.objects.filter(sales_transaction__enterprise = pp.enterprise, sales_transaction__date__gte=pp.from_date,sales_transaction__date__lte=pp.to_date )
+        print(sales)
+        for sale in sales:
+            sale.checkit()
+        pp.calculate_receivable()
+        return pp
+        
+
+
     def update(self, instance, validated_data):
         with transaction.atomic():
             # Update PriceProtection fields
@@ -384,6 +405,7 @@ class PriceProtectionSerializer(serializers.ModelSerializer):
             for sale in sales:
                 sale.checkit()
                 self.calculate_receivable(instance)
+            instance.calculate_receivable()
             return instance
     
     def calculate_receivable(self, instance):

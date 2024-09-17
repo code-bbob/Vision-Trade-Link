@@ -31,7 +31,7 @@ class Phone(models.Model):
         self.quantity = quantity
 
         # Call save again to update the quantity field
-        super().save(*args, **kwargs)
+        super().save()
 
 
     def calculate_quantity(self):

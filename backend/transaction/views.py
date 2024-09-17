@@ -158,9 +158,12 @@ class SalesTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
         instance = self.get_object()
         scheme = None
         sales_data = instance.sales.all()
+        phones = []
         for sale in sales_data:
             print("theakhdnsaknd ",sale)
             scheme = Scheme.objects.filter(sales=sale).first()
+            pp = PriceProtection.objects.filter(sales=sale).first()
+            phones.append(sale.phone) if sale.phone not in phones else None
             print(scheme)
             imei = sale.imei_number
 
@@ -172,7 +175,10 @@ class SalesTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
         
         # Perform the deletion
         self.perform_destroy(instance)
+        for phone in phones:
+            phone.calculate_quantity()
         scheme.calculate_receivable()
+        pp.calculate_receivable()
         print("LASTTTT")
         
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -180,6 +186,7 @@ class SalesTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
     def perform_destroy(self, instance):
         # Any custom logic you want before or after deletion can be added here
         # e.g. logging, sending notifications, updating related records, etc.
+        
         instance.delete()
     
 
