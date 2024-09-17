@@ -156,6 +156,7 @@ function SalesTransactionForm() {
       setPhones([...phones, response.data]);
       setNewPhoneData({ name: '', brand: '' });
       setShowNewPhoneDialog(false);
+      window.location.reload();
     } catch (error) {
       console.error('Error adding phone:', error);
     }
@@ -170,6 +171,7 @@ function SalesTransactionForm() {
       setNewBrandName('');
       setShowNewBrandDialog(false);
       setNewPhoneData({ ...newPhoneData, brand: response.data.id.toString() });
+      window.location.reload();
     } catch (error) {
       console.error('Error adding brand:', error);
     }
@@ -364,12 +366,12 @@ function SalesTransactionForm() {
               </div>
             ))}
 
-            <Button type="button" onClick={handleAddSale} className="w-full">
+            <Button type="button" onClick={handleAddSale} className="w-full bg-purple-600 hover:bg-purple-700">
               <PlusCircle className="w-4 h-4 mr-2" />
               Add Another Sale
             </Button>
 
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
               Submit Transaction
             </Button>
           </form>

@@ -195,7 +195,7 @@ return (
 
         {transactions?.length > 0 ? (
         transactions?.map((transaction) => (
-            <Card key={`${transaction.id}-${transaction.date}`} className="mb-6 bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg">
+            <Card key={`${transaction.id}-${transaction.date}`} onClick={()=>navigate(`editform/${transaction.  id}`)} className="mb-6 bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg">
             <CardHeader className="border-b border-slate-700">
                 <CardTitle className="text-xl font-medium text-white flex justify-between items-center">
                 <span>{transaction.name}</span>

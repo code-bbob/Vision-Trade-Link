@@ -47,6 +47,12 @@ const id = useParams();
     fetchPps()
   }, [id.id])
 
+  const handleEdit = (e, ppId) =>{
+    e.stopPropagation();
+    e.preventDefault();
+    navigate(`/price-protection/editform/${ppId}`);
+  }
+
   const handleSearch = async (e) => {
     e.preventDefault()
     if (!id.id) return
@@ -207,6 +213,12 @@ const id = useParams();
               </CardContent>
               <CardFooter className='text-white pb-3 flex justify-between px-3'>
               <span className='text-blue-400'>Sold: {pp.sold}</span>
+              <Button
+        className=" bg-purple-700 w-36 text-white"
+        onClick={(e) => handleEdit(e, pp.id)}
+      >
+        Edit 
+      </Button>
               <span className='text-green-400'>Receivable: RS. {pp.receivable}</span>
               </CardFooter>
             </Card>

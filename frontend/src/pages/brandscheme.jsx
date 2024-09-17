@@ -26,6 +26,12 @@ const id = useParams();
   const [endDate, setEndDate] = useState('')
   const [showExpired, setShowExpired] = useState(false)
 
+  const handleEdit = (e, schemeId) =>{
+    e.stopPropagation();
+    e.preventDefault();
+    navigate(`/schemes/editform/${schemeId}`);
+  }
+
   useEffect(() => {
     const fetchSchemes = async () => {
       if (!id.id) return
@@ -207,7 +213,14 @@ const id = useParams();
               </CardContent>
               <CardFooter className='text-white pb-3 flex justify-between px-3'>
               <span className='text-blue-400'>Sold: {scheme.sold}</span>
+              <Button
+        className=" bg-purple-700 w-36 text-white"
+        onClick={(e) => handleEdit(e, scheme.id)}
+      >
+        Edit 
+      </Button>
               <span className='text-green-400'>Receivable: RS. {scheme.receivable}</span>
+              
               </CardFooter>
             </Card>
           ))

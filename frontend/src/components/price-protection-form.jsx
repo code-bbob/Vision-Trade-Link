@@ -98,6 +98,9 @@ function PriceProtectionForm() {
     } catch (error) {
       console.error('Error posting data:', error);
     }
+    finally{
+      navigate('/price-protection/')
+    }
   };
 
   const handleAddPhone = async (e) => {

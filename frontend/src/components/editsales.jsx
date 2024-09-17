@@ -1,9 +1,9 @@
-'use client';
+'use client'
 
 import React, { useState, useEffect } from 'react';
 import useAxios from '../utils/useAxios';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button } from "../components/ui/button"
+import { Button } from "./ui/button"
 import {
   Dialog,
   DialogContent,
@@ -11,10 +11,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger
-} from "../components/ui/dialog"
-import { Input } from "../components/ui/input"
-import { Label } from "../components/ui/label"
+  DialogTrigger,
+} from "./ui/dialog"
+import { Input } from "./ui/input"
+import { Label } from "./ui/label"
 import { PlusCircle, Trash2, Check, ChevronsUpDown, ArrowLeft } from 'lucide-react'
 import { cn } from "../lib/utils"
 import {
@@ -24,64 +24,59 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "../components/ui/command"
+} from "./ui/command"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "../components/ui/popover"
+} from "./ui/popover"
 import Sidebar from './sidebar';
 
-function EditPurchaseTransactionForm() {
+export default function EditSalesTransactionForm() {
   const api = useAxios()
   const navigate = useNavigate()
-  const { purchaseId } = useParams()
+  const { salesId } = useParams()
 
-  const [originalPurchaseData, setOriginalPurchaseData] = useState(null);
+  const [originalSalesData, setOriginalSalesData] = useState(null);
   const [formData, setFormData] = useState({
     date: '',
-    purchase: [],
-    vendor: ''
+    name: '',
+    sales: []
   });
   const [phones, setPhones] = useState([]);
-  const [filteredPhones, setFilteredPhones] = useState([]);
-  const [vendors, setVendors] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showNewPhoneDialog, setShowNewPhoneDialog] = useState(false);
-  const [showNewVendorDialog, setShowNewVendorDialog] = useState(false);
   const [showNewBrandDialog, setShowNewBrandDialog] = useState(false);
   const [newPhoneData, setNewPhoneData] = useState({ name: '', brand: '' });
-  const [newVendorData, setNewVendorData] = useState({ name: '', brand: '' });
   const [newBrandName, setNewBrandName] = useState('');
   const [openPhone, setOpenPhone] = useState([]);
-  const [openVendor, setOpenVendor] = useState(false);
+  const [openIMEI, setOpenIMEI] = useState([]);
   const [openBrand, setOpenBrand] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [phonesResponse, vendorsResponse, brandsResponse, purchaseResponse] = await Promise.all([
+        const [phonesResponse, brandsResponse, salesResponse] = await Promise.all([
           api.get('inventory/phone/'),
-          api.get('transaction/vendor/'),
           api.get('inventory/brand/'),
-          api.get(`transaction/purchasetransaction/${purchaseId}/`)
+          api.get(`transaction/salestransaction/${salesId}/`)
         ]);
         setPhones(phonesResponse.data);
-        setVendors(vendorsResponse.data);
         setBrands(brandsResponse.data);
-        setOriginalPurchaseData(purchaseResponse.data);
+        setOriginalSalesData(salesResponse.data);
         setFormData({
-          date: purchaseResponse.data.date,
-          purchase: purchaseResponse.data.purchase.map(p => ({
-            ...p,
-            phone: p.phone.toString(),
-            unit_price: p.unit_price.toString()
-          })),
-          vendor: purchaseResponse.data.vendor.toString()
+          date: salesResponse.data.date,
+          name: salesResponse.data.name,
+          sales: salesResponse.data.sales.map(s => ({
+            ...s,
+            phone: s.phone.toString(),
+            unit_price: s.unit_price.toString()
+          }))
         });
-        setOpenPhone(new Array(purchaseResponse.data.purchase.length).fill(false));
+        setOpenPhone(new Array(salesResponse.data.sales.length).fill(false));
+        setOpenIMEI(new Array(salesResponse.data.sales.length).fill(false));
         setLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -91,11 +86,16 @@ function EditPurchaseTransactionForm() {
     };
 
     fetchData();
-  }, [purchaseId]);
+  }, [salesId]);
 
-  const handleDelete = (e) => {
-    api.delete(`transaction/purchasetransaction/${purchaseId}/`)
-    navigate('/purchases/')
+  const handleDelete = async () => {
+    try {
+      await api.delete(`transaction/salestransaction/${salesId}/`);
+      navigate('/sales');
+    } catch (error) {
+      console.error('Error deleting sales transaction:', error);
+      setError('Failed to delete sales transaction. Please try again.');
+    }
   }
 
   const handleChange = (e) => {
@@ -103,54 +103,38 @@ function EditPurchaseTransactionForm() {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handlePurchaseChange = (index, e) => {
+  const handleSaleChange = (index, e) => {
     const { name, value } = e.target;
-    const newPurchase = [...formData.purchase];
-    newPurchase[index] = { ...newPurchase[index], [name]: value };
-    setFormData({ ...formData, purchase: newPurchase });
+    const newSales = [...formData.sales];
+    newSales[index] = { ...newSales[index], [name]: value };
+    setFormData({ ...formData, sales: newSales });
   };
 
   const handlePhoneChange = (index, value) => {
     if (value === 'new') {
       setShowNewPhoneDialog(true);
     } else {
-      const newPurchase = [...formData.purchase];
-      newPurchase[index] = { ...newPurchase[index], phone: value };
-      setFormData(prevState => ({
-        ...prevState,
-        purchase: newPurchase
-      }));
+      const newSales = [...formData.sales];
+      newSales[index] = { ...newSales[index], phone: value, imei_number: '' };
+      setFormData({ ...formData, sales: newSales });
     }
     const newOpenPhone = [...openPhone];
     newOpenPhone[index] = false;
     setOpenPhone(newOpenPhone);
   };
 
-  const handleVendorChange = (value) => {
-    if (value === 'new') {
-      setShowNewVendorDialog(true);
-    } else {
-      setFormData(prevState => ({
-        ...prevState,
-        vendor: value
-      }));
-      const selectedVendor = vendors.find(vendor => vendor.id.toString() === value);
-      if (selectedVendor) {
-        const filteredPhones = phones.filter(phone => phone.brand === selectedVendor.brand);
-        setFilteredPhones(filteredPhones);
-      }
-    }
-    setOpenVendor(false);
+  const handleIMEIChange = (index, value) => {
+    const newSales = [...formData.sales];
+    newSales[index] = { ...newSales[index], imei_number: value };
+    setFormData({ ...formData, sales: newSales });
+    const newOpenIMEI = [...openIMEI];
+    newOpenIMEI[index] = false;
+    setOpenIMEI(newOpenIMEI);
   };
 
   const handleNewPhoneChange = (e) => {
     const { name, value } = e.target;
     setNewPhoneData({ ...newPhoneData, [name]: value });
-  };
-
-  const handleNewVendorChange = (e) => {
-    const { name, value } = e.target;
-    setNewVendorData({ ...newVendorData, [name]: value });
   };
 
   const handleNewPhoneBrandChange = (value) => {
@@ -162,44 +146,37 @@ function EditPurchaseTransactionForm() {
     setOpenBrand(false);
   };
 
-  const handleNewVendorBrandChange = (value) => {
-    if (value === 'new') {
-      setShowNewBrandDialog(true);
-    } else {
-      setNewVendorData({ ...newVendorData, brand: value });
-    }
-    setOpenBrand(false);
-  };
-
   const handleNewBrandChange = (e) => {
     setNewBrandName(e.target.value);
   };
 
-  const handleAddPurchase = () => {
-    setFormData(prevState => ({
-      ...prevState,
-      purchase: [...prevState.purchase, { phone: '', imei_number: '', unit_price: '' }]
-    }));
-    setOpenPhone(prevState => [...prevState, false]);
+  const handleAddSale = () => {
+    setFormData({
+      ...formData,
+      sales: [...formData.sales, { phone: '', imei_number: '', unit_price: '' }]
+    });
+    setOpenPhone([...openPhone, false]);
+    setOpenIMEI([...openIMEI, false]);
   };
 
-  const handleRemovePurchase = (index) => {
-    setFormData(prevState => ({
-      ...prevState,
-      purchase: prevState.purchase.filter((_, i) => i !== index)
-    }));
-    setOpenPhone(prevState => prevState.filter((_, i) => i !== index));
+  const handleRemoveSale = (index) => {
+    const newSales = formData.sales.filter((_, i) => i !== index);
+    setFormData({ ...formData, sales: newSales });
+    const newOpenPhone = openPhone.filter((_, i) => i !== index);
+    setOpenPhone(newOpenPhone);
+    const newOpenIMEI = openIMEI.filter((_, i) => i !== index);
+    setOpenIMEI(newOpenIMEI);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.patch(`transaction/purchasetransaction/${purchaseId}/`, formData);
+      const response = await api.patch(`transaction/salestransaction/${salesId}/`, formData);
       console.log('Response:', response.data);
-      navigate('/purchases');
+      navigate('/sales');
     } catch (error) {
       console.error('Error updating data:', error);
-      setError('Failed to update purchase transaction. Please try again.');
+      setError('Failed to update sales transaction. Please try again.');
     }
   };
 
@@ -217,24 +194,6 @@ function EditPurchaseTransactionForm() {
     }
   };
 
-  const handleAddVendor = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await api.post('transaction/vendor/', newVendorData);
-      console.log('New Vendor Added:', response.data);
-      setVendors(prevVendors => [...prevVendors, response.data]);
-      setFormData(prevState => ({
-        ...prevState,
-        vendor: response.data.id.toString()
-      }));
-      setNewVendorData({ name: '', brand: '' });
-      setShowNewVendorDialog(false);
-    } catch (error) {
-      console.error('Error adding vendor:', error);
-      setError('Failed to add new vendor. Please try again.');
-    }
-  };
-
   const handleAddBrand = async (e) => {
     e.preventDefault();
     try {
@@ -244,7 +203,6 @@ function EditPurchaseTransactionForm() {
       setNewBrandName('');
       setShowNewBrandDialog(false);
       setNewPhoneData(prevData => ({ ...prevData, brand: response.data.id.toString() }));
-      setNewVendorData(prevData => ({ ...prevData, brand: response.data.id.toString() }));
     } catch (error) {
       console.error('Error adding brand:', error);
       setError('Failed to add new brand. Please try again.');
@@ -252,18 +210,18 @@ function EditPurchaseTransactionForm() {
   };
 
   const hasFormChanged = () => {
-    if (!originalPurchaseData) return false;
+    if (!originalSalesData) return false;
     
     return (
-      formData.date !== originalPurchaseData.date ||
-      formData.vendor !== originalPurchaseData.vendor.toString() ||
-      formData.purchase.length !== originalPurchaseData.purchase.length ||
-      formData.purchase.some((purchase, index) => {
-        const originalPurchase = originalPurchaseData.purchase[index];
+      formData.date !== originalSalesData.date ||
+      formData.name !== originalSalesData.name ||
+      formData.sales.length !== originalSalesData.sales.length ||
+      formData.sales.some((sale, index) => {
+        const originalSale = originalSalesData.sales[index];
         return (
-          purchase.phone !== originalPurchase.phone.toString() ||
-          purchase.imei_number !== originalPurchase.imei_number ||
-          purchase.unit_price !== originalPurchase.unit_price.toString()
+          sale.phone !== originalSale.phone.toString() ||
+          sale.imei_number !== originalSale.imei_number ||
+          sale.unit_price !== originalSale.unit_price.toString()
         );
       })
     );
@@ -278,16 +236,16 @@ function EditPurchaseTransactionForm() {
       <Sidebar />
       <div className=''>
         <Button
-          onClick={() => navigate('/purchases')}
+          onClick={() => navigate('/sales')}
           variant="outline"
           className="w-full sm:w-auto px-5 text-slate-900 border-white hover:bg-gray-500 mx-9 ml-80 mt-4 hover:text-slate-900 items-right"
         >
           <ArrowLeft className="mr-2 h-4 w-3" />
-          Back to Purchases
+          Back to Sales
         </Button>
 
         <div className="max-w-2xl mx-auto ml-96 bg-slate-800 p-8 m-8 rounded-lg shadow-lg">
-          <h2 className="text-3xl font-bold mb-6 text-white">Edit Purchase Transaction</h2>
+          <h2 className="text-3xl font-bold mb-6 text-white">Edit Sales Transaction</h2>
           {error && <p className="text-red-400 mb-4">{error}</p>}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex flex-col">
@@ -306,59 +264,24 @@ function EditPurchaseTransactionForm() {
             </div>
 
             <div className="flex flex-col">
-              <Label htmlFor="vendor" className="text-lg font-medium text-white mb-2">
-                Vendor
+              <Label htmlFor="name" className="text-lg font-medium text-white mb-2">
+                Customer's Name
               </Label>
-              <Popover open={openVendor} onOpenChange={setOpenVendor}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={openVendor}
-                    className="w-full justify-between bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-                  >
-                    {formData.vendor
-                      ? vendors.find((vendor) => vendor.id.toString() === formData.vendor)?.name
-                      : "Select a vendor..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0 bg-slate-800 border-slate-700">
-                  <Command className='bg-slate-700 border-slate-600'>
-                    <CommandInput placeholder="Search vendor..." className="bg-slate-700 text-white" />
-                    <CommandList>
-                      <CommandEmpty>No vendor found.</CommandEmpty>
-                      <CommandGroup>
-                        {vendors.map((vendor) => (
-                          <CommandItem
-                            key={vendor.id}
-                            onSelect={() => handleVendorChange(vendor.id.toString())}
-                            className="text-white hover:bg-slate-700"
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                formData.vendor === vendor.id.toString() ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {vendor.name}
-                          </CommandItem>
-                        ))}
-                        <CommandItem onSelect={() => handleVendorChange('new')} className="text-white hover:bg-slate-700">
-                          <PlusCircle className="mr-2 h-4 w-4" />
-                          Add a new vendor
-                        </CommandItem>
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <Input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                required
+              />
             </div>
 
-            <h3 className="text-xl font-semibold mb-2 text-white">Purchases</h3>
-            {formData.purchase.map((purchase, index) => (
+            <h3 className="text-xl font-semibold mb-2 text-white">Sales</h3>
+            {formData.sales.map((sale, index) => (
               <div key={index} className="bg-slate-700 p-4 rounded-md shadow">
-                <h4 className="text-lg font-semibold mb-2 text-white">Purchase {index + 1}</h4>
+                <h4 className="text-lg font-semibold mb-2 text-white">Sale {index + 1}</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="flex flex-col">
                     <Label htmlFor={`phone-${index}`} className="text-sm font-medium text-white mb-1">
@@ -376,8 +299,8 @@ function EditPurchaseTransactionForm() {
                           aria-expanded={openPhone[index]}
                           className="w-full justify-between bg-slate-600 border-slate-500 text-white hover:bg-slate-500"
                         >
-                          {purchase.phone
-                            ? phones.find((phone) => phone.id.toString() === purchase.phone)?.name
+                          {sale.phone
+                            ? phones.find((phone) => phone.id.toString() === sale.phone)?.name
                             : "Select a phone..."}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
@@ -388,7 +311,7 @@ function EditPurchaseTransactionForm() {
                           <CommandList>
                             <CommandEmpty>No phone found.</CommandEmpty>
                             <CommandGroup>
-                              {filteredPhones.map((phone) => (
+                              {phones.map((phone) => (
                                 <CommandItem
                                   key={phone.id}
                                   onSelect={() => handlePhoneChange(index, phone.id.toString())}
@@ -397,7 +320,7 @@ function EditPurchaseTransactionForm() {
                                   <Check
                                     className={cn(
                                       "mr-2 h-4 w-4",
-                                      purchase.phone === phone.id.toString() ? "opacity-100" : "opacity-0"
+                                      sale.phone === phone.id.toString() ? "opacity-100" : "opacity-0"
                                     )}
                                   />
                                   {phone.name}
@@ -417,16 +340,48 @@ function EditPurchaseTransactionForm() {
                     <Label htmlFor={`imei-${index}`} className="text-sm font-medium text-white mb-1">
                       IMEI Number
                     </Label>
-                    <Input
-                      type="text"
-                      id={`imei-${index}`}
-                      name="imei_number"
-                      value={purchase.imei_number}
-                      onChange={(e) => handlePurchaseChange(index, e)}
-                      className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
-                      placeholder="Enter IMEI number"
-                      required
-                    />
+                    <Popover open={openIMEI[index]} onOpenChange={(open) => {
+                      const newOpenIMEI = [...openIMEI];
+                      newOpenIMEI[index] = open;
+                      setOpenIMEI(newOpenIMEI);
+                    }}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openIMEI[index]}
+                          className="w-full justify-between bg-slate-600 border-slate-500 text-white hover:bg-slate-500"
+                        >
+                          {sale.imei_number || "Select IMEI..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0 bg-slate-700 border-slate-600">
+                        <Command className='bg-slate-700 border-slate-600 h-60 overflow-y-scroll'>
+                          <CommandInput placeholder="Search IMEI..." className="bg-slate-700 text-white" />
+                          <CommandList>
+                            <CommandEmpty>No IMEI found.</CommandEmpty>
+                            <CommandGroup>
+                              {sale.phone && phones.find(phone => phone.id.toString() === sale.phone)?.imeis.map((imei) => (
+                                <CommandItem
+                                  key={imei}
+                                  onSelect={() => handleIMEIChange(index, imei)}
+                                  className="text-white hover:bg-slate-600"
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      sale.imei_number === imei ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {imei}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className="flex flex-col">
                     <Label htmlFor={`price-${index}`} className="text-sm font-medium text-white mb-1">
@@ -436,8 +391,8 @@ function EditPurchaseTransactionForm() {
                       type="number"
                       id={`price-${index}`}
                       name="unit_price"
-                      value={purchase.unit_price}
-                      onChange={(e) => handlePurchaseChange(index, e)}
+                      value={sale.unit_price}
+                      onChange={(e) => handleSaleChange(index, e)}
                       className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
                       placeholder="Enter unit price"
                       required
@@ -450,18 +405,18 @@ function EditPurchaseTransactionForm() {
                     variant="destructive"
                     size="sm"
                     className="mt-2 bg-red-600 hover:bg-red-700 text-white"
-                    onClick={() => handleRemovePurchase(index)}
+                    onClick={() => handleRemoveSale(index)}
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Remove Purchase
+                    Remove Sale
                   </Button>
                 )}
               </div>
             ))}
 
-            <Button type="button" onClick={handleAddPurchase} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
+            <Button type="button" onClick={handleAddSale} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
               <PlusCircle className="w-4 h-4 mr-2" />
-              Add Another Purchase
+              Add Another Sale
             </Button>
 
             <Button 
@@ -469,35 +424,37 @@ function EditPurchaseTransactionForm() {
               className="w-full bg-green-600 hover:bg-green-700 text-white"
               disabled={!hasFormChanged()}
             >
-              Update Purchase Transaction
+              Update Sales Transaction
             </Button>
-            
           </form>
           
-            <Dialog>
-  <DialogTrigger className='w-full'><Button 
-              type="submit" 
-              className="w-full bg-red-600 mt-6 hover:bg-red-700 text-white"
-            >
-              Delete Transaction
-            </Button></DialogTrigger>
-  <DialogContent>
-    <DialogHeader>
-      <DialogTitle>Are you absolutely sure?</DialogTitle>
-      <DialogDescription>
-        This action cannot be undone. This will permanently delete your transaction
-        and remove your data from our servers.
-      </DialogDescription>
-    </DialogHeader>
-    <Button 
-              type="submit" 
-              className="w-full bg-red-600 mt-6 hover:bg-red-700 text-white"
-              onClick={handleDelete}
-            >
-              Delete Transaction
-            </Button>
-  </DialogContent>
-</Dialog>
+          <Dialog>
+            <DialogTrigger className='w-full'>
+              <Button 
+                type="button" 
+                className="w-full bg-red-600 mt-6 hover:bg-red-700 text-white"
+              >
+                Delete Transaction
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Are you absolutely sure?</DialogTitle>
+                <DialogDescription>
+                  This action cannot be undone. This will permanently delete your sales transaction
+                  and remove your data from our servers.
+                </DialogDescription>
+              </DialogHeader>
+              <Button 
+                type="button" 
+                className="w-full bg-red-600 mt-6 hover:bg-red-700 text-white"
+                onClick={handleDelete}
+              >
+                Delete Transaction
+              </Button>
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={showNewPhoneDialog} onOpenChange={setShowNewPhoneDialog}>
             <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
               <DialogHeader>
@@ -578,86 +535,6 @@ function EditPurchaseTransactionForm() {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={showNewVendorDialog} onOpenChange={setShowNewVendorDialog}>
-            <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
-              <DialogHeader>
-                <DialogTitle>Add New Vendor</DialogTitle>
-                <DialogDescription className="text-slate-300">
-                  Enter the details of the new vendor you want to add.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="newVendorName" className="text-right text-white">
-                    Name
-                  </Label>
-                  <Input
-                    id="newVendorName"
-                    name="name"
-                    value={newVendorData.name}
-                    onChange={handleNewVendorChange}
-                    className="col-span-3 bg-slate-700 border-slate-600 text-white"
-                    placeholder="Enter vendor name"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="newVendorBrand" className="text-right text-white">
-                    Brand
-                  </Label>
-                  <div className="col-span-3">
-                    <Popover open={openBrand} onOpenChange={setOpenBrand}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={openBrand}
-                          className="w-full justify-between bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-                        >
-                          {newVendorData.brand
-                            ? brands.find((brand) => brand.id.toString() === newVendorData.brand)?.name
-                            : "Select a brand..."}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0 bg-slate-700 border-slate-600">
-                        <Command className="bg-slate-700 border-slate-600">
-                          <CommandInput placeholder="Search brand..." className="bg-slate-700 text-white" />
-                          <CommandList>
-                            <CommandEmpty>No brand found.</CommandEmpty>
-                            <CommandGroup>
-                              {brands.map((brand) => (
-                                <CommandItem
-                                  key={brand.id}
-                                  onSelect={() => handleNewVendorBrandChange(brand.id.toString())}
-                                  className="text-white hover:bg-slate-600"
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      newVendorData.brand === brand.id.toString() ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {brand.name}
-                                </CommandItem>
-                              ))}
-                              <CommandItem onSelect={() => handleNewVendorBrandChange('new')} className="text-white hover:bg-slate-600">
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Add a new brand
-                              </CommandItem>
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="button" onClick={handleAddVendor} className="bg-green-600 hover:bg-green-700 text-white">Add Vendor</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
           <Dialog open={showNewBrandDialog} onOpenChange={setShowNewBrandDialog}>
             <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
               <DialogHeader>
@@ -690,5 +567,3 @@ function EditPurchaseTransactionForm() {
     </div>
   );
 }
-
-export default EditPurchaseTransactionForm;

@@ -190,6 +190,7 @@ function PurchaseTransactionForm() {
       setPhones(prevPhones => [...prevPhones, response.data]);
       setNewPhoneData({ name: '', brand: '' });
       setShowNewPhoneDialog(false);
+      window.location.reload();
     } catch (error) {
       console.error('Error adding phone:', error);
       setError('Failed to add new phone. Please try again.');

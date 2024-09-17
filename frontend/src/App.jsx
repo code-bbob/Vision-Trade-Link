@@ -25,7 +25,9 @@ import LandingPage from './components/landing-page';
 import { VendorPage } from './pages/vendors';
 import VendorBrand from './pages/vendorsbrand';
 import EditPurchaseTransactionForm from './components/editpurchase';
-
+import EditSalesTransactionForm from './components/editsales';
+import EditSchemeForm from './components/editschemes';
+import EditPriceProtectionForm from './components/editpp';
 
 function App() {
   const { isAuthenticated } = useSelector((state) => state.root);
@@ -44,6 +46,8 @@ function App() {
     <Route path = "/sales/" >
     <Route path = "" element = {<SalesTransactions/>}/>
     <Route path = "form" element = {<SalesTransactionForm/>}/>
+    <Route path = "editform/:salesId" element = {<EditSalesTransactionForm/>} />
+
     </Route>
     </Route>
     <Route path = "/schemes/" >
@@ -51,6 +55,8 @@ function App() {
     <Route path = "brand/:id" element = {<BrandSchemePage/>} />
     <Route path = "new" element = {<SchemeForm/>} />
     <Route path = ":id" element = {<SingleScheme/>} />
+    <Route path = "editform/:schemeId" element = {<EditSchemeForm/>} />
+
 
     </Route>
 
@@ -59,6 +65,8 @@ function App() {
     <Route path = "brand/:id" element = {<BrandPPPage/>} />
     <Route path = ":id" element = {<SinglePP/>} />
     <Route path = "new" element = {<PriceProtectionForm/>} />
+    <Route path = "editform/:priceProtectionId" element = {<EditPriceProtectionForm/>} />
+
     </Route>
 
     <Route path = "/vendors/"  >
