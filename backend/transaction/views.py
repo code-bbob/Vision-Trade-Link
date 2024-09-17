@@ -101,6 +101,33 @@ class PurchaseTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
     def perform_update(self, serializer):
         serializer.save()
 
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        purchase_data = instance.purchase.all()
+        print(purchase_data)
+        phones = []
+        for purchase in purchase_data:
+            imei = purchase.imei_number
+            print(imei)
+            item = Item.objects.filter(imei_number = imei, phone = purchase.phone).first()
+            phones.append(purchase.phone) if purchase.phone not in phones else None
+            if item:
+                print(item)
+                item.delete()
+
+        self.perform_destroy(instance)
+        for phone in phones:
+            phone.calculate_quantity()
+            # Item.objects.filter(imei_number = new_imei).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def perform_destroy(self, instance):
+        # Any custom logic you want before or after deletion can be added here
+        # e.g. logging, sending notifications, updating related records, etc.
+        instance.delete()
+        
+
     
 
 class SalesTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
@@ -127,6 +154,33 @@ class SalesTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
     def perform_update(self, serializer):
         serializer.save()
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        scheme = None
+        sales_data = instance.sales.all()
+        for sale in sales_data:
+            print("theakhdnsaknd ",sale)
+            scheme = Scheme.objects.filter(sales=sale).first()
+            print(scheme)
+            imei = sale.imei_number
+
+            item = Item.objects.create(imei_number = imei, phone = sale.phone)
+            print("ajkskdsadks",item)
+
+            # Item.objects.filter(imei_number = new_imei).delete()
+
+        
+        # Perform the deletion
+        self.perform_destroy(instance)
+        scheme.calculate_receivable()
+        print("LASTTTT")
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def perform_destroy(self, instance):
+        # Any custom logic you want before or after deletion can be added here
+        # e.g. logging, sending notifications, updating related records, etc.
+        instance.delete()
     
 
 
@@ -343,6 +397,9 @@ class PriceProtectionView(APIView):
     def post(self,request,*args, **kwargs):
         data = request.data
         data["enterprise"] = request.user.person.enterprise.id 
+        id = data["phone"]
+        brand = Phone.objects.get(id=id).brand
+        data["brand"] = brand.id
         serializer = PriceProtectionSerializer(data=data)
         if serializer.is_valid(raise_exception = True):
             serializer.save()
@@ -498,7 +555,55 @@ class SingleScheme(APIView):
             "status":scheme.status
         }
         return Response(dict)
-    
+
+class SchemeChangeView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Scheme.objects.all()
+    serializer_class = SchemeSerializer
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Ensure that we're using partial update
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+
+class PriceProtectionChangeView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = PriceProtection.objects.all()
+    serializer_class = PriceProtectionSerializer
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Ensure that we're using partial update
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+    def perform_update(self, serializer):
+        serializer.save()
 
 class PPBrandView(APIView):
     permission_classes = [IsAuthenticated]
@@ -649,3 +754,4 @@ class SingleVendorBrandView(APIView):
         vendors = Vendor.objects.filter(enterprise = request.user.person.enterprise, brand=id)
         serializer = VendorSerializer(vendors, many=True)
         return Response(serializer.data)
+

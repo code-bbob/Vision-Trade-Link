@@ -83,10 +83,12 @@ class SalesTransaction(models.Model):
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
 
     def calculate_total_amount(self):
+        print("Ya samma ayo")
         total = sum(sale.unit_price for sale in self.sales.all())
+        print(total)
         self.total_amount = total
         self.save()
-    
+        return self.total_amount    
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
     
@@ -136,6 +138,9 @@ class Sales(models.Model):
         return f"{self.phone} @ {self.unit_price}"
     
     def save(self, *args, **kwargs):
+        if self.pk:
+            self.checkit()
+            super().save(*args, **kwargs)
         if self.pk is None:  # Only update stock for new purchases
             self.phone.quantity = (self.phone.quantity - 1) if self.phone.quantity is not None else self.phone.quantity
             # item = Item.objects.get(imei_number = self.imei_number)
@@ -165,29 +170,55 @@ class Sales(models.Model):
                 scheme.sales.add(self)  # Now the sales instance has a valid pk
                 scheme.calculate_receivable()
                 scheme.save()
+        
         else:
             print("No matching scheme found.")
+            scheme = Scheme.objects.filter(sales=self).first()
+            if scheme:
+                print("This is the scheme",scheme)
+                scheme.sales.remove(self)
+                scheme.calculate_receivable()
         
         print(f"Checking pp for phone: {self.phone} on date: {self.sales_transaction.date}")
+        print(self.sales_transaction.date)
         purchase_date = Purchase.objects.filter(imei_number = self.imei_number).first().purchase_transaction.date
-        pps = PriceProtection.objects.filter(phone=self.phone, from_date__lte=self.sales_transaction.date, to_date__gte=self.sales_transaction.date)
+        pps = PriceProtection.objects.filter(enterprise=self.sales_transaction.enterprise,phone=self.phone, from_date__lte=self.sales_transaction.date, to_date__gte=self.sales_transaction.date)
+        if not pps:
+            pp = PriceProtection.objects.filter(sales=self).first()
+            if pp:
+                print("((((((((((((((((((((((((((((((yes))))))))))))))))))))))))))))))")
+                pp.sales.remove(self)
+                pp.calculate_receivable()
+                pp.save()
+            print("here balblabla",pps)
+        for pp in pps:
+            print(pp.sales.all())
+            print(self)
+            if self in pp.sales.all():
+                print("YES#################")
+                pp.sales.remove(self)
+                pp.calculate_receivable()
+        if pps:
+            print("from here",pps.first().from_date)
         pps = pps.filter(from_date__gte = purchase_date)
         print(purchase_date)
-        print(pps)
+        print("here pps",pps)
         if pps.exists():
             for pp in pps:
                 pp.sales.add(self)
                 print("HERE")
-                print(self.phone.item)
-                pp_item = PPItems.objects.create(pp=pp, phone=self.phone,imei_number = self.phone.item.first().imei_number)
+                print(self.phone.item.first())
+                pp_item = PPItems.objects.create(pp=pp, phone=self.phone,imei_number = self.imei_number)
                 print(pp_item)
                 print(pp_item.id)
                 print("NOT HERE")
-                pp_item.calculate_receivables()
                 pp_item.save()
                 pp.save()
-        item = Item.objects.get(imei_number = self.imei_number)
-        item.delete()
+                pp.calculate_receivable()
+        print("here is the problem")
+        item = Item.objects.filter(imei_number = self.imei_number).first()
+        if item:
+            item.delete()
         super().save(*args, **kwargs)  # Save again after processing the schemes and pp
 
 
@@ -211,7 +242,10 @@ class Scheme(models.Model):
         count = sales.count()
         print(count)
         subscheme = self.subscheme.filter(lowerbound__lte=count, upperbound__gte=count).first()
-        self.receivable = subscheme.cashback * count
+        if subscheme:
+            self.receivable = subscheme.cashback * count
+        else:
+            self.receivable = 0
         self.save()
     
     def __str__(self):
@@ -224,39 +258,42 @@ class Subscheme(models.Model):
     cashback = models.FloatField()
     scheme = models.ForeignKey(Scheme,on_delete=models.CASCADE, related_name='subscheme') #related name here
 
+
     def __str__(self):
         return f"{self.lowerbound} to {self.upperbound} => {self.cashback}"
     
-# class MoneyScheme(models.Model):
-#     from_date = models.DateField()
-#     to_date = models.DateField()
-#     phone = models.ForeignKey(Phone,on_delete=models.CASCADE, related_name='moneyscheme_phones')
-#     sales = models.ManyToManyField(Sales,related_name="moneyscheme",blank=True)  #error was here
-#     enterprise = models.ForeignKey(Enterprise,on_delete=models.CASCADE,related_name='moneyscheme_enterprise')
-#     receivable = models.IntegerField(null = True)
+class MoneyScheme(models.Model):
 
-#     def calculate_receivable(self):
-#         sales = self.sales.all()
-#         # print(f"HIIII asjd jka dk sa {purchases}")
-#         count = sales.count()
-#         print(count)
-#         # subscheme = self.subscheme.filter(lowerbound__lte=count, upperbound__gte=count).first()
-#         # self.receivable = subscheme.cashback * count
-#         #ani kunai lai discount deko hunxa what about that one
-#         self.save()
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('expired', 'Expired'),
+    ]
+    from_date = models.DateField()
+    to_date = models.DateField()
+    phone = models.ForeignKey(Phone,on_delete=models.CASCADE, related_name='moneyscheme_phones')
+    sales = models.ManyToManyField(Sales,related_name="moneyscheme",blank=True)  #error was here
+    enterprise = models.ForeignKey(Enterprise,on_delete=models.CASCADE,related_name='moneyscheme_enterprise')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
+    receivable = models.IntegerField(null = True)
+
+    def calculate_receivable(self):
+        sales = self.sales.all()
+        count = sales.count()
+        print(count)
+        self.save()
     
-#     def __str__(self):
-#         return f"{self.phone} from {self.from_date} to {self.to_date}"
+    def __str__(self):
+        return f"{self.phone} from {self.from_date} to {self.to_date}"
 
 
-# class MoneySubscheme(models.Model):
-#     lowerbound = models.FloatField()
-#     upperbound = models.IntegerField()
-#     percentage_cashback = models.FloatField()
-#     scheme = models.ForeignKey(MoneyScheme,on_delete=models.CASCADE, related_name='moneysubscheme') #related name here
+class MoneySubscheme(models.Model):
+    lowerbound = models.FloatField()
+    upperbound = models.IntegerField()
+    percentage_cashback = models.FloatField()
+    scheme = models.ForeignKey(MoneyScheme,on_delete=models.CASCADE, related_name='moneysubscheme') #related name here
 
-#     def __str__(self):
-#         return f"{self.lowerbound} to {self.upperbound} => {self.cashback}"
+    def __str__(self):
+        return f"{self.lowerbound} to {self.upperbound} => {self.cashback}"
 # Register your signal handlers to calculate the total amount after saving a PurchaseTransaction
 
 
@@ -284,7 +321,12 @@ class PriceProtection(models.Model):
     receivable = models.FloatField(null=True)
         
 
-
+     
+    def calculate_receivable(self):
+        # Calculate receivable based on price drop and number of sales
+        sales_count = self.sales.count()
+        self.receivable = self.price_drop * sales_count
+        self.save()
 
 class PPItems(models.Model):
     pp = models.ForeignKey(PriceProtection, related_name="pp_item",on_delete=models.CASCADE)
@@ -297,13 +339,13 @@ class PPItems(models.Model):
         super().save(*args, **kwargs)  # Save again after processing the schemes and pp
 
 
-    def calculate_receivables(self,*args, **kwargs): 
-        print("Calculating pp")
-        pp = self.pp
-        self.cashback = pp.price_drop
-        print(f" = {self.cashback}")
-        pp.receivables = (self.cashback + pp.receivables) if pp.receivables is not None else self.cashback
-        pp.save()
-        self.save()
+    # def calculate_receivables(self,*args, **kwargs): 
+    #     print("Calculating pp")
+    #     pp = self.pp
+    #     self.cashback = pp.price_drop
+    #     print(f" = {self.cashback}")
+    #     pp.receivable = (self.cashback + pp.receivable) if pp.receivable is not None else self.cashback
+    #     pp.save()
+    #     self.save()
         
         

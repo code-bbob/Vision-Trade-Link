@@ -20,6 +20,25 @@ class Phone(models.Model):
 
     def __str__(self):
         return self.name    
+    
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            super().save(*args, **kwargs)
+        
+        # Now the instance is saved, we can safely filter related Items
+        print("Calculating quantity......................")
+        quantity = Item.objects.filter(phone=self).count()
+        self.quantity = quantity
+
+        # Call save again to update the quantity field
+        super().save(*args, **kwargs)
+
+
+    def calculate_quantity(self):
+        print("Calculating quantity......................")
+        quantity = Item.objects.filter(phone=self).count()
+        self.quantity = quantity
+        self.save()
 
 class Item(models.Model):
     imei_number = models.CharField(max_length=20)

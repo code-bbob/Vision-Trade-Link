@@ -47,6 +47,7 @@ class PhoneView(APIView):
         # data["enterprise"] = request.user.person.enterprise.id
         serializer = PhoneSerializer(data=data)
         if serializer.is_valid(raise_exception = True):
+            print("YAHA SAMMAAA")
             serializer.save()
             return Response(serializer.data)
         
