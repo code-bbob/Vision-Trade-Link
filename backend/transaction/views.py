@@ -75,18 +75,60 @@ class PurchaseTransactionView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 
-class PurchaseTransactionChangeView(generics.UpdateAPIView):
+class PurchaseTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
     queryset = PurchaseTransaction.objects.all()
     serializer_class = PurchaseTransactionSerializer
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        
+        # Ensure that we're using partial update
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
+        
         self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
         return Response(serializer.data)
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    
+
+class SalesTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = SalesTransaction.objects.all()
+    serializer_class = SalesTransactionSerializer
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Ensure that we're using partial update
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    
+
 
 class PurchaseView(APIView):
     permission_classes = [IsAuthenticated]

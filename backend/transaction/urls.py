@@ -1,11 +1,13 @@
 from django.urls import path
-from .views import PurchaseTransactionView,VendorView,SalesTransactionView,SchemeView,PriceProtectionView,StatsView,SchemeBrandView,SchemePhoneView,SingleScheme,PPBrandView,PPPhoneView,SinglePP,VendorBrandsView,SingleVendorBrandView,PurchaseTransactionChangeView
+from .views import PurchaseTransactionView,VendorView,SalesTransactionView,SchemeView,PriceProtectionView,StatsView,SchemeBrandView,SchemePhoneView,SingleScheme,PPBrandView,PPPhoneView,SinglePP,VendorBrandsView,SingleVendorBrandView,PurchaseTransactionChangeView,SalesTransactionChangeView
 
 urlpatterns = [
-    path('purchasetransaction/', PurchaseTransactionView.as_view(), name='transaction-create'),
-    path('purchasetransaction/<int:pk>/', PurchaseTransactionChangeView.as_view(), name='transaction-create'),
+    path('purchasetransaction/', PurchaseTransactionView.as_view(), name='purchasetransaction-create'),
+    path('purchasetransaction/<int:pk>/', PurchaseTransactionChangeView.as_view(), name='purchasetransaction-create'),
 
-    path('salestransaction/', SalesTransactionView.as_view(), name='transaction-create'),
+    path('salestransaction/', SalesTransactionView.as_view(), name='salestransaction-create'),
+    path('salestransaction/<int:pk>/', SalesTransactionChangeView.as_view(), name='salestransaction-create'),
+
     path('vendor/',VendorView.as_view(), name='vendor'),
     path('scheme/',SchemeView.as_view(), name='scheme'),
     path('scheme/brand/<int:id>/', SchemePhoneView.as_view(),name='schemephone'),

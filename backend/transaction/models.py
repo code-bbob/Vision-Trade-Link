@@ -45,10 +45,14 @@ class Purchase(models.Model):
         return f" {self.phone} @ {self.unit_price}"
     
     def save(self, *args, **kwargs):
+        print("ATLEAST HERE")
         if self.pk is None:  # Only update stock for new purchases
             print("HI I AM HERE")
             print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-            phone = Phone.objects.filter(id=self.phone.id).first()
+            if isinstance(self.phone, int):
+                phone = Phone.objects.get(id=self.phone)
+            else:
+                phone = self.phone
             print("in self.phone before section",phone.quantity)
 
             phone.quantity = (phone.quantity + 1) if phone.quantity is not None else 1
