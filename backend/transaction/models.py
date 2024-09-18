@@ -18,6 +18,7 @@ class PurchaseTransaction(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
     total_amount = models.FloatField(null=True, blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
+    bill_no = models.CharField(max_length=7,null=True)
 
     def calculate_total_amount(self):
         total = sum(purchase.unit_price for purchase in self.purchase.all())
@@ -38,10 +39,10 @@ class PurchaseTransaction(models.Model):
 class Purchase(models.Model):
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE)
     # quantity = models.IntegerField()
-    imei_number = models.CharField(max_length=15,validators=[MinLengthValidator(15)])
+    imei_number = models.CharField(max_length=15,validators=[MinLengthValidator(15)],unique=True)
     unit_price = models.FloatField()
     purchase_transaction = models.ForeignKey(PurchaseTransaction, related_name="purchase", on_delete=models.CASCADE) ###relatedname here 
-    
+
     def __str__(self):
         return f" {self.phone} @ {self.unit_price}"
     
@@ -83,6 +84,7 @@ class SalesTransaction(models.Model):
     phone_number = models.CharField(max_length=10,null=True)
     total_amount = models.FloatField(null=True, blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
+    bill_no = models.CharField(max_length=7,null = True)
 
     def calculate_total_amount(self):
         print("Ya samma ayo")
@@ -131,7 +133,7 @@ class SalesTransaction(models.Model):
 class Sales(models.Model):
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE)
     # quantity = models.IntegerField()
-    imei_number = models.CharField(max_length=15,validators=[MinLengthValidator(15)])
+    imei_number = models.CharField(max_length=15,validators=[MinLengthValidator(15)],unique=True)
     unit_price = models.FloatField()
     profit = models.FloatField(null=True,blank=True)
     sales_transaction = models.ForeignKey(SalesTransaction, related_name="sales", on_delete=models.CASCADE) ###relatedname here esma j xa uta serializer ma tei nai hunu prxa
@@ -334,7 +336,7 @@ class PPItems(models.Model):
     pp = models.ForeignKey(PriceProtection, related_name="pp_item",on_delete=models.CASCADE)
     # item = models.ForeignKey(Item, related_name="pp_item",on_delete=models.CASCADE)
     phone = models.ForeignKey(Phone,related_name="pp_item_phone", on_delete = models.CASCADE)
-    imei_number = models.CharField(max_length=15,validators=[MinLengthValidator(15)])
+    imei_number = models.CharField(max_length=15,validators=[MinLengthValidator(15)],unique=True)
     cashback = models.FloatField(blank=True,null=True)
 
     def save(self,*args, **kwargs):

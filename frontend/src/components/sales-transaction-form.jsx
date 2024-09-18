@@ -37,6 +37,7 @@ function SalesTransactionForm() {
     date: new Date().toISOString().split('T')[0],
     name: '',
     phone_number: '',
+    bill_no: '',
     sales: [{ phone: '', imei_number: '', unit_price: '' }]
   });
   const [phones, setPhones] = useState([]);
@@ -234,6 +235,21 @@ function SalesTransactionForm() {
                 placeholder="Customer's Phone Number"
                 value={formData.phone_number}
                 onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                className="border border-slate-600 text-white rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="name" className="text-lg font-medium text-white mb-2">
+                Bill No.
+              </Label>
+              <Input
+                type="text"
+                id="bill_no"
+                name="bill_no"
+                placeholder="Enter bill number"
+                value={formData.bill_no}
+                onChange={(e) => setFormData({ ...formData, bill_no: e.target.value })}
                 className="border border-slate-600 text-white rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 required
               />

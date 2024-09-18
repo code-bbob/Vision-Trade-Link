@@ -41,7 +41,8 @@ function EditPurchaseTransactionForm() {
   const [formData, setFormData] = useState({
     date: '',
     purchase: [],
-    vendor: ''
+    vendor: '',
+    bill_no: ''
   });
   const [phones, setPhones] = useState([]);
   const [filteredPhones, setFilteredPhones] = useState([]);
@@ -79,7 +80,8 @@ function EditPurchaseTransactionForm() {
             phone: p.phone.toString(),
             unit_price: p.unit_price.toString()
           })),
-          vendor: purchaseResponse.data.vendor.toString()
+          vendor: purchaseResponse.data.vendor.toString(),
+          bill_no:purchaseResponse.data.bill_no?.toString()
         });
         setOpenPhone(new Array(purchaseResponse.data.purchase.length).fill(false));
         setLoading(false);
@@ -257,6 +259,7 @@ function EditPurchaseTransactionForm() {
     return (
       formData.date !== originalPurchaseData.date ||
       formData.vendor !== originalPurchaseData.vendor.toString() ||
+      formData.bill_no !== originalPurchaseData.bill_no?.toString() ||
       formData.purchase.length !== originalPurchaseData.purchase.length ||
       formData.purchase.some((purchase, index) => {
         const originalPurchase = originalPurchaseData.purchase[index];
@@ -354,7 +357,22 @@ function EditPurchaseTransactionForm() {
                 </PopoverContent>
               </Popover>
             </div>
+            <div className="flex flex-col">
+              <Label htmlFor="name" className="text-lg font-medium text-white mb-2">
+                Bill No.
+              </Label>
+              <Input
+                type="text"
+                id="bill_no"
+                name="bill_no"
+                placeholder="Enter bill number"
+                value={formData.bill_no}
+                onChange={handleChange}
 
+                className="border border-slate-600 text-white rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              />
+            </div>
             <h3 className="text-xl font-semibold mb-2 text-white">Purchases</h3>
             {formData.purchase.map((purchase, index) => (
               <div key={index} className="bg-slate-700 p-4 rounded-md shadow">

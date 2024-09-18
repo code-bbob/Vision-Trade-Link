@@ -167,7 +167,8 @@ export default function EditPriceProtectionForm() {
   };
 
   if (loading) {
-    return <div className="text-white  bg-gradient-to-br from-slate-900 to-slate-800 min-h-screen">Loading...</div>;
+    return <div className="text-white  bg-gradient-to-br from-slate-900 to-slate-800 min-h-screen
+    ">Loading...</div>;
   }
 
   return (

@@ -41,6 +41,8 @@ export default function EditSalesTransactionForm() {
   const [formData, setFormData] = useState({
     date: '',
     name: '',
+    bill_no: '',
+    phone_number: '',
     sales: []
   });
   const [phones, setPhones] = useState([]);
@@ -69,6 +71,8 @@ export default function EditSalesTransactionForm() {
         setFormData({
           date: salesResponse.data.date,
           name: salesResponse.data.name,
+          phone_number: salesResponse.data.phone_number,
+          bill_no: salesResponse.data.bill_no,
           sales: salesResponse.data.sales.map(s => ({
             ...s,
             phone: s.phone.toString(),
@@ -215,6 +219,8 @@ export default function EditSalesTransactionForm() {
     return (
       formData.date !== originalSalesData.date ||
       formData.name !== originalSalesData.name ||
+      formData.phone_number !== originalSalesData.phone_number?.toString() ||
+      formData.bill_no !== originalSalesData.bill_no?.toString() ||
       formData.sales.length !== originalSalesData.sales.length ||
       formData.sales.some((sale, index) => {
         const originalSale = originalSalesData.sales[index];
@@ -274,6 +280,37 @@ export default function EditSalesTransactionForm() {
                 value={formData.name}
                 onChange={handleChange}
                 className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                required
+              />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="name" className="text-lg font-medium text-white mb-2">
+                Customer's Phone Number
+              </Label>
+              <Input
+                type="text"
+                id="phone_number"
+                name="phone_number"
+                placeholder="Customer's Phone Number"
+                value={formData.phone_number}
+                onChange={handleChange}
+                className="border border-slate-600 text-white rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="name" className="text-lg font-medium text-white mb-2">
+                Bill No.
+              </Label>
+              <Input
+                type="text"
+                id="bill_no"
+                name="bill_no"
+                placeholder="Enter bill number"
+                value={formData.bill_no}
+                onChange={handleChange}
+
+                className="border border-slate-600 text-white rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 required
               />
             </div>

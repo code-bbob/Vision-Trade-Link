@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { login, logout } from "../redux/accessSlice";
 import { motion } from "framer-motion";
-import Inputa from "../components/Input";
 import { Loader, Lock, Mail } from "lucide-react";
 import { Button } from '../components/ui/button';
 import { Input } from "../components/ui/input"

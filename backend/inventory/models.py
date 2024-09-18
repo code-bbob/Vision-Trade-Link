@@ -1,5 +1,6 @@
 from django.db import models
 from enterprise.models import Enterprise
+from django.core.validators import MinLengthValidator
 
 
 # Create your models here.
@@ -41,7 +42,7 @@ class Phone(models.Model):
         self.save()
 
 class Item(models.Model):
-    imei_number = models.CharField(max_length=20)
+    imei_number = models.CharField(max_length=15,validators=[MinLengthValidator(15)],unique=True)
     phone = models.ForeignKey(Phone, related_name="item",on_delete=models.CASCADE)
 
     def __str__(self):

@@ -35,7 +35,7 @@ function PurchaseTransactionForm() {
   const api = useAxios()
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
-    purchase: [{ phone: '', imei_number: '', unit_price: '' }],
+    purchase: [{ phone: '', imei_number: '', unit_price: '' , bill_no: ''}],
     vendor: ''
   });
   const [phones, setPhones] = useState([]);
@@ -263,6 +263,22 @@ function PurchaseTransactionForm() {
                 value={formData.date}
                 onChange={handleChange}
                 className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                required
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <Label htmlFor="name" className="text-lg font-medium text-white mb-2">
+                Bill No.
+              </Label>
+              <Input
+                type="text"
+                id="bill_no"
+                name="bill_no"
+                placeholder="Enter bill number"
+                value={formData.bill_no}
+                onChange={(e) => setFormData({ ...formData, bill_no: e.target.value })}
+                className="border border-slate-600 text-white rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 required
               />
             </div>

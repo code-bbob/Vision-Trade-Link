@@ -22,7 +22,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PurchaseTransaction
-        fields = ['id','date', 'vendor', 'vendor_name', 'total_amount', 'purchase', 'enterprise']
+        fields = ['id','date', 'vendor', 'vendor_name', 'total_amount', 'purchase', 'enterprise','bill_no']
 
     def create(self, validated_data):
         purchase_data = validated_data.pop('purchase')
@@ -43,6 +43,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
         instance.date = validated_data.get('date', instance.date)
         instance.enterprise = validated_data.get('enterprise', instance.enterprise)
         instance.total_amount = validated_data.get('total_amount', instance.total_amount)
+        instance.bill_no = validated_data.get('bill_no', instance.bill_no)
         instance.save()
 
         purchase_data = validated_data.get('purchase')
@@ -55,6 +56,23 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
                 if purchase_id and purchase_id in existing_purchases:
                     print("Same same $$$$$$$$$$$$$$$$$$$")
                     purchase_instance = existing_purchases[purchase_id]
+
+                    old_imei = purchase_instance.imei_number
+                    new_imei = purchase_item.get('imei_number')
+                    if old_imei != new_imei:
+                        item = Item.objects.filter(imei_number=old_imei).first()
+                        item.imei_number = new_imei
+                        item.save()
+                    new_phone = purchase_item.get('phone')
+                    old_phone = purchase_instance.phone
+
+                    if new_phone!=old_phone:
+                        item = Item.objects.filter(imei_number=new_imei).first()
+                        item.phone = new_phone
+                        item.save()
+                        item.phone.save()
+                        old_phone.save()
+
                     for attr, value in purchase_item.items():
                         setattr(purchase_instance, attr, value)
                     purchase_instance.save()
@@ -117,7 +135,7 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SalesTransaction
-        fields = ['id','date', 'total_amount', 'sales','enterprise','name','phone_number']
+        fields = ['id','date', 'total_amount', 'sales','enterprise','name','phone_number','bill_no']
 
     def create(self, validated_data):
         sales_data = validated_data.pop('sales')
@@ -189,6 +207,9 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
         print(validated_data)
         instance.date = validated_data.get('date', instance.date)
         instance.total_amount = validated_data.get('total_amount', instance.total_amount)
+        instance.bill_no = validated_data.get('bill_no',instance.bill_no)
+        instance.phone_number = validated_data.get('phone_number',instance.phone_number)
+
         instance.save()
 
         sales_data = validated_data.get('sales')
