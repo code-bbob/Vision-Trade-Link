@@ -2,9 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Switch } from "./ui/switch";
-import { Label } from "./ui/label";
 import {
   Smartphone,
   ShoppingCart,
@@ -14,18 +11,8 @@ import {
   LogOut,
   BookUser
 } from "lucide-react";
-import useAxios from "../utils/useAxios";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Legend,
-  Tooltip,
-} from "recharts";
-import { useDispatch } from "react-redux";
-import { login, logout } from "../redux/accessSlice";
+
 // import { useNavigate } from "react-router-dom";
 
 

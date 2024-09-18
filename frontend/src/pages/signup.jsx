@@ -2,7 +2,7 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
 import axios from "axios"
-import { Mail, Loader, Github, Chrome } from "lucide-react"
+import { Loader, Github, Chrome } from "lucide-react"
 import { Input } from "../components/ui/input"
 import { Button } from "../components/ui/button"
 import { Link } from 'react-router-dom'

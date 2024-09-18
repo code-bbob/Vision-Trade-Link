@@ -117,7 +117,7 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SalesTransaction
-        fields = ['id','date', 'total_amount', 'sales','enterprise','name']
+        fields = ['id','date', 'total_amount', 'sales','enterprise','name','phone_number']
 
     def create(self, validated_data):
         sales_data = validated_data.pop('sales')

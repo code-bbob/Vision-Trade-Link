@@ -34,7 +34,8 @@ class PurchaseTransactionView(APIView):
         if search:
             phone_transactions = transactions.filter(purchase__phone__name__icontains = search)
             vendor_trasactions = transactions.filter(vendor__name__icontains = search)
-            transactions = phone_transactions.union(vendor_trasactions)
+            imei_transactions = transactions.filter(purchase__imei_number__icontains = search)
+            transactions = phone_transactions.union(vendor_trasactions,imei_transactions)
         
         if start_date and end_date:
             start_date = parse_date(start_date)
@@ -52,7 +53,7 @@ class PurchaseTransactionView(APIView):
 
 
         paginator = PageNumberPagination()
-        paginator.page_size = 2  # Set the page size here
+        paginator.page_size = 5  # Set the page size here
         paginated_transactions = paginator.paginate_queryset(transactions, request)
 
         serializer = PurchaseTransactionSerializer(paginated_transactions, many=True)
@@ -219,7 +220,8 @@ class SalesTransactionView(APIView):
         if search:
             phone_transactions = transactions.filter(sales__phone__name__icontains = search)
             customer_trasactions = transactions.filter(name__icontains = search)
-            transactions = phone_transactions.union(customer_trasactions)
+            imei_transactions = transactions.filter(sales__imei_number__icontains = search)
+            transactions = phone_transactions.union(customer_trasactions,imei_transactions)
         
         if start_date and end_date:
             start_date = parse_date(start_date)
@@ -237,7 +239,7 @@ class SalesTransactionView(APIView):
 
 
         paginator = PageNumberPagination()
-        paginator.page_size = 2  # Set the page size here
+        paginator.page_size = 5  # Set the page size here
         paginated_transactions = paginator.paginate_queryset(transactions, request)
 
         serializer = SalesTransactionSerializer(paginated_transactions, many=True)
@@ -346,7 +348,7 @@ class SchemePhoneView(APIView):
 
         if search:
             schemes_phone = schemes.filter(phone__name__icontains = search)
-            schemes_imei = schemes.filter(sales__phone__item__imei_number__icontains = search)
+            schemes_imei = schemes.filter(sales__imei_number__icontains = search)
             schemes = schemes_phone.union(schemes_imei)
         
         if start_date and end_date:
@@ -706,7 +708,7 @@ class PPPhoneView(APIView):
 
         if search:
             pps_phone = pps.filter(phone__name__icontains = search)
-            pps_imei = pps.filter(sales__phone__item__imei_number__icontains = search)
+            pps_imei = pps.filter(sales__imei_number__icontains = search)
             pps = pps_phone.union(pps_imei)
         
         if start_date and end_date:

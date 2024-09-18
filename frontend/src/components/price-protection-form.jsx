@@ -17,7 +17,6 @@ import { Check, ChevronsUpDown, ArrowLeft } from "lucide-react"
 import { cn } from "../lib/utils"
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './sidebar';
-import { text } from '@fortawesome/fontawesome-svg-core';
 
 function PriceProtectionForm() {
   const api = useAxios()

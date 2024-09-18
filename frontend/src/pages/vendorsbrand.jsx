@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Input } from "../components/ui/input"
-import { Smartphone, Search, ArrowLeft, BookUser } from 'lucide-react'
+import { Search, ArrowLeft, BookUser } from 'lucide-react'
 import useAxios from '../utils/useAxios'
 import { useParams } from 'react-router-dom'
 import { Button } from "../components/ui/button"

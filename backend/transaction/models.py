@@ -1,6 +1,7 @@
 from django.db import models
 from inventory.models import Brand, Phone,Item
 from enterprise.models import Enterprise
+from django.core.validators import MinLengthValidator
 
 class Vendor(models.Model):
     name = models.CharField(max_length=50)
@@ -37,7 +38,7 @@ class PurchaseTransaction(models.Model):
 class Purchase(models.Model):
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE)
     # quantity = models.IntegerField()
-    imei_number = models.CharField(max_length=20)
+    imei_number = models.CharField(max_length=15,validators=[MinLengthValidator(15)])
     unit_price = models.FloatField()
     purchase_transaction = models.ForeignKey(PurchaseTransaction, related_name="purchase", on_delete=models.CASCADE) ###relatedname here 
     
@@ -79,6 +80,7 @@ class SalesTransaction(models.Model):
     date = models.DateTimeField()
     # vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
     name = models.CharField(max_length=30)
+    phone_number = models.CharField(max_length=10,null=True)
     total_amount = models.FloatField(null=True, blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
 
@@ -129,7 +131,7 @@ class SalesTransaction(models.Model):
 class Sales(models.Model):
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE)
     # quantity = models.IntegerField()
-    imei_number = models.CharField(max_length=20)
+    imei_number = models.CharField(max_length=15,validators=[MinLengthValidator(15)])
     unit_price = models.FloatField()
     profit = models.FloatField(null=True,blank=True)
     sales_transaction = models.ForeignKey(SalesTransaction, related_name="sales", on_delete=models.CASCADE) ###relatedname here esma j xa uta serializer ma tei nai hunu prxa
@@ -332,7 +334,7 @@ class PPItems(models.Model):
     pp = models.ForeignKey(PriceProtection, related_name="pp_item",on_delete=models.CASCADE)
     # item = models.ForeignKey(Item, related_name="pp_item",on_delete=models.CASCADE)
     phone = models.ForeignKey(Phone,related_name="pp_item_phone", on_delete = models.CASCADE)
-    imei_number = models.CharField(max_length=16)
+    imei_number = models.CharField(max_length=15,validators=[MinLengthValidator(15)])
     cashback = models.FloatField(blank=True,null=True)
 
     def save(self,*args, **kwargs):

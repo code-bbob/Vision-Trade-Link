@@ -199,6 +199,7 @@ return (
             <CardHeader className="border-b border-slate-700">
                 <CardTitle className="text-xl font-medium text-white flex justify-between items-center">
                 <span>{transaction.name}</span>
+                <span>{transaction.phone_number}</span>
                 <span>{format(new Date(transaction.date), 'dd MMM yyyy')}</span>
                 </CardTitle>
             </CardHeader>

@@ -231,6 +231,10 @@ function PurchaseTransactionForm() {
     }
   };
 
+  const handleWheel = (e) =>{
+    e.target.blur();
+  }
+
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-slate-900 to-slate-800">
       <Sidebar/>
@@ -422,6 +426,7 @@ function PurchaseTransactionForm() {
                       type="number"
                       id={`price-${index}`}
                       name="unit_price"
+                      onWheel={handleWheel}
                       value={purchase.unit_price}
                       onChange={(e) => handlePurchaseChange(index, e)}
                       className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"

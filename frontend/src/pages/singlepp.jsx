@@ -1,10 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Label } from "../components/ui/label";
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import useAxios from '../utils/useAxios';
 import Sidebar from '../components/sidebar';
