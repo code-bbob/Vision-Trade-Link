@@ -163,7 +163,7 @@ function SalesTransactionForm() {
       setPhones([...phones, response.data]);
       setNewPhoneData({ name: '', brand: '' });
       setShowNewPhoneDialog(false);
-      window.location.reload();
+      setFilteredPhones(prevFilteredPhones => [...prevFilteredPhones, response.data]);
     } catch (error) {
       console.error('Error adding phone:', error);
     }

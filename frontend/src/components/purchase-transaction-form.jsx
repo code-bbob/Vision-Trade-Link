@@ -195,7 +195,7 @@ function PurchaseTransactionForm() {
       setPhones(prevPhones => [...prevPhones, response.data]);
       setNewPhoneData({ name: '', brand: '' });
       setShowNewPhoneDialog(false);
-      window.location.reload();
+      setFilteredPhones(prevFilteredPhones => [...prevFilteredPhones, response.data]);
     } catch (error) {
       console.error('Error adding phone:', error);
       setError('Failed to add new phone. Please try again.');
@@ -283,7 +283,7 @@ function PurchaseTransactionForm() {
                 placeholder="Enter bill number"
                 value={formData.bill_no}
                 onChange={(e) => setFormData({ ...formData, bill_no: e.target.value })}
-                className="border border-slate-600 text-white rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="border border-slate-600 bg-slate-700 text-white rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 required
               />
             </div>
