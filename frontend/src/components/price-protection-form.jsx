@@ -36,6 +36,7 @@ function PriceProtectionForm() {
   const [newBrandName, setNewBrandName] = useState('');
   const [openPhone, setOpenPhone] = useState(false);
   const [openBrand, setOpenBrand] = useState(false);
+  const [subLoading,setSubLoading] = useState(false)
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -91,6 +92,7 @@ function PriceProtectionForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setSubLoading(true)
       const response = await api.post('transaction/priceprotection/', formData);
       console.log('Response:', response.data);
       // Optionally clear the form or show a success message
@@ -98,6 +100,7 @@ function PriceProtectionForm() {
       console.error('Error posting data:', error);
     }
     finally{
+      setSubLoading(false)
       navigate('/price-protection/')
     }
   };
@@ -265,7 +268,7 @@ function PriceProtectionForm() {
           />
         </div> */}
 
-        <Button type="submit" className="w-full hover:bg-green-300 hover:text-black">
+        <Button type="submit" disabled = {subLoading} className="w-full hover:bg-green-300 hover:text-black">
           Submit Price Protection
         </Button>
       </form>

@@ -51,6 +51,7 @@ function SalesTransactionForm() {
   const [openPhone, setOpenPhone] = useState(Array(formData.sales.length).fill(false));
   const [openIMEI, setOpenIMEI] = useState(Array(formData.sales.length).fill(false));
   const [openBrand, setOpenBrand] = useState(false);
+  const [subLoading,setSubLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -141,12 +142,16 @@ function SalesTransactionForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setSubLoading(true)
       const response = await api.post('transaction/salestransaction/', formData);
       console.log('Response:', response.data);
       navigate('/sales')
       // Optionally clear the form or show a success message
     } catch (error) {
       console.error('Error posting data:', error);
+    }
+    finally{
+      setSubLoading(false)
     }
   };
 
@@ -403,7 +408,7 @@ function SalesTransactionForm() {
               Add Another Sale
             </Button>
 
-            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
+            <Button type="submit" disabled = {subLoading} className="w-full bg-green-600 hover:bg-green-700">
               Submit Transaction
             </Button>
           </form>

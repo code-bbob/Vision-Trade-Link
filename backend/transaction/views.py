@@ -424,55 +424,62 @@ class StatsView(APIView):
         end_date = request.GET.get('end_date')
 
         if not start_date or not end_date:
-            today = date.today()
+            today = datetime.today()
             start_date = today.replace(day=1)  # First day of the current month
             end_date = today
         
         start_date = parse_date(start_date) if isinstance(start_date, str) else start_date
         end_date = parse_date(end_date) if isinstance(end_date, str) else end_date
 
+        print(start_date,end_date)
+
         enterprise = request.user.person.enterprise
     
-        allpurchases = Purchase.objects.filter(purchase_transaction__enterprise = enterprise).count()
-        allsales = Sales.objects.filter(sales_transaction__enterprise = enterprise).count()
         allstock = Item.objects.filter(phone__brand__enterprise = enterprise).count()
         allbrands = Brand.objects.filter(enterprise = enterprise).count()
         monthlypurchases = Purchase.objects.filter(purchase_transaction__enterprise = enterprise,purchase_transaction__date__range=(start_date, end_date)).count()
         monthlysales = Sales.objects.filter(sales_transaction__enterprise = enterprise,sales_transaction__date__range=(start_date, end_date)).count()
+        dailypurchases = Purchase.objects.filter(purchase_transaction__enterprise = enterprise,purchase_transaction__date__date = today.date()).count()
+        dailysales = Sales.objects.filter(sales_transaction__enterprise = enterprise,sales_transaction__date__date = today.date()).count()
+
+        print(dailypurchases,dailysales)
 
         ptamt = 0
-        allptamt = 0
-        pts = PurchaseTransaction.objects.filter(enterprise = enterprise)
-        if pts:
-            for pt in pts:
-                # print(pt.total_amount)
-                allptamt += pt.total_amount
+        dailyptamt = 0
 
-        pts = pts.filter(date__range=(start_date, end_date))
+        pts = PurchaseTransaction.objects.filter(enterprise = enterprise,date__range=(start_date, end_date))
         if pts:
             for pt in pts:
                 # print(pt.total_amount)
                 ptamt += pt.total_amount
-        stamt = 0
-        allstamt = 0
-        sts = SalesTransaction.objects.filter(enterprise=enterprise)
-        if sts:
-            for st in sts:
-                # print(st.total_amount)
-                allstamt += st.total_amount
 
-        sts = sts.filter(date__range=(start_date, end_date))
+        pts = PurchaseTransaction.objects.filter(enterprise = enterprise,date__date = today.date())
+        if pts:
+            for pt in pts:
+                # print(pt.total_amount)
+                dailyptamt += pt.total_amount
+
+        stamt = 0
+        dailystamt = 0
+       
+
+        sts = SalesTransaction.objects.filter(enterprise = enterprise,date__range=(start_date, end_date))
         if sts:
             for st in sts:
-                print(st.total_amount)
                 stamt += st.total_amount    
+        
+        sts = SalesTransaction.objects.filter(enterprise=enterprise,date__date = today.date())
+        if sts:
+            for st in sts:
+                dailystamt += st.total_amount
+
         stat = { 
             "enterprise" : enterprise.name,
-            "alltime":{
-                "purchases" : allpurchases,
-                "allptamt":allptamt,
-                "sales": allsales,
-                "allstamt":allstamt,
+            "daily":{
+                "purchases" : dailypurchases,
+                "dailyptamt":dailyptamt,
+                "sales": dailysales,
+                "dailystamt":dailystamt,
                 "profit": "Later"
             },
             "monthly":{

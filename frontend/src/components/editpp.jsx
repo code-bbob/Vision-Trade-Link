@@ -42,6 +42,7 @@ export default function EditPriceProtectionForm() {
   const [newBrandName, setNewBrandName] = useState('');
   const [openPhone, setOpenPhone] = useState(false);
   const [openBrand, setOpenBrand] = useState(false);
+  const [subLoading, setSubLoading] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -106,12 +107,16 @@ export default function EditPriceProtectionForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setSubLoading(true)
       const response = await api.patch(`transaction/priceprotection/${priceProtectionId}/`, formData);
       console.log('Response:', response.data);
       navigate('/price-protection');
     } catch (error) {
       console.error('Error updating data:', error);
       setError('Failed to update price protection. Please try again.');
+    }
+    finally{
+      setSubLoading(false)
     }
   };
 
@@ -290,7 +295,7 @@ export default function EditPriceProtectionForm() {
             <Button 
               type="submit" 
               className="w-full hover:bg-green-300 hover:text-black"
-              disabled={!hasFormChanged()}
+              disabled={!hasFormChanged() || subLoading}
             >
               Update Price Protection
             </Button>

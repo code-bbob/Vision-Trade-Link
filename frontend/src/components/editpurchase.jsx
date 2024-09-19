@@ -59,6 +59,7 @@ function EditPurchaseTransactionForm() {
   const [openPhone, setOpenPhone] = useState([]);
   const [openVendor, setOpenVendor] = useState(false);
   const [openBrand, setOpenBrand] = useState(false);
+  const [subLoading,setSubLoading] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -196,12 +197,16 @@ function EditPurchaseTransactionForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setSubLoading(true)
       const response = await api.patch(`transaction/purchasetransaction/${purchaseId}/`, formData);
       console.log('Response:', response.data);
       navigate('/purchases');
     } catch (error) {
       console.error('Error updating data:', error);
       setError('Failed to update purchase transaction. Please try again.');
+    }
+    finally{
+      setSubLoading(false)
     }
   };
 
@@ -485,7 +490,7 @@ function EditPurchaseTransactionForm() {
             <Button 
               type="submit" 
               className="w-full bg-green-600 hover:bg-green-700 text-white"
-              disabled={!hasFormChanged()}
+              disabled={!hasFormChanged() || subLoading}
             >
               Update Purchase Transaction
             </Button>

@@ -53,6 +53,7 @@ function PurchaseTransactionForm() {
   const [openPhone, setOpenPhone] = useState(Array(formData.purchase.length).fill(false));
   const [openVendor, setOpenVendor] = useState(false);
   const [openBrand, setOpenBrand] = useState(false);
+  const [subLoading, setSubLoading] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -173,12 +174,16 @@ function PurchaseTransactionForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setSubLoading(true)
       const response = await api.post('transaction/purchasetransaction/', formData);
       console.log('Response:', response.data);
       navigate('/purchases')
     } catch (error) {
       console.error('Error posting data:', error);
       setError('Failed to submit purchase transaction. Please try again.');
+    }
+    finally{
+      setSubLoading(false)
     }
   };
 
@@ -471,7 +476,7 @@ function PurchaseTransactionForm() {
               Add Another Purchase
             </Button>
 
-            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white">
+            <Button type="submit" disabled={subLoading} className="w-full bg-green-600 hover:bg-green-700 text-white">
               Submit Purchase Transaction
             </Button>
           </form>

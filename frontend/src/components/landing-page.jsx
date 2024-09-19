@@ -31,7 +31,7 @@ export default function LandingPage() {
   const api = useAxios();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
-  const [isMonthly, setIsMonthly] = useState(true);
+  const [isMonthly, setIsMonthly] = useState(false);
   const [showAmount, setShowAmount] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -76,38 +76,31 @@ export default function LandingPage() {
     );
   if (!stats) return null;
 
-  const currentStats = isMonthly ? stats.monthly : stats.alltime;
+  const currentStats = isMonthly ? stats.monthly : stats.daily;
 
   const getChartData = () => {
-    if (showAmount) {
-      return [
-        
+    return {
+      purchases: [
         {
-          name: "Purchases",
-          monthly: currentStats.ptamt,
-          allTime: stats.alltime.allptamt,
+          name: "Monthly",
+          value: showAmount ? stats.monthly.ptamt : stats.monthly.purchases,
         },
         {
-          name: "Sales",
-          monthly: currentStats.stamt,
-          allTime: stats.alltime.allstamt,
+          name: "Daily",
+          value: showAmount ? stats.daily.dailyptamt : stats.daily.purchases,
         },
-      ];
-    } else {
-      return [
-        
+      ],
+      sales: [
         {
-          name: "Purchases",
-          monthly: currentStats.purchases,
-          allTime: stats.alltime.purchases,
+          name: "Monthly",
+          value: showAmount ? stats.monthly.stamt : stats.monthly.sales,
         },
         {
-          name: "Sales",
-          monthly: currentStats.sales,
-          allTime: stats.alltime.sales,
+          name: "Daily",
+          value: showAmount ? stats.daily.dailystamt : stats.daily.sales,
         },
-      ];
-    }
+      ],
+    };
   };
 
   const chartData = getChartData();
@@ -157,7 +150,7 @@ export default function LandingPage() {
               onCheckedChange={(checked) => setIsMonthly(!checked)}
             />
             <Label htmlFor="stats-mode" className="text-white">
-              {isMonthly ? "Monthly Stats" : "All-time Stats"}
+              {isMonthly ? "Monthly Stats" : "Daily Stats"}
             </Label>
           </div>
         </motion.div>
@@ -166,14 +159,14 @@ export default function LandingPage() {
           <StatCard
             title="Total Purchases"
             value={currentStats.purchases}
-            subValue={isMonthly ? currentStats.ptamt : currentStats.allptamt}
+            subValue={isMonthly ? currentStats.ptamt : currentStats.dailyptamt}
             icon={<ShoppingCart className="h-6 w-6 text-blue-400" />}
             onClick={() => navigate("/purchases")}
           />
           <StatCard
             title="Total Sales"
             value={currentStats.sales}
-            subValue={isMonthly ? currentStats.stamt : currentStats.allstamt}
+            subValue={isMonthly ? currentStats.stamt : currentStats.dailystamt}
             icon={<TrendingUp className="h-6 w-6 text-green-400" />}
             onClick={() => navigate("/sales")}
           />
@@ -217,80 +210,53 @@ export default function LandingPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {/* <div className="flex justify-around mb-4">
-              <span
-                className="text-lg font-semibold"
-                style={{ color: COLORS[0] }}
-              >
-                Sales:
-                <br />
-                {showAmount ? `Rs ` : ""}
-                {chartData[0].allTime}
-              </span>
-
-              <span
-                className="text-lg font-semibold"
-                style={{ color: COLORS[1] }}
-              >
-                Purchases:
-                <br />
-                {showAmount ? `Rs ` : ""}
-                {chartData[1].allTime}
-              </span>
-              </div> */}
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                {chartData.map((entry, index) => (
-                  <Pie
-                    key={entry.name}
-                    data={[
-                      { name: "Monthly", value: entry.monthly },
-                      {
-                        name: "All Time",
-                        value: entry.allTime - entry.monthly,
-                      },
-                    ]}
-                    cx={`${25 + index * 50}%`}
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    <Cell fill={COLORS[index]} />
-                    <Cell fill={COLORS[index]} opacity={0.5} />
-                  </Pie>
-                ))}
-                <Tooltip />
-                <Legend
-                  payload={[
-                    {
-                      value: "Purchase (Monthly)",
-                      type: "circle",
-                      color: COLORS[0],
-                    },
-                    {
-                      value: "Purchase (All Time)",
-                      type: "circle",
-                      color: COLORS[0],
-                      opacity: 0.5,
-                    },
-                    {
-                      value: "Sales (Monthly)",
-                      type: "circle",
-                      color: COLORS[1],
-                    },
-                    {
-                      value: "Sales (All Time)",
-                      type: "circle",
-                      color: COLORS[1],
-                      opacity: 0.5,
-                    },
-                  ]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <h3 className="text-lg font-semibold text-white mb-4">Purchases</h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <PieChart>
+            <Pie
+              data={chartData.purchases}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              outerRadius={80}
+              fill="#8884d8"
+              dataKey="value"
+            >
+              {chartData.purchases.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <div>
+        <h3 className="text-lg font-semibold text-white mb-4">Sales</h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <PieChart>
+            <Pie
+              data={chartData.sales}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              outerRadius={80}
+              fill="#8884d8"
+              dataKey="value"
+            >
+              {chartData.sales.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  </CardContent>
         </Card>
       </div>
     </div>

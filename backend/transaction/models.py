@@ -18,7 +18,7 @@ class PurchaseTransaction(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
     total_amount = models.FloatField(null=True, blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
-    bill_no = models.CharField(max_length=7,null=True)
+    bill_no = models.CharField(max_length=10,null=True)
 
     def calculate_total_amount(self):
         total = sum(purchase.unit_price for purchase in self.purchase.all())
@@ -84,7 +84,7 @@ class SalesTransaction(models.Model):
     phone_number = models.CharField(max_length=10,null=True)
     total_amount = models.FloatField(null=True, blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
-    bill_no = models.CharField(max_length=7,null = True)
+    bill_no = models.CharField(max_length=10,null = True)
 
     def calculate_total_amount(self):
         print("Ya samma ayo")

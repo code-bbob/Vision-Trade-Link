@@ -54,6 +54,7 @@ export default function EditSchemeForm() {
   const [newBrandName, setNewBrandName] = useState('');
   const [openPhone, setOpenPhone] = useState(false);
   const [openBrand, setOpenBrand] = useState(false);
+  const [subLoading, setSubLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -142,12 +143,16 @@ export default function EditSchemeForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setSubLoading(true)
       const response = await api.patch(`transaction/scheme/${schemeId}/`, formData);
       console.log('Response:', response.data);
       navigate('/schemes');
     } catch (error) {
       console.error('Error updating data:', error);
       setError('Failed to update scheme. Please try again.');
+    }
+    finally{
+      setSubLoading(false)
     }
   };
 
@@ -395,7 +400,7 @@ export default function EditSchemeForm() {
             <Button 
               type="submit" 
               className="w-full hover:bg-green-300 hover:text-black"
-              disabled={!hasFormChanged()}
+              disabled={!hasFormChanged() || subLoading}
             >
               Update Scheme
             </Button>

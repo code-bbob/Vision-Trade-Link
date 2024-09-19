@@ -50,6 +50,7 @@ function SchemeForm() {
   const [newBrandName, setNewBrandName] = useState('');
   const [openPhone, setOpenPhone] = useState(false);
   const [openBrand, setOpenBrand] = useState(false);
+  const [subLoading, setSubLoading] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -125,6 +126,7 @@ function SchemeForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setSubLoading(true)
       const response = await api.post('transaction/scheme/', formData);
       console.log('Response:', response.data);
       // Optionally clear the form or show a success message
@@ -132,6 +134,7 @@ function SchemeForm() {
       console.error('Error posting data:', error);
     }
     finally{
+      setLoading(false)
       navigate('/schemes/')
     }
   };
@@ -343,7 +346,7 @@ function SchemeForm() {
           Add Another Subscheme
         </Button>
 
-        <Button type="submit" className="w-full hover:bg-green-300 hover:text-black">
+        <Button type="submit" disabled = {subLoading} className="w-full hover:bg-green-300 hover:text-black">
           Submit Scheme
         </Button>
       </form>

@@ -56,6 +56,7 @@ export default function EditSalesTransactionForm() {
   const [openPhone, setOpenPhone] = useState([]);
   const [openIMEI, setOpenIMEI] = useState([]);
   const [openBrand, setOpenBrand] = useState(false);
+  const [subLoading, setSubLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -175,12 +176,16 @@ export default function EditSalesTransactionForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setSubLoading(true)
       const response = await api.patch(`transaction/salestransaction/${salesId}/`, formData);
       console.log('Response:', response.data);
       navigate('/sales');
     } catch (error) {
       console.error('Error updating data:', error);
       setError('Failed to update sales transaction. Please try again.');
+    }
+    finally{
+      setSubLoading(false)
     }
   };
 
@@ -459,7 +464,7 @@ export default function EditSalesTransactionForm() {
             <Button 
               type="submit" 
               className="w-full bg-green-600 hover:bg-green-700 text-white"
-              disabled={!hasFormChanged()}
+              disabled={!hasFormChanged() || subLoading}
             >
               Update Sales Transaction
             </Button>
