@@ -205,7 +205,9 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
 
         print(validated_data)
-        instance.date = validated_data.get('date', instance.date)
+        instance.date = validated_data.get('date', instance.date),
+        instance.name = validated_data.get('name', instance.name),
+
         instance.total_amount = validated_data.get('total_amount', instance.total_amount)
         instance.bill_no = validated_data.get('bill_no',instance.bill_no)
         instance.phone_number = validated_data.get('phone_number',instance.phone_number)
