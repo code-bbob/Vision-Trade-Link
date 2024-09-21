@@ -1,7 +1,8 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Button } from "./ui/button";
+'use client'
+
+import React, { useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Button } from "@/components/ui/button"
 import {
   Smartphone,
   ShoppingCart,
@@ -9,85 +10,105 @@ import {
   Zap,
   Shield,
   LogOut,
-  BookUser
-} from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+  BookUser,
+  Menu,
+  X
+} from "lucide-react"
+import { Link, useNavigate, useLocation } from "react-router-dom"
 
-// import { useNavigate } from "react-router-dom";
+export default function Sidebar() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [isOpen, setIsOpen] = useState(false)
 
+  const toggleSidebar = () => setIsOpen(!isOpen)
 
-export default function Sidebar(){
+  useEffect(() => {
+    setIsOpen(false)
+  }, [location])
 
-    const navigate = useNavigate()
-    return(
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isOpen && !event.target.closest('.sidebar')) {
+        setIsOpen(false)
+      }
+    }
 
-<motion.div
-        className="w-64 bg-slate-800 shadow-xl h-screen fixed"
-        initial={{ x: -100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen])
+
+  const sidebarVariants = {
+    open: { x: 0 },
+    closed: { x: '-100%' },
+  }
+
+  const menuItems = [
+    { title: 'Inventory', icon: Smartphone, path: '/inventory' },
+    { title: 'Purchases', icon: ShoppingCart, path: '/purchases' },
+    { title: 'Sales', icon: TrendingUp, path: '/sales' },
+    { title: 'Schemes', icon: Zap, path: '/schemes' },
+    { title: 'Price Protection', icon: Shield, path: '/price-protection' },
+    { title: 'Vendors', icon: BookUser, path: '/vendors' },
+  ]
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        className="fixed top-4 left-4 z-50 lg:hidden text-white"
+        onClick={toggleSidebar}
       >
-        <div className="p-6">
-          <div className="text-2xl font-bold mb-6 text-white" onClick={()=>navigate('/')}>
-            Inventory System
-          </div>
-          <nav className="space-y-2">
-            <Link to="/inventory">
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
+        {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+      </Button>
+
+      <AnimatePresence>
+        {(isOpen || window.innerWidth >= 1024) && (
+          <motion.div
+            className="sidebar fixed top-0 left-0 z-40 w-64 h-full bg-slate-800 shadow-xl overflow-y-auto"
+            initial="closed"
+            animate="open"
+            exit="closed"
+            variants={sidebarVariants}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+          >
+            <div className="p-6 pt-16 lg:pt-6"> {/* Added padding-top for mobile */}
+              <div 
+                className="text-2xl font-bold mb-6 text-white cursor-pointer" 
+                onClick={() => {
+                  navigate('/')
+                  setIsOpen(false)
+                }}
               >
-                <Smartphone className="mr-2 h-4 w-4" />
-                Inventory
-              </Button>
-            </Link>
-            <Link to="/purchases">
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
-              >
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                Purchases
-              </Button>
-            </Link>
-            <Link to="/sales">
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
-              >
-                <TrendingUp className="mr-2 h-4 w-4" />
-                Sales
-              </Button>
-            </Link>
-            <Link to="/schemes">
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
-              >
-                <Zap className="mr-2 h-4 w-4" />
-                Schemes
-              </Button>
-            </Link>
-            <Link to="/price-protection">
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
-              >
-                <Shield className="mr-2 h-4 w-4" />
-                Price Protection
-              </Button>
-            </Link>
-            <Link to="/vendors">
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
-              >
-                <BookUser className="mr-2 h-4 w-4" />
-                Vendors
-              </Button>
-            </Link>
-          </nav>
-        </div>
-      </motion.div>
-    )
+                Inventory System
+              </div>
+              <nav className="space-y-2">
+                {menuItems.map((item) => (
+                  <Link key={item.path} to={item.path}>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {item.title}
+                    </Button>
+                  </Link>
+                ))}
+              </nav>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden" 
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+    </>
+  )
 }

@@ -15,7 +15,7 @@ const Login = () => {
   const [isLoading,setIsLoading] = useState(false)
   const navigate = useNavigate('');
   const dispatch = useDispatch();
-  const url = `https://ezinventory.pythonanywhere.com/`;
+  const url = `http://192.168.1.66:8000/`;
 
   console.log(url)
   const handleSubmit = async (e) => {

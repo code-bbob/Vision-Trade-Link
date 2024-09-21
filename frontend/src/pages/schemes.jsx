@@ -3,15 +3,14 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
-import { Button } from "../components/ui/button"
-import { Input } from "../components/ui/input"
-import { Label } from "../components/ui/label"
-import { Switch } from "../components/ui/switch"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { Smartphone, ArrowLeft, Search, Plus } from 'lucide-react'
-import useAxios from '../utils/useAxios'
-import Sidebar from '../components/sidebar'
-
+import useAxios from '@/utils/useAxios'
+import Sidebar from '@/components/sidebar'
 
 export default function SchemePageComponent() {
   const api = useAxios()
@@ -87,19 +86,19 @@ export default function SchemePageComponent() {
   )
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-      <Sidebar />
-      <div className="flex-1 ml-64 overflow-auto relative">
-        <div className="max-w-6xl mx-auto p-6">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+      <Sidebar className="hidden lg:block w-64 flex-shrink-0" />
+      <div className="flex-grow pt-14 p-8 lg:p-6 lg:ml-64 overflow-auto">
+        <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 space-y-4 md:space-y-0 md:space-x-4"
+            className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 space-y-4 lg:space-y-0 lg:space-x-4"
           >
-            <h1 className="text-4xl font-bold text-white">Scheme Brands</h1>
+            <h1 className="text-3xl lg:text-4xl text-center font-bold text-white">Scheme Brands</h1>
 
-            <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full md:w-auto">
+            <div className="flex flex-col justify-between sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full lg:w-auto">
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
@@ -125,7 +124,7 @@ export default function SchemePageComponent() {
               <Button
                 onClick={() => navigate('/')}
                 variant="outline"
-                className="w-full sm:w-auto text-slate-900 border-white hover:bg-gray-500 hover:text-slate-900"
+                className="w-full sm:w-auto text-black border-white hover:bg-gray-700 hover:text-white"
               >
                 <ArrowLeft className="mr-2 h-4 w-3" />
                 Back to Dashboard
@@ -133,7 +132,7 @@ export default function SchemePageComponent() {
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredSchemes.map((scheme) => (
               <SchemeCard
                 key={scheme.id}
@@ -155,13 +154,12 @@ export default function SchemePageComponent() {
           )}
         </div>
 
-            <Button
-              className="fixed bottom-8 right-8 rounded-full w-16 h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-              onClick={() => navigate('/schemes/new')}
-            >
-              <Plus className="w-8 h-8" />
-            </Button>
-  
+        <Button
+          className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
+          onClick={() => navigate('/schemes/new')}
+        >
+          <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
+        </Button>
       </div>
     </div>
   )

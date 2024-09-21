@@ -3,15 +3,14 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
-import { Button } from "../components/ui/button"
-import { Input } from "../components/ui/input"
-import { Label } from "../components/ui/label"
-import { Switch } from "../components/ui/switch"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { Smartphone, ArrowLeft, Search, Plus } from 'lucide-react'
-import useAxios from '../utils/useAxios'
-import Sidebar from '../components/sidebar'
-
+import useAxios from '@/utils/useAxios'
+import Sidebar from '@/components/sidebar'
 
 export default function PPPageComponent() {
   const api = useAxios()
@@ -49,7 +48,6 @@ export default function PPPageComponent() {
     const results = ppsToFilter?.filter(pp =>
       pp.brand.toLowerCase().includes(searchTerm.toLowerCase())
     )
-    console.log(results)
     setFilteredPps(results)
   }, [searchTerm, showExpired, activePps, expiredPps])
 
@@ -64,7 +62,7 @@ export default function PPPageComponent() {
       console.log('New Scheme Added:', response.data)
       setActivePps([...activePps, response.data])
       setFilteredPps([...filteredPps, response.data])
-      setNewSchemeBrand('')
+      setNewPpBrand('')
       setIsDialogOpen(false)
     } catch (error) {
       console.error('Error adding pp:', error)
@@ -88,24 +86,24 @@ export default function PPPageComponent() {
   )
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-      <Sidebar />
-      <div className="flex-1 ml-64 overflow-auto relative">
-        <div className="max-w-6xl mx-auto p-6">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+      <Sidebar className="hidden lg:block w-64 flex-shrink-0" />
+      <div className="flex-grow pt-14 p-6 lg:p-6 lg:ml-64 overflow-auto">
+        <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 space-y-4 md:space-y-0 md:space-x-4"
+            className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 space-y-4 lg:space-y-0 lg:space-x-4"
           >
-            <h1 className="text-4xl font-bold text-white">Price Protection Brands</h1>
+            <h1 className="text-3xl lg:text-4xl font-bold text-white">Price Protection Brands</h1>
 
-            <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full md:w-auto">
+            <div className="flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0 sm:space-x-4 w-full lg:w-auto">
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Search schemes..."
+                  placeholder="Search price-protections..."
                   value={searchTerm}
                   onChange={handleSearch}
                   className="pl-10 w-full bg-slate-700 text-white border-gray-600 focus:border-purple-500 focus:ring-purple-500"
@@ -126,7 +124,7 @@ export default function PPPageComponent() {
               <Button
                 onClick={() => navigate('/')}
                 variant="outline"
-                className="w-full sm:w-auto text-slate-900 border-white hover:bg-gray-500 hover:text-slate-900"
+                className="w-full sm:w-auto text-black border-white hover:bg-gray-700 hover:text-white"
               >
                 <ArrowLeft className="mr-2 h-4 w-3" />
                 Back to Dashboard
@@ -134,7 +132,7 @@ export default function PPPageComponent() {
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPps?.map((pp) => (
               <PpCard
                 key={pp.id}
@@ -151,18 +149,17 @@ export default function PPPageComponent() {
               transition={{ duration: 0.5 }}
               className="text-center text-white mt-8"
             >
-              No schemes found matching your search.
+              No price protections found matching your search.
             </motion.div>
           )}
         </div>
 
-            <Button
-              className="fixed bottom-8 right-8 rounded-full w-16 h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-              onClick={() => navigate('/price-protection/new')}
-            >
-              <Plus className="w-8 h-8" />
-            </Button>
-  
+        <Button
+          className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
+          onClick={() => navigate('/price-protection/new')}
+        >
+          <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
+        </Button>
       </div>
     </div>
   )

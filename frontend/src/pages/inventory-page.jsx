@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
-import { Button } from "../components/ui/button"
-import { Input } from "../components/ui/input"
-import { Label } from "../components/ui/label"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Smartphone, ArrowLeft, Search, Plus } from 'lucide-react'
 import useAxios from '../utils/useAxios'
 import Sidebar from '../components/sidebar';
@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../components/ui/dialog"
+} from "@/components/ui/dialog"
 
 export function InventoryPageComponent() {
   const api = useAxios()
@@ -86,19 +86,19 @@ export function InventoryPageComponent() {
   )
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
       <Sidebar />
-      <div className="flex-1 ml-64 overflow-auto relative">
-        <div className="max-w-6xl mx-auto p-6">
+      <div className="flex-1 lg:ml-64 overflow-auto relative p-8 lg:p-6">
+        <div className="max-w-6xl  mx-auto">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 space-y-4 md:space-y-0 md:space-x-4"
+            className="flex flex-col space-y-4 mb-8"
           >
-            <h1 className="text-4xl font-bold text-white">Inventory Brands</h1>
+            <h1 className="text-3xl lg:text-4xl font-bold text-center pb-4 text-white">Inventory Brands</h1>
 
-            <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full md:w-auto">
+            <div className="flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0 sm:space-x-4 w-full">
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
@@ -113,7 +113,7 @@ export function InventoryPageComponent() {
               <Button
                 onClick={() => navigate('/')}
                 variant="outline"
-                className="w-full sm:w-auto text-slate-900 border-white hover:bg-gray-500 hover:text-slate-900"
+                className="w-full sm:w-auto text-black  border-white hover:bg-gray-700 hover:text-white"
               >
                 <ArrowLeft className="mr-2 h-4 w-3" />
                 Back to Dashboard
@@ -121,7 +121,7 @@ export function InventoryPageComponent() {
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredBrands.map((brand) => (
               <BrandCard
                 key={brand.id}
@@ -146,10 +146,10 @@ export function InventoryPageComponent() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button
-              className="fixed bottom-8 right-8 rounded-full w-16 h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
+              className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
               onClick={() => setIsDialogOpen(true)}
             >
-              <Plus className="w-8 h-8" />
+              <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
@@ -200,17 +200,14 @@ function BrandCard({ brand, onClick }) {
         <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
         <div className="absolute inset-0 bg-purple-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-          <CardTitle className="text-xl font-medium text-slate-300 group-hover:text-white transition-colors duration-300">
+          <CardTitle className="text-lg sm:text-xl font-medium text-slate-300 group-hover:text-white transition-colors duration-300">
             {brand.name}
           </CardTitle>
-          <Smartphone className="h-6 w-6 text-purple-400" />
+          <Smartphone className="h-5 w-5 sm:h-6 sm:w-6 text-purple-400" />
         </CardHeader>
         <CardContent className="relative z-10">
-          <div className="text-sm text-slate-400 group-hover:text-purple-200 transition-colors duration-300">
+          <div className="text-xs sm:text-sm text-slate-400 group-hover:text-purple-200 transition-colors duration-300">
             Items in stock: {brand.items}
-          </div>
-          <div className="text-sm text-slate-400 mt-1 group-hover:text-purple-200 transition-colors duration-300">
-            {/* Enterprise: {brand.enterprise} */}
           </div>
         </CardContent>
       </Card>

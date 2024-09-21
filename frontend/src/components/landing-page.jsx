@@ -1,10 +1,11 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Button } from "./ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Switch } from "./ui/switch";
-import { Label } from "./ui/label";
+'use client'
+
+import React, { useState, useEffect } from "react"
+import { motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import {
   Smartphone,
   ShoppingCart,
@@ -12,9 +13,9 @@ import {
   Zap,
   Shield,
   LogOut,
-} from "lucide-react";
-import useAxios from "../utils/useAxios";
-import { Link, useNavigate } from "react-router-dom";
+} from "lucide-react"
+import useAxios from "../utils/useAxios"
+import { useNavigate } from "react-router-dom"
 import {
   PieChart,
   Pie,
@@ -22,98 +23,70 @@ import {
   ResponsiveContainer,
   Legend,
   Tooltip,
-} from "recharts";
-import { useDispatch } from "react-redux";
-import { login, logout } from "../redux/accessSlice";
-import Sidebar from "./sidebar";
+} from "recharts"
+import { useDispatch } from "react-redux"
+import { logout } from "../redux/accessSlice"
+import Sidebar from "./sidebar"
 
 export default function LandingPage() {
-  const api = useAxios();
-  const navigate = useNavigate();
-  const [stats, setStats] = useState(null);
-  const [isMonthly, setIsMonthly] = useState(false);
-  const [showAmount, setShowAmount] = useState(true);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const dispatch = useDispatch();
+  const api = useAxios()
+  const navigate = useNavigate()
+  const [stats, setStats] = useState(null)
+  const [isMonthly, setIsMonthly] = useState(false)
+  const [showAmount, setShowAmount] = useState(true)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const dispatch = useDispatch()
 
   const handleLogout = () => {
-    // Remove tokens from local storage
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    dispatch(logout());
-
-    history.push("/login");
-  };
+    localStorage.removeItem("accessToken")
+    localStorage.removeItem("refreshToken")
+    dispatch(logout())
+    navigate("/login")
+  }
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await api.get("transaction/stats/");
-        setStats(response.data);
-        setLoading(false);
+        const response = await api.get("transaction/stats/")
+        setStats(response.data)
+        setLoading(false)
       } catch (err) {
-        console.error("Error fetching stats:", err);
-        setError("Failed to load statistics");
-        setLoading(false);
+        console.error("Error fetching stats:", err)
+        setError("Failed to load statistics")
+        setLoading(false)
       }
-    };
+    }
 
-    fetchStats();
-  }, []);
+    fetchStats()
+  }, [])
 
-  if (loading)
-    return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
-        Loading...
-      </div>
-    );
-  if (error)
-    return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-red-500">
-        {error}
-      </div>
-    );
-  if (!stats) return null;
+  if (loading) return <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">Loading...</div>
+  if (error) return <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-red-500">{error}</div>
+  if (!stats) return null
 
-  const currentStats = isMonthly ? stats.monthly : stats.daily;
+  const currentStats = isMonthly ? stats.monthly : stats.daily
 
-  const getChartData = () => {
-    return {
-      purchases: [
-        {
-          name: "Monthly",
-          value: showAmount ? stats.monthly.ptamt : stats.monthly.purchases,
-        },
-        {
-          name: "Daily",
-          value: showAmount ? stats.daily.dailyptamt : stats.daily.purchases,
-        },
-      ],
-      sales: [
-        {
-          name: "Monthly",
-          value: showAmount ? stats.monthly.stamt : stats.monthly.sales,
-        },
-        {
-          name: "Daily",
-          value: showAmount ? stats.daily.dailystamt : stats.daily.sales,
-        },
-      ],
-    };
-  };
+  const getChartData = () => ({
+    purchases: [
+      { name: "Monthly", value: showAmount ? stats.monthly.ptamt : stats.monthly.purchases },
+      { name: "Daily", value: showAmount ? stats.daily.dailyptamt : stats.daily.purchases },
+    ],
+    sales: [
+      { name: "Monthly", value: showAmount ? stats.monthly.stamt : stats.monthly.sales },
+      { name: "Daily", value: showAmount ? stats.daily.dailystamt : stats.daily.sales },
+    ],
+  })
 
-  const chartData = getChartData();
-
-  const COLORS = ["#8b5cf6", "#3b82f6"];
+  const chartData = getChartData()
+  const COLORS = ["#8b5cf6", "#3b82f6"]
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-      <Sidebar/>
+    <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+      <Sidebar />
 
-      {/* Main Content */}
-      <div className="flex-1 ml-64 p-10 overflow-y-auto">
-        <div className="relative mb-8">
+      <div className="flex-1 p-4 lg:p-10 lg:ml-64 overflow-y-auto">
+        <div className="relative mb-8 pt-12 lg:pt-0"> {/* Added padding-top for mobile */}
           <motion.div
             initial={{ opacity: 0, x: -1000 }}
             animate={{ opacity: 1, x: 0 }}
@@ -121,7 +94,7 @@ export default function LandingPage() {
             className="overflow-hidden"
           >
             <motion.h1
-              className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 text-transparent bg-clip-text whitespace-nowrap inline-block"
+              className="text-2xl lg:text-4xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 text-transparent bg-clip-text whitespace-nowrap inline-block"
               animate={{ x: ["50%", "0%", "50%"] }}
               transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
             >
@@ -130,7 +103,7 @@ export default function LandingPage() {
           </motion.div>
           <Button
             onClick={handleLogout}
-            className="absolute right-0 top-1/2 transform -translate-y-1/2 hover:bg-red-600 text-white"
+            className="absolute right-0 top-full mt-2 lg:top-1/2 lg:-translate-y-1/2 hover:bg-red-600 text-white"
           >
             <LogOut className="mr-2 h-4 w-4" />
             Logout
@@ -138,7 +111,7 @@ export default function LandingPage() {
         </div>
 
         <motion.div
-          className="flex justify-end mb-4"
+          className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 space-y-2 sm:space-y-0"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
@@ -155,7 +128,7 @@ export default function LandingPage() {
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-8">
           <StatCard
             title="Total Purchases"
             value={currentStats.purchases}
@@ -178,7 +151,7 @@ export default function LandingPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 mb-8">
           <StatCard
             title="Current Stock"
             value={stats.stock}
@@ -194,8 +167,8 @@ export default function LandingPage() {
         </div>
 
         <Card className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-xl font-bold text-white">
+          <CardHeader className="flex flex-col lg:flex-row items-center justify-between">
+            <CardTitle className="text-xl font-bold text-white mb-2 lg:mb-0">
               Financial Overview
             </CardTitle>
             <div className="flex items-center space-x-2">
@@ -210,57 +183,57 @@ export default function LandingPage() {
             </div>
           </CardHeader>
           <CardContent>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div>
-        <h3 className="text-lg font-semibold text-white mb-4">Purchases</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie
-              data={chartData.purchases}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              outerRadius={80}
-              fill="#8884d8"
-              dataKey="value"
-            >
-              {chartData.purchases.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-      <div>
-        <h3 className="text-lg font-semibold text-white mb-4">Sales</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie
-              data={chartData.sales}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              outerRadius={80}
-              fill="#8884d8"
-              dataKey="value"
-            >
-              {chartData.sales.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  </CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-4">Purchases</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={chartData.purchases}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {chartData.purchases.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-4">Sales</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={chartData.sales}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {chartData.sales.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </CardContent>
         </Card>
       </div>
     </div>
-  );
+  )
 }
 
 function StatCard({ title, value, subValue, icon, onClick }) {
@@ -284,16 +257,16 @@ function StatCard({ title, value, subValue, icon, onClick }) {
           {icon}
         </CardHeader>
         <CardContent className="relative z-10">
-          <div className="text-2xl font-bold text-white group-hover:text-purple-300 transition-colors duration-300">
+          <div className="text-xl lg:text-2xl font-bold text-white group-hover:text-purple-300 transition-colors duration-300">
             {value}
           </div>
           {subValue !== undefined && (
-            <div className="text-sm text-slate-400 mt-1 group-hover:text-purple-200 transition-colors duration-300">
+            <div className="text-xs lg:text-sm text-slate-400 mt-1 group-hover:text-purple-200 transition-colors duration-300">
               Rs. {subValue.toFixed(2)}
             </div>
           )}
         </CardContent>
       </Card>
     </motion.div>
-  );
+  )
 }

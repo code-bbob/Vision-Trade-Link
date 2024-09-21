@@ -28,6 +28,8 @@ import EditPurchaseTransactionForm from './components/editpurchase';
 import EditSalesTransactionForm from './components/editsales';
 import EditSchemeForm from './components/editschemes';
 import EditPriceProtectionForm from './components/editpp';
+import VendorForm from './components/postVendors';
+// import VendorTransactionForm from './pages/transaction-vendors';
 
 function App() {
   const { isAuthenticated } = useSelector((state) => state.root);
@@ -73,7 +75,8 @@ function App() {
     <Route path = "" element = {<VendorPage/>} />
     <Route path = "brand/:id" element = {<VendorBrand/>} />
     </Route>
-
+    
+    {/* <Route path = "/test" element = {<VendorTransactionForm/>} /> */}
 
 
     <Route path="/login" element={<Login/>}/>
