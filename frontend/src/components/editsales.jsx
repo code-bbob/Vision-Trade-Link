@@ -239,24 +239,27 @@ export default function EditSalesTransactionForm() {
   };
 
   if (loading) {
-    return <div className="text-white">Loading...</div>;
+    return <div className="text-white p-4">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-slate-900 to-slate-800">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-gradient-to-br from-slate-900 to-slate-800">
       <Sidebar />
-      <div className=''>
+      <div className="flex-1 p-4 lg:ml-64">
+        <div className='flex justify-end mt-10 lg:mt-3'>
+
         <Button
           onClick={() => navigate('/sales')}
           variant="outline"
-          className="w-full sm:w-auto px-5 text-slate-900 border-white hover:bg-gray-500 mx-9 ml-80 mt-4 hover:text-slate-900 items-right"
-        >
+          className="mb-4 w-full sm:w-auto px-5 text-black border-white hover:bg-gray-700 hover:text-white"
+          >
           <ArrowLeft className="mr-2 h-4 w-3" />
           Back to Sales
         </Button>
+          </div>
 
-        <div className="max-w-2xl mx-auto ml-96 bg-slate-800 p-8 m-8 rounded-lg shadow-lg">
-          <h2 className="text-3xl font-bold mb-6 text-white">Edit Sales Transaction</h2>
+        <div className="max-w-2xl mx-auto bg-slate-800 p-4 sm:p-8 rounded-lg shadow-lg">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-white">Edit Sales Transaction</h2>
           {error && <p className="text-red-400 mb-4">{error}</p>}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex flex-col">
@@ -269,7 +272,7 @@ export default function EditSalesTransactionForm() {
                 name="date"
                 value={formData.date}
                 onChange={handleChange}
-                className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                className="w-full bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
                 required
               />
             </div>
@@ -284,12 +287,12 @@ export default function EditSalesTransactionForm() {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                className="w-full bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
                 required
               />
             </div>
             <div className="flex flex-col">
-              <Label htmlFor="name" className="text-lg font-medium text-white mb-2">
+              <Label htmlFor="phone_number" className="text-lg font-medium text-white mb-2">
                 Customer's Phone Number
               </Label>
               <Input
@@ -299,12 +302,12 @@ export default function EditSalesTransactionForm() {
                 placeholder="Customer's Phone Number"
                 value={formData.phone_number}
                 onChange={handleChange}
-                className="border border-slate-600 text-white rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-slate-600 text-white rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 required
               />
             </div>
             <div className="flex flex-col">
-              <Label htmlFor="name" className="text-lg font-medium text-white mb-2">
+              <Label htmlFor="bill_no" className="text-lg font-medium text-white mb-2">
                 Bill No.
               </Label>
               <Input
@@ -314,8 +317,7 @@ export default function EditSalesTransactionForm() {
                 placeholder="Enter bill number"
                 value={formData.bill_no}
                 onChange={handleChange}
-
-                className="border border-slate-600 text-white rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-slate-600 text-white rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 required
               />
             </div>
@@ -323,8 +325,8 @@ export default function EditSalesTransactionForm() {
             <h3 className="text-xl font-semibold mb-2 text-white">Sales</h3>
             {formData.sales.map((sale, index) => (
               <div key={index} className="bg-slate-700 p-4 rounded-md shadow">
-                <h4 className="text-lg font-semibold mb-2 text-white">Sale {index + 1}</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <h4 className="text-lg font-semibold mb-4 text-white">Sale {index + 1}</h4>
+                <div className="space-y-4">
                   <div className="flex flex-col">
                     <Label htmlFor={`phone-${index}`} className="text-sm font-medium text-white mb-1">
                       Phone
@@ -435,7 +437,7 @@ export default function EditSalesTransactionForm() {
                       name="unit_price"
                       value={sale.unit_price}
                       onChange={(e) => handleSaleChange(index, e)}
-                      className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
+                      className="w-full bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
                       placeholder="Enter unit price"
                       required
                     />
@@ -446,7 +448,7 @@ export default function EditSalesTransactionForm() {
                     type="button"
                     variant="destructive"
                     size="sm"
-                    className="mt-2 bg-red-600 hover:bg-red-700 text-white"
+                    className="mt-4 w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white"
                     onClick={() => handleRemoveSale(index)}
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
@@ -471,7 +473,7 @@ export default function EditSalesTransactionForm() {
           </form>
           
           <Dialog>
-            <DialogTrigger className='w-full'>
+            <DialogTrigger asChild>
               <Button 
                 type="button" 
                 className="w-full bg-red-600 mt-6 hover:bg-red-700 text-white"
@@ -479,10 +481,10 @@ export default function EditSalesTransactionForm() {
                 Delete Transaction
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="bg-slate-800 text-white">
               <DialogHeader>
                 <DialogTitle>Are you absolutely sure?</DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-slate-300">
                   This action cannot be undone. This will permanently delete your sales transaction
                   and remove your data from our servers.
                 </DialogDescription>
@@ -572,7 +574,7 @@ export default function EditSalesTransactionForm() {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" onClick={handleAddPhone} className="bg-green-600 hover:bg-green-700 text-white">Add Phone</Button>
+                <Button type="button" onClick={handleAddPhone} className="w-full bg-green-600 hover:bg-green-700 text-white">Add Phone</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -600,7 +602,7 @@ export default function EditSalesTransactionForm() {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" onClick={handleAddBrand} className="bg-green-600 hover:bg-green-700 text-white">Add Brand</Button>
+                <Button type="button" onClick={handleAddBrand} className="w-full bg-green-600 hover:bg-green-700 text-white">Add Brand</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

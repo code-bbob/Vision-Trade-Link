@@ -144,7 +144,7 @@ export default function SalesTransactions() {
           <Button
             onClick={() => navigate('/')}
             variant="outline"
-            className="w-full lg:w-auto px-5 text-white border-white hover:bg-gray-700 hover:text-white"
+            className="w-full lg:w-auto px-5 text-black border-white hover:bg-gray-700 hover:text-white"
           >
             <ArrowLeft className="mr-2 h-4 w-3" />
             Back to Dashboard

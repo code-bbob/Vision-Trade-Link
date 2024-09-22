@@ -1,4 +1,5 @@
 'use client'
+
 import React, { useState, useEffect } from 'react';
 import useAxios from '../utils/useAxios';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -172,28 +173,27 @@ export default function EditPriceProtectionForm() {
   };
 
   if (loading) {
-    return <div className="text-white  bg-gradient-to-br from-slate-900 to-slate-800 min-h-screen
-    ">Loading...</div>;
+    return <div className="text-white bg-gradient-to-br from-slate-900 to-slate-800 min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-slate-900 to-slate-800">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-gradient-to-br from-slate-900 to-slate-800">
       <Sidebar />
-      <div className=''>
+      <div className="flex-1 p-4 lg:ml-64">
         <Button
           onClick={() => navigate('/price-protection')}
           variant="outline"
-          className="w-full sm:w-auto px-5 text-slate-900 border-white hover:bg-gray-500 mx-9 ml-80 mt-3 hover:text-slate-900 items-right"
+          className="mb-4 w-full sm:w-auto px-5 text-white border-white hover:bg-gray-700 hover:text-white"
         >
           <ArrowLeft className="mr-2 h-4 w-3" />
           Back to Price Protection
         </Button>
 
-        <div className="max-w-3xl w-[600px] mx-auto ml-96 items-center bg-slate-800 p-8 m-8 rounded-lg shadow-lg">
-          <h2 className="text-3xl font-bold mb-6 text-white">Edit Price Protection</h2>
-          {error && <p className="text-red-600 mb-4">{error}</p>}
+        <div className="max-w-3xl mx-auto bg-slate-800 p-4 sm:p-8 rounded-lg shadow-lg">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-white">Edit Price Protection</h2>
+          {error && <p className="text-red-400 mb-4">{error}</p>}
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col">
                 <Label htmlFor="from_date" className="text-lg font-medium text-white mb-2">
                   From Date
@@ -204,7 +204,7 @@ export default function EditPriceProtectionForm() {
                   name="from_date"
                   value={formData.from_date}
                   onChange={handleChange}
-                  className="border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white"
+                  className="w-full bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
                   required
                 />
               </div>
@@ -218,7 +218,7 @@ export default function EditPriceProtectionForm() {
                   name="to_date"
                   value={formData.to_date}
                   onChange={handleChange}
-                  className="border border-gray-300 text-white rounded-lg py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
                   required
                 />
               </div>
@@ -286,7 +286,7 @@ export default function EditPriceProtectionForm() {
                 name="price_drop"
                 value={formData.price_drop}
                 onChange={handleChange}
-                className="border border-gray-300 rounded-lg text-white py-2 px-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
                 placeholder="Enter price drop"
                 required
               />
@@ -294,7 +294,7 @@ export default function EditPriceProtectionForm() {
 
             <Button 
               type="submit" 
-              className="w-full hover:bg-green-300 hover:text-black"
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
               disabled={!hasFormChanged() || subLoading}
             >
               Update Price Protection
@@ -302,7 +302,7 @@ export default function EditPriceProtectionForm() {
           </form>
 
           <Dialog>
-            <DialogTrigger className='w-full'>
+            <DialogTrigger asChild>
               <Button 
                 type="button" 
                 className="w-full bg-red-600 mt-6 hover:bg-red-700 text-white"
@@ -310,10 +310,10 @@ export default function EditPriceProtectionForm() {
                 Delete Price Protection
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="bg-slate-800 text-white">
               <DialogHeader>
                 <DialogTitle>Are you absolutely sure?</DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-slate-300">
                   This action cannot be undone. This will permanently delete your price protection
                   and remove your data from our servers.
                 </DialogDescription>
@@ -329,10 +329,10 @@ export default function EditPriceProtectionForm() {
           </Dialog>
 
           <Dialog open={showNewPhoneDialog} onOpenChange={setShowNewPhoneDialog}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
               <DialogHeader>
                 <DialogTitle>Add New Phone</DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-slate-300">
                   Enter the details of the new phone you want to add.
                 </DialogDescription>
               </DialogHeader>
@@ -346,7 +346,7 @@ export default function EditPriceProtectionForm() {
                     name="name"
                     value={newPhoneData.name}
                     onChange={handleNewPhoneChange}
-                    className="col-span-3"
+                    className="col-span-3 bg-slate-700 border-slate-600 text-white"
                     placeholder="Enter phone name"
                   />
                 </div>
@@ -382,17 +382,18 @@ export default function EditPriceProtectionForm() {
                                     handleNewPhoneBrandChange(brand.id.toString())
                                     setOpenBrand(false)
                                   }}
+                                  className="text-white hover:bg-slate-600"
                                 >
                                   <Check
                                     className={cn(
-                                      "mr-2 h-4 w-4 text-white",
+                                      "mr-2 h-4 w-4",
                                       newPhoneData.brand === brand.id.toString() ? "opacity-100" : "opacity-0"
                                     )}
                                   />
                                   {brand.name}
                                 </CommandItem>
                               ))}
-                              <CommandItem onSelect={() => handleNewPhoneBrandChange('new')}>
+                              <CommandItem onSelect={() => handleNewPhoneBrandChange('new')} className="text-white hover:bg-slate-600">
                                 Add a new brand
                               </CommandItem>
                             </CommandGroup>
@@ -404,16 +405,16 @@ export default function EditPriceProtectionForm() {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" onClick={handleAddPhone}>Add Phone</Button>
+                <Button type="button" onClick={handleAddPhone} className="w-full bg-green-600 hover:bg-green-700 text-white">Add Phone</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
 
           <Dialog open={showNewBrandDialog} onOpenChange={setShowNewBrandDialog}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
               <DialogHeader>
                 <DialogTitle>Add New Brand</DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-slate-300">
                   Enter the name of the new brand you want to add.
                 </DialogDescription>
               </DialogHeader>
@@ -426,13 +427,13 @@ export default function EditPriceProtectionForm() {
                     id="newBrandName"
                     value={newBrandName}
                     onChange={handleNewBrandChange}
-                    className="col-span-3"
+                    className="col-span-3 bg-slate-700 border-slate-600 text-white"
                     placeholder="Enter brand name"
                   />
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" onClick={handleAddBrand}>Add Brand</Button>
+                <Button type="button" onClick={handleAddBrand} className="w-full bg-green-600 hover:bg-green-700 text-white">Add Brand</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
