@@ -7,7 +7,6 @@ import { Loader, Lock, Mail } from "lucide-react";
 import { Button } from '../components/ui/button';
 import { Input } from "../components/ui/input"
 
-
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,9 +14,8 @@ const Login = () => {
   const [isLoading,setIsLoading] = useState(false)
   const navigate = useNavigate('');
   const dispatch = useDispatch();
-  const url = `http://192.168.1.66:8000/`;
+  const url = `http://ezinventory.pythonanywhere.com/userauth/login/`;
 
-  console.log(url)
   const handleSubmit = async (e) => {
     
     e.preventDefault();

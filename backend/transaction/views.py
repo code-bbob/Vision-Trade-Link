@@ -12,6 +12,7 @@ from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import get_object_or_404
 from django.db import models
 from rest_framework import generics
+from django.utils import timezone
 
 
 
@@ -68,7 +69,7 @@ class PurchaseTransactionView(APIView):
             date_str = data["date"]
             # Assuming the format is 'YYYY-MM-DD'
             date_object = datetime.strptime(date_str, '%Y-%m-%d').date()
-            datetime_with_current_time = datetime.combine(date_object, datetime.now().time())
+            datetime_with_current_time = datetime.combine(date_object, timezone.now().time())
             data["date"] = datetime_with_current_time.isoformat()
         
         serializer = PurchaseTransactionSerializer(data=data)
@@ -255,7 +256,7 @@ class SalesTransactionView(APIView):
             date_str = data["date"]
             # Assuming the format is 'YYYY-MM-DD'
             date_object = datetime.strptime(date_str, '%Y-%m-%d').date()
-            datetime_with_current_time = datetime.combine(date_object, datetime.now().time())
+            datetime_with_current_time = datetime.combine(date_object, timezone.now().time())
             data["date"] = datetime_with_current_time.isoformat()
         
         serializer = SalesTransactionSerializer(data=data)
@@ -424,7 +425,7 @@ class StatsView(APIView):
         end_date = request.GET.get('end_date')
 
         if not start_date or not end_date:
-            today = datetime.today()
+            today = timezone.now()
             start_date = today.replace(day=1)  # First day of the current month
             end_date = today
         
