@@ -14,7 +14,7 @@ const Login = () => {
   const [isLoading,setIsLoading] = useState(false)
   const navigate = useNavigate('');
   const dispatch = useDispatch();
-  const url = `http://ezinventory.pythonanywhere.com/userauth/login/`;
+  const url = `https://ezinventory.pythonanywhere.com/userauth/login/`;
 
   const handleSubmit = async (e) => {
     
