@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import Vendor, Phone, Purchase, PurchaseTransaction,Sales, SalesTransaction,Scheme,Subscheme,Item, PriceProtection
 from inventory.models import Brand
 from django.db import transaction
+from .models import VendorTransaction
+
 
 class PurchaseSerializer(serializers.ModelSerializer):
     phone_name = serializers.SerializerMethodField(read_only=True)
@@ -32,19 +34,28 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
 
         amount = transaction.calculate_total_amount()
         vendor = transaction.vendor
+        brand = vendor.brand
         vendor.due = (vendor.due + amount) if vendor.due is not None else amount
+        brand.stock = (brand.stock + amount) if brand.stock is not None else amount
+        brand.save()
         vendor.save()
         return transaction
     
     def update(self, instance, validated_data):
 
-        print(validated_data)
+        old_vendor = instance.vendor
+        old_brand = old_vendor.brand
+        old_total = instance.total_amount
+
         instance.vendor = validated_data.get('vendor', instance.vendor)
         instance.date = validated_data.get('date', instance.date)
         instance.enterprise = validated_data.get('enterprise', instance.enterprise)
         instance.total_amount = validated_data.get('total_amount', instance.total_amount)
         instance.bill_no = validated_data.get('bill_no', instance.bill_no)
         instance.save()
+
+        new_vendor = instance.vendor
+        new_brand = new_vendor.brand
 
         purchase_data = validated_data.get('purchase')
         if purchase_data:
@@ -72,7 +83,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
                         item.save()
                         item.phone.save()
                         old_phone.save()
-
+                 
                     for attr, value in purchase_item.items():
                         setattr(purchase_instance, attr, value)
                     purchase_instance.save()
@@ -88,6 +99,23 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
 
         instance.total_amount = instance.calculate_total_amount()
         instance.save()
+        if old_vendor != new_vendor:
+            old_vendor.due = (old_vendor.due - old_total) if old_vendor.due is not None else 0
+            new_vendor.due = (new_vendor.due + instance.total_amount) if new_vendor.due is not None else instance.total_amount
+            old_vendor.save()
+            new_vendor.save()
+        else:
+            new_vendor.due = (new_vendor.due + instance.total_amount - old_total) if new_vendor.due is not None else instance.total_amount
+            new_vendor.save()
+        
+        if new_brand != old_brand:
+            old_brand.stock = (old_brand.stock - old_total) if old_brand.stock is not None else 0
+            new_brand.stock = (new_brand.stock + instance.total_amount) if new_brand.stock is not None else instance.total_amount
+            old_brand.save()
+            new_brand.save()
+        else:
+            new_brand.stock = (new_brand.stock + instance.total_amount - old_total) if new_brand.stock is not None else instance.total_amount
+            new_brand.save()
         purchases = instance.purchase.all()
         for purchase in purchases:
             sales = Sales.objects.filter(imei_number = purchase.imei_number).first()
@@ -143,68 +171,22 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
         for data in sales_data:
             sale = Sales.objects.create(sales_transaction=transaction, **data)
             sale.phone.calculate_quantity()
+            brand = sale.phone.brand
+            purchase = Purchase.objects.filter(imei_number = sale.imei_number).first()
+            brand.stock = (brand.stock - purchase.unit_price) if brand.stock is not None else 0
+            brand.save()
+
+
         transaction.calculate_total_amount()
         return transaction
     
     
-    # def update(self, instance, validated_data):
-    #     sales_data = validated_data.pop('sales', [])
-    #     print(sales_data)
-
-    #     # Update SalesTransaction fields
-    #     for attr, value in validated_data.items():
-    #         setattr(instance, attr, value)
-        
-    #     # Handle sales updates
-    #     with transaction.atomic():
-    #         existing_sales = {sale.id: sale for sale in instance.sales.all()}
-            
-    #         for sale_item in sales_data:
-    #             sale_id = sale_item.get('id')
-                
-    #             if sale_id and sale_id in existing_sales:
-    #                 print("UPTO HERE")
-    #                 # Update existing sale
-    #                 # sale = existing_sales.pop(sale_id)
-    #                 sale = existing_sales[sale_id]
-
-    #                 old_imei = sale.imei_number
-    #                 new_imei = sale_item.get('imei_number')
-
-    #                 if old_imei != new_imei:
-    #                     # IMEI has changed, handle item creation/deletion
-    #                     self._handle_imei_change(old_imei, new_imei, sale_item['phone'])
-
-    #                 # Update sale object
-    #                 for attr, value in sale_item.items():
-    #                     setattr(sale, attr, value)
-    #                 sale.save()
-    #                 del existing_sales[sale_id]
-
-    #                 print(sale)
-    #             else:
-    #                 # Create new sale
-    #                 print("AT ELSE")
-    #                 new_sale = Sales.objects.create(sales_transaction=instance, **sale_item)
-    #                 print(new_sale)
-    #                 self._handle_new_sale(new_sale)
-
-    #         # Delete sales not present in the update data
-    #         for sale in existing_sales.values():
-    #             self._handle_sale_deletion(sale)
-    #             sale.delete()
-
-    #     # Recalculate total amount
-    #     instance.calculate_total_amount()
-    #     instance.save()
-
-    #     return instance
-    
-
         
     def update(self, instance, validated_data):
 
         print(validated_data)
+        
+
         instance.date = validated_data.get('date', instance.date)
         instance.name = validated_data.get('name', instance.name)
         instance.total_amount = validated_data.get('total_amount', instance.total_amount)
@@ -213,9 +195,17 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
 
         instance.save()
 
+
+
         sales_data = validated_data.get('sales')
         if sales_data:
             existing_sales = {sale.id: sale for sale in instance.sales.all()}
+
+            for sales in instance.sales.all():
+                brand = sales.phone.brand
+                brand.stock = (brand.stock + sales.unit_price) if brand.stock is not None else sales.unit_price
+                brand.save()
+
             
             for sale_item in sales_data:
                 sale_id = sale_item.get('id')
@@ -252,9 +242,14 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
 
         instance.total_amount = instance.calculate_total_amount()
         instance.save()
+
         sales = instance.sales.all()
         print("here",sales)
         for sale in sales:
+            brand = sale.phone.brand
+            purchase = Purchase.objects.filter(imei_number = sale.imei_number).first()
+            brand.stock = (brand.stock - purchase.unit_price) if brand.stock is not None else 0
+            brand.save()
             sale.checkit()
             print("Done Checking")
         return instance
@@ -455,3 +450,55 @@ class VendorBrandSerializer(serializers.ModelSerializer):
     def get_count(self,obj):
         vendors = Vendor.objects.filter(enterprise = obj.enterprise, brand = obj).count()
         return vendors
+    
+
+class VendorTransactionSerializer(serializers.ModelSerializer):
+    date = serializers.DateTimeField()
+    vendor_name = serializers.SerializerMethodField(read_only=True)
+    class Meta:
+        model = VendorTransaction
+        fields = '__all__'
+
+    def create(self, validated_data):
+        vendor = validated_data['vendor']
+        amount = validated_data['amount']
+
+        vendor.due = (vendor.due - amount) if vendor.due is not None else 0
+        vendor.save()
+
+        transaction = VendorTransaction.objects.create(**validated_data)
+        return transaction
+    
+    def update(self, instance, validated_data):
+        print("HERE")
+        old_vendor = instance.vendor
+        old_amount = instance.amount
+        
+        instance.vendor = validated_data.get('vendor', instance.vendor)
+        instance.date = validated_data.get('date', instance.date)
+        instance.amount = validated_data.get('amount', instance.amount)
+        instance.desc = validated_data.get('desc', instance.desc)
+        instance.method = validated_data.get('method', instance.method)
+        instance.cheque_number = validated_data.get('cheque_number', instance.cheque_number)
+        instance.cashout_date = validated_data.get('cashout_date', instance.cashout_date)
+        instance.save()
+        new_vendor = instance.vendor
+        if old_vendor != new_vendor:
+            old_vendor.due = (old_vendor.due + old_amount) if old_vendor.due is not None else old_amount
+            new_vendor.due = (new_vendor.due - instance.amount) if new_vendor.due is not None else 0
+            old_vendor.save()
+            new_vendor.save()
+        else:
+            new_vendor.due = (new_vendor.due + old_amount - instance.amount) if new_vendor.due is not None else instance.amount
+            new_vendor.save()
+        return super().update(instance, validated_data)
+    
+
+    def get_vendor_name(self,obj):
+        return obj.vendor.name
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Format the date in 'YYYY-MM-DD' format for the response
+        representation['date'] = instance.date.strftime('%Y-%m-%d')
+        return representation

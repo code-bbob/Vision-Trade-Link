@@ -3,6 +3,7 @@ from . models import Brand,Phone,Item
 
 class BrandSerializer(serializers.ModelSerializer):
     items = serializers.SerializerMethodField(read_only = True)
+    amount = serializers.SerializerMethodField(read_only = True)
     class Meta:
         model = Brand
         fields = '__all__'
@@ -11,6 +12,15 @@ class BrandSerializer(serializers.ModelSerializer):
         items = Item.objects.filter(phone__brand = obj).count()
         return items
     
+    def get_amount(self,obj):
+        items = Item.objects.filter(phone__brand = obj)
+        amount = 0
+        for item in items:
+            amount = (amount + item.phone.unit_price) if item.phone.unit_price else amount
+        return amount
+
+
+
 
 class PhoneSerializer(serializers.ModelSerializer):
     brand_name = serializers.SerializerMethodField(read_only = True)

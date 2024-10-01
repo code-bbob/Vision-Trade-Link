@@ -15,6 +15,7 @@ import {
   X
 } from "lucide-react"
 import { Link, useNavigate, useLocation } from "react-router-dom"
+import { icon } from "@fortawesome/fontawesome-svg-core"
 
 export default function Sidebar() {
   const navigate = useNavigate()
@@ -52,6 +53,7 @@ export default function Sidebar() {
     { title: 'Schemes', icon: Zap, path: '/schemes' },
     { title: 'Price Protection', icon: Shield, path: '/price-protection' },
     { title: 'Vendors', icon: BookUser, path: '/vendors' },
+    { title: 'VendorTransactions', icon: BookUser, path: '/vendor-transactions' },
   ]
 
   return (

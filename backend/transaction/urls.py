@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import PurchaseTransactionView,VendorView,SalesTransactionView,SchemeView,PriceProtectionView,StatsView,SchemeBrandView,SchemePhoneView,SingleScheme,PPBrandView,PPPhoneView,SinglePP,VendorBrandsView,SingleVendorBrandView,PurchaseTransactionChangeView,SalesTransactionChangeView,SchemeChangeView,PriceProtectionChangeView
+from .views import PurchaseTransactionView,VendorView,SalesTransactionView,SchemeView,PriceProtectionView,StatsView,SchemeBrandView,SchemePhoneView,SingleScheme,PPBrandView,PPPhoneView,SinglePP,VendorBrandsView,SingleVendorBrandView,PurchaseTransactionChangeView,SalesTransactionChangeView,SchemeChangeView,PriceProtectionChangeView,VendorTransactionView
 
 urlpatterns = [
     path('purchasetransaction/', PurchaseTransactionView.as_view(), name='purchasetransaction-create'),
@@ -9,6 +9,10 @@ urlpatterns = [
     path('salestransaction/<int:pk>/', SalesTransactionChangeView.as_view(), name='salestransaction-create'),
 
     path('vendor/',VendorView.as_view(), name='vendor'),
+    path('vendortransaction/',VendorTransactionView.as_view(), name='vendortransaction'),
+    path('vendortransaction/<int:pk>/',VendorTransactionView.as_view(), name='vendortransaction'),
+
+     
     path('scheme/',SchemeView.as_view(), name='scheme'),
     path('scheme/<int:pk>/', SchemeChangeView.as_view(), name='cchemechange'),
     path('scheme/brand/<int:id>/', SchemePhoneView.as_view(),name='schemephone'),

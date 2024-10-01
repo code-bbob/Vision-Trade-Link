@@ -143,11 +143,12 @@ export default function LandingPage() {
             icon={<TrendingUp className="h-6 w-6 text-green-400" />}
             onClick={() => navigate("/sales")}
           />
-          <StatCard
+          <StatCard 
             title="Profit"
-            value={currentStats.profit}
+            value={currentStats.profit}s
+
             icon={<Zap className="h-6 w-6 text-yellow-400" />}
-            onClick={() => navigate("/profit")}
+            // onClick={() => navigate("/profit")}
           />
         </div>
 
@@ -257,12 +258,20 @@ function StatCard({ title, value, subValue, icon, onClick }) {
           {icon}
         </CardHeader>
         <CardContent className="relative z-10">
-          <div className="text-xl lg:text-2xl font-bold text-white group-hover:text-purple-300 transition-colors duration-300">
+          {title!== "Profit" && <div className="text-xl lg:text-2xl font-bold text-white group-hover:text-purple-300 transition-colors duration-300">
             {value}
-          </div>
+          </div>}
+          {title== "Profit" && <div className="text-xl lg:text-2xl font-bold text-white group-hover:text-purple-300 transition-colors duration-300">
+           RS. {value}
+          </div>}
           {subValue !== undefined && (
             <div className="text-xs lg:text-sm text-slate-400 mt-1 group-hover:text-purple-200 transition-colors duration-300">
               Rs. {subValue.toFixed(2)}
+            </div>
+          )}
+          {title === "Profit" && (
+            <div className="text-xs lg:text-sm text-slate-400 mt-1 pb-5 group-hover:text-purple-200 transition-colors duration-300">
+              
             </div>
           )}
         </CardContent>

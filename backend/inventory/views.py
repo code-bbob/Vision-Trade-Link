@@ -66,3 +66,4 @@ class PhoneIMEIView(APIView):
             imei_list.append(item.imei_number)
             
         return Response({"phone":phone.name,"list":imei_list})
+    

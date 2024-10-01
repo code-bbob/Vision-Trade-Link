@@ -14,11 +14,17 @@ class Vendor(models.Model):
         return self.name
 
 class PurchaseTransaction(models.Model):
+
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('expired', 'Expired'),
+    ]
     date = models.DateTimeField()
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
     total_amount = models.FloatField(null=True, blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
     bill_no = models.CharField(max_length=10,null=True)
+    # method = models.CharField(max_length=10,choices=[('cash','Cash'),('cheque','Cheque'),('credit','Credit')],default='cash')
 
     def calculate_total_amount(self):
         total = sum(purchase.unit_price for purchase in self.purchase.all())
@@ -334,7 +340,6 @@ class PriceProtection(models.Model):
 
 class PPItems(models.Model):
     pp = models.ForeignKey(PriceProtection, related_name="pp_item",on_delete=models.CASCADE)
-    # item = models.ForeignKey(Item, related_name="pp_item",on_delete=models.CASCADE)
     phone = models.ForeignKey(Phone,related_name="pp_item_phone", on_delete = models.CASCADE)
     imei_number = models.CharField(max_length=15,validators=[MinLengthValidator(15)])
     cashback = models.FloatField(blank=True,null=True)
@@ -343,13 +348,12 @@ class PPItems(models.Model):
         super().save(*args, **kwargs)  # Save again after processing the schemes and pp
 
 
-    # def calculate_receivables(self,*args, **kwargs): 
-    #     print("Calculating pp")
-    #     pp = self.pp
-    #     self.cashback = pp.price_drop
-    #     print(f" = {self.cashback}")
-    #     pp.receivable = (self.cashback + pp.receivable) if pp.receivable is not None else self.cashback
-    #     pp.save()
-    #     self.save()
-        
-        
+class VendorTransaction(models.Model):
+    date = models.DateTimeField()
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE,related_name="vendor_transaction")
+    amount = models.FloatField(null=True, blank=True)
+    enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
+    cheque_number = models.CharField(max_length=10,null=True,blank=True)
+    cashout_date = models.DateField(null=True)
+    method = models.CharField(max_length=10,choices=[('cash','Cash'),('cheque','Cheque')],default='cheque')
+    desc = models.CharField(max_length=50,null=True)

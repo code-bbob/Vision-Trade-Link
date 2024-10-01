@@ -8,6 +8,7 @@ from django.core.validators import MinLengthValidator
 class Brand(models.Model):
     name = models.CharField(max_length=20)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE, related_name="brand")
+    stock = models.FloatField(null=True,blank=True)
     
     def __str__(self):
         return self.name

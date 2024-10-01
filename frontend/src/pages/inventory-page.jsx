@@ -209,6 +209,9 @@ function BrandCard({ brand, onClick }) {
           <div className="text-xs sm:text-sm text-slate-400 group-hover:text-purple-200 transition-colors duration-300">
             Items in stock: {brand.items}
           </div>
+          <div className="text-xs sm:text-sm text-blue-400 mt-1 group-hover:text-purple-200 transition-colors duration-300">
+          RS. {brand.stock}
+          </div>
         </CardContent>
       </Card>
     </motion.div>
