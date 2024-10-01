@@ -246,7 +246,7 @@ class SalesTransactionView(APIView):
             start_date = datetime.combine(start_date, datetime.min.time())
             end_date = datetime.combine(end_date, datetime.max.time())
             
-            transactions = PurchaseTransaction.objects.filter(
+            transactions = SalesTransaction.objects.filter(
                 date__range=(start_date, end_date)
             )
         
