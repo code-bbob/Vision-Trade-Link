@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-e4d2awhn)g2*qtvljkvpn+djj65s!h%0u3tnr0og3*w38wtwt1
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['ezinventory.pythonanywhere.com']
 
 
 # Application definition
