@@ -511,14 +511,14 @@ class StatsView(APIView):
                 "dailyptamt":dailyptamt,
                 "sales": dailysales.count(),
                 "dailystamt":dailystamt,
-                "profit": daily_profit
+                "profit": round(daily_profit,2)
             },
             "monthly":{
                 "purchases" : monthlypurchases.count(),
                 "ptamt":ptamt,
                 "stamt":stamt,
                 "sales": monthlysales.count(),
-                "profit": monthly_profit,
+                "profit": round(monthly_profit,2)
             },
             "stock": allstock,
             "brands" : allbrands
