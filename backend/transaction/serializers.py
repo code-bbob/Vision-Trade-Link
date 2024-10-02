@@ -158,20 +158,22 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
             if new_method == 'cash':
                 print("I AM THERE")
                 serializer = VendorTransactionSerializer
-                data={'vendor': vendor, 'date': instance.date, 'amount': instance.total_amount, 'desc': 'Paid for purchase', 'method': 'cash', 'purchase_transaction': instance,'enterprise':instance.enterprise}
+                data={'vendor': Vendor.objects.filter(id=instance.vendor.id).first(), 'date': instance.date, 'amount': instance.total_amount, 'desc': 'Paid for purchase', 'method': 'cash', 'purchase_transaction': instance,'enterprise':instance.enterprise}
                 serializer.create(self,validated_data=data)
                 print("IAM HERE")
             elif new_method == 'cheque':
                 print("I AM THERE")
                 serializer = VendorTransactionSerializer
-                data={'vendor': vendor, 'date': instance.date, 'amount': instance.total_amount, 'desc': 'Paid for purchase', 'method': 'cheque', 'cheque_number': instance.cheque_number, 'cashout_date': instance.cashout_date,'enterprise':instance.enterprise, 'purchase_transaction': instance}
+                data={'vendor': Vendor.objects.filter(id=instance.vendor.id).first(), 'date': instance.date, 'amount': instance.total_amount, 'desc': 'Paid for purchase', 'method': 'cheque', 'cheque_number': instance.cheque_number, 'cashout_date': instance.cashout_date,'enterprise':instance.enterprise, 'purchase_transaction': instance}
                 serializer.create(self,validated_data=data)
                 print("I AM THERE")
         else:
             if old_total != instance.total_amount:
-                vendor_transaction = VendorTransaction.objects.filter(purchase_transaction=instance).first()
-                vendor_transaction.amount = instance.total_amount
-                vendor_transaction.save()
+                if new_method != 'credit':
+                    vendor_transaction = VendorTransaction.objects.filter(purchase_transaction=instance).first()
+                    vendor_transaction.amount = instance.total_amount
+                    vendor_transaction.save()
+
         return instance
 
 

@@ -4,6 +4,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .serializers import BrandSerializer,PhoneSerializer
+from rest_framework.decorators import api_view
+from barcode import EAN13
+from barcode.writer import SVGWriter
+import io
+from django.http import FileResponse
 
 
 # Create your views here.
@@ -67,3 +72,13 @@ class PhoneIMEIView(APIView):
             
         return Response({"phone":phone.name,"list":imei_list})
     
+@api_view(['GET'])
+def generate_barcode(request):
+    barcode = EAN13('123456789012', writer=SVGWriter())
+    
+    buffer = io.BytesIO()
+    barcode.write(buffer)
+    buffer.seek(0)
+
+    print("BARCODE GENERATED")
+    return FileResponse(buffer, content_type='image/svg+xml')

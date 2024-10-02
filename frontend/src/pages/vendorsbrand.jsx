@@ -118,7 +118,7 @@ export default function VendorBrand() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
-                onClick={()=>navigate(`/phone/${phone.id}`)}
+                // onClick={()=>navigate(`/phone/${phone.id}`)}
                 className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-800 transition-colors duration-200"
               >
                 <div className="col-span-6 flex items-center">

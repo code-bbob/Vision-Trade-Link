@@ -215,6 +215,7 @@ export default function VendorTransactions() {
                     </div>
                   </div>
                 </CardContent>
+                <div className='p-4 text-white text-right'>RS. {transaction.amount}</div>
               </Card>
             ))
           ) : (
