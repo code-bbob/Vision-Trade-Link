@@ -112,18 +112,7 @@ function PurchaseTransactionForm() {
   const handlePurchaseChange = (index, e) => {
     const { name, value } = e.target;
     const newPurchase = [...formData.purchase];
-
-    if (name === "unit_price") {
-      // Store the entered unit price (before VAT) in a separate property
-      newPurchase[index] = {
-        ...newPurchase[index],
-        // Set the unit_price (to be sent to backend) as the total price
-        unit_price: value,
-      };
-    } else {
-      newPurchase[index] = { ...newPurchase[index], [name]: value };
-    }
-
+    newPurchase[index] = { ...newPurchase[index], [name]: value };
     setFormData({ ...formData, purchase: newPurchase });
   };
 
@@ -219,10 +208,11 @@ function PurchaseTransactionForm() {
     e.preventDefault();
     try {
       setSubLoading(true);
-      formData.purchase.forEach((purchase) => {purchase.unit_price = parseFloat(calculateTotal(purchase.unit_price))});
+      const submissionData = JSON.parse(JSON.stringify(formData));
+      submissionData.purchase.forEach((purchase) => {purchase.unit_price = parseFloat(calculateTotal(purchase.unit_price))});
       const response = await api.post(
         "transaction/purchasetransaction/",
-        formData
+        submissionData
       );
       console.log("Response:", response.data);
       navigate("/purchases");
