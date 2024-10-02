@@ -2,6 +2,7 @@ from django.db import models
 from inventory.models import Brand, Phone,Item
 from enterprise.models import Enterprise
 from django.core.validators import MinLengthValidator
+from django.db import transaction
 
 class Vendor(models.Model):
     name = models.CharField(max_length=50)
@@ -24,7 +25,9 @@ class PurchaseTransaction(models.Model):
     total_amount = models.FloatField(null=True, blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
     bill_no = models.CharField(max_length=10,null=True)
-    # method = models.CharField(max_length=10,choices=[('cash','Cash'),('cheque','Cheque'),('credit','Credit')],default='cash')
+    method = models.CharField(max_length=10,choices=[('cash','Cash'),('cheque','Cheque'),('credit','Credit')],default='credit')
+    cheque_number = models.CharField(max_length=10,null=True,blank=True)
+    cashout_date = models.DateField(null=True)
 
     def calculate_total_amount(self):
         total = sum(purchase.unit_price for purchase in self.purchase.all())
@@ -53,29 +56,29 @@ class Purchase(models.Model):
         return f" {self.phone} @ {self.unit_price}"
     
     def save(self, *args, **kwargs):
-        print("ATLEAST HERE")
+        #print("ATLEAST HERE")
         if self.pk is None:  # Only update stock for new purchases
-            print("HI I AM HERE")
-            print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+            #print("HI I AM HERE")
+            #print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
             if isinstance(self.phone, int):
                 phone = Phone.objects.get(id=self.phone)
             else:
                 phone = self.phone
-            print("in self.phone before section",phone.quantity)
+            #print("in self.phone before section",phone.quantity)
 
             phone.quantity = (phone.quantity + 1) if phone.quantity is not None else 1
-            print("in self.phone section",phone.quantity)
+            #print("in self.phone section",phone.quantity)
             item = Item.objects.create(imei_number = self.imei_number,phone=self.phone)
-            print(item)
+            #print(item)
             phone.save()
 
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        print("Delete method called for Purchase")
+        #print("Delete method called for Purchase")
         item = Item.objects.filter(imei_number=self.imei_number).first()
         if item:
-            print("Deleting related item")
+            #print("Deleting related item")
             item.delete()
             phone = Phone.objects.filter(id = self.phone.id).first()
             phone.quantity -= 1
@@ -93,9 +96,9 @@ class SalesTransaction(models.Model):
     bill_no = models.CharField(max_length=10,null = True)
 
     def calculate_total_amount(self):
-        print("Ya samma ayo")
+        #print("Ya samma ayo")
         total = sum(sale.unit_price for sale in self.sales.all())
-        print(total)
+        #print(total)
         self.total_amount = total
         self.save()
         return self.total_amount    
@@ -106,7 +109,7 @@ class SalesTransaction(models.Model):
     #     sales = self.sales.all()
     #     scheme_list = []
     #     for sale in sales:
-    #         print(f"Checking for phone: {sale.phone} on date: {self.date}")
+    #         #print(f"Checking for phone: {sale.phone} on date: {self.date}")
     #         schemes = Scheme.objects.filter(
     #             phone=sale.phone, 
     #             from_date__lte=self.date, 
@@ -119,11 +122,11 @@ class SalesTransaction(models.Model):
     #                 scheme.save()
     #             scheme_list.append(scheme)
     #         else:
-    #             print("No matching scheme found.")
-    #     print(scheme_list)
+    #             #print("No matching scheme found.")
+    #     #print(scheme_list)
     #     price_protection = []
     #     for sale in sales:
-    #         print(f"Checking pp for phone: {sale.phone} on date: {self.date}")
+    #         #print(f"Checking pp for phone: {sale.phone} on date: {self.date}")
     #         pps = PriceProtection.objects.filter(phone = sale.phone,from_date__lte = self.date,to_date__gte = self.date)
     #         if pps.exists():
     #             for pp in pps:
@@ -131,7 +134,7 @@ class SalesTransaction(models.Model):
     #                 pp.calculate_receivable()
     #                 pp.save()
     #                 price_protection.append(pp)
-    #         print(price_protection)
+    #         #print(price_protection)
 
     def __str__(self):
         return f"Transaction on {self.date} with "
@@ -157,13 +160,13 @@ class Sales(models.Model):
             self.phone.save()
             self.checkit()
             purchase = Purchase.objects.filter(imei_number = self.imei_number).first()
-            print(purchase.unit_price)
+            #print(purchase.unit_price)
             self.profit = self.unit_price - purchase.unit_price
-            print("YAHA SAMMA")
+            #print("YAHA SAMMA")
             self.save()
 
     def checkit(self, *args, **kwargs):
-        print(f"Checking for phone: {self.phone} on date: {self.sales_transaction.date}")
+        #print(f"Checking for phone: {self.phone} on date: {self.sales_transaction.date}")
         
         # Ensure the sales instance is saved before adding it to schemes
         if not self.pk:
@@ -182,50 +185,49 @@ class Sales(models.Model):
                 scheme.save()
         
         else:
-            print("No matching scheme found.")
+            #print("No matching scheme found.")
             scheme = Scheme.objects.filter(sales=self).first()
             if scheme:
-                print("This is the scheme",scheme)
+                #print("This is the scheme",scheme)
                 scheme.sales.remove(self)
                 scheme.calculate_receivable()
         
-        print(f"Checking pp for phone: {self.phone} on date: {self.sales_transaction.date}")
-        print(self.sales_transaction.date)
+        #print(f"Checking pp for phone: {self.phone} on date: {self.sales_transaction.date}")
+        #print(self.sales_transaction.date)
         purchase_date = Purchase.objects.filter(imei_number = self.imei_number).first().purchase_transaction.date
         pps = PriceProtection.objects.filter(enterprise=self.sales_transaction.enterprise,phone=self.phone, from_date__lte=self.sales_transaction.date, to_date__gte=self.sales_transaction.date)
         if not pps:
             pp = PriceProtection.objects.filter(sales=self).first()
             if pp:
-                print("((((((((((((((((((((((((((((((yes))))))))))))))))))))))))))))))")
+                #print("((((((((((((((((((((((((((((((yes))))))))))))))))))))))))))))))")
                 pp.sales.remove(self)
                 pp.calculate_receivable()
                 pp.save()
-            print("here balblabla",pps)
+            #print("here balblabla",pps)
         for pp in pps:
-            print(pp.sales.all())
-            print(self)
+            #print(pp.sales.all())
+            #print(self)
             if self in pp.sales.all():
-                print("YES#################")
+                #print("YES#################")
                 pp.sales.remove(self)
                 pp.calculate_receivable()
-        if pps:
-            print("from here",pps.first().from_date)
+
         pps = pps.filter(from_date__gte = purchase_date)
-        print(purchase_date)
-        print("here pps",pps)
+        #print(purchase_date)
+        #print("here pps",pps)
         if pps.exists():
             for pp in pps:
                 pp.sales.add(self)
-                print("HERE")
-                print(self.phone.item.first())
+                #print("HERE")
+                #print(self.phone.item.first())
                 pp_item = PPItems.objects.create(pp=pp, phone=self.phone,imei_number = self.imei_number)
-                print(pp_item)
-                print(pp_item.id)
-                print("NOT HERE")
+                #print(pp_item)
+                #print(pp_item.id)
+                #print("NOT HERE")
                 pp_item.save()
                 pp.save()
                 pp.calculate_receivable()
-        print("here is the problem")
+        #print("here is the problem")
         item = Item.objects.filter(imei_number = self.imei_number).first()
         if item:
             item.delete()
@@ -248,9 +250,9 @@ class Scheme(models.Model):
 
     def calculate_receivable(self):
         sales = self.sales.all()
-        # print(f"HIIII asjd jka dk sa {purchases}")
+        # #print(f"HIIII asjd jka dk sa {purchases}")
         count = sales.count()
-        print(count)
+        #print(count)
         subscheme = self.subscheme.filter(lowerbound__lte=count, upperbound__gte=count).first()
         if subscheme:
             self.receivable = subscheme.cashback * count
@@ -289,7 +291,7 @@ class MoneyScheme(models.Model):
     def calculate_receivable(self):
         sales = self.sales.all()
         count = sales.count()
-        print(count)
+        #print(count)
         self.save()
     
     def __str__(self):
@@ -357,3 +359,16 @@ class VendorTransaction(models.Model):
     cashout_date = models.DateField(null=True)
     method = models.CharField(max_length=10,choices=[('cash','Cash'),('cheque','Cheque')],default='cheque')
     desc = models.CharField(max_length=50,null=True)
+    purchase_transaction = models.ForeignKey(PurchaseTransaction, on_delete=models.CASCADE,related_name="vendor_transaction",null=True,blank=True)
+
+    @transaction.atomic
+    def delete(self, *args, **kwargs):
+        #print("Delete method called for VendorTransaction")
+        #print(self.vendor.due)
+        self.vendor.due = self.vendor.due + self.amount
+        vendor = self.vendor.id
+        self.vendor.save() 
+        #print(self.vendor.due)#ya samma thik xa uta xaina
+        super().delete(*args, **kwargs)
+        vendor = Vendor.objects.get(id=vendor)
+        #print(vendor.due)

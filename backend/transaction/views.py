@@ -26,10 +26,6 @@ class PurchaseTransactionView(APIView):
         search = request.GET.get('search')
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
-        if search:
-            print(search)
-        else:
-            print("NO QUERY")
         transactions = PurchaseTransaction.objects.filter(enterprise=enterprise)
         
         if search:
@@ -107,21 +103,18 @@ class PurchaseTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         purchase_data = instance.purchase.all()
-        print(purchase_data)
         phones = []
         for purchase in purchase_data:
             imei = purchase.imei_number
-            print(imei)
             item = Item.objects.filter(imei_number = imei, phone = purchase.phone).first()
             phones.append(purchase.phone) if purchase.phone not in phones else None
             if item:
-                print(item)
                 item.delete()
         vendor = instance.vendor
-        print(vendor.due)
-        print(instance.total_amount)
-        vendor.due = vendor.due - instance.total_amount
-        vendor.save()
+        method= instance.method
+        if method == "credit":
+            vendor.due = vendor.due - instance.total_amount
+            vendor.save()
 
         brand = vendor.brand
         brand.stock = brand.stock - instance.total_amount
@@ -170,11 +163,11 @@ class SalesTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
         sales_data = instance.sales.all()
         phones = []
         for sale in sales_data:
-            print("theakhdnsaknd ",sale)
+            #print("theakhdnsaknd ",sale)
             scheme = Scheme.objects.filter(sales=sale).first()
             pp = PriceProtection.objects.filter(sales=sale).first()
             phones.append(sale.phone) if sale.phone not in phones else None
-            print(scheme)
+            #print(scheme)
             imei = sale.imei_number
 
             item = Item.objects.create(imei_number = imei, phone = sale.phone)
@@ -195,7 +188,7 @@ class SalesTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
             scheme.calculate_receivable()
         if pp:
             pp.calculate_receivable()
-        print("LASTTTT")
+        #print("LASTTTT")
         
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -322,18 +315,18 @@ class SchemeView(APIView):
     def post(self,request,*args,**kwargs):
         data = request.data 
         data["enterprise"]= request.user.person.enterprise.id 
-        print(data)
+        #print(data)
         id = data["phone"]
         brand = Phone.objects.get(id=id).brand
         data["brand"] = brand.id
-        print("HERE IS DATA",data)
+        #print("HERE IS DATA",data)
         serializer = SchemeSerializer(data=data)
-        print("HERE")
-        print(data)
+        #print("HERE")
+        #print(data)
         if serializer.is_valid(raise_exception=True):
-            print("NOT HERE")
+            #print("NOT HERE")
             serializer.save()
-            print("XAINA")
+            #print("XAINA")
             return Response(serializer.data)
     
     def patch(self,request,pk):
@@ -405,7 +398,7 @@ class PriceProtectionView(APIView):
     def patch(self,request,pk):
         
         pps = get_object_or_404(PriceProtection, pk=pk)
-        print(pps)
+        #print(pps)
         
         # Pass `partial=True` to allow partial updates
         serializer = PriceProtectionSerializer(pps, data=request.data, partial=True)
@@ -446,7 +439,7 @@ class StatsView(APIView):
         start_date = parse_date(start_date) if isinstance(start_date, str) else start_date
         end_date = parse_date(end_date) if isinstance(end_date, str) else end_date
 
-        print(start_date,end_date)
+        #print(start_date,end_date)
 
         enterprise = request.user.person.enterprise
     
@@ -454,7 +447,7 @@ class StatsView(APIView):
         allbrands = Brand.objects.filter(enterprise = enterprise).count()
 
         monthlypurchases = Purchase.objects.filter(purchase_transaction__enterprise = enterprise,purchase_transaction__date__date__range=(start_date, end_date))
-        print(monthlypurchases)
+        #print(monthlypurchases)
         monthlysales = Sales.objects.filter(sales_transaction__enterprise = enterprise,sales_transaction__date__date__range=(start_date, end_date))
 
         dailypurchases = Purchase.objects.filter(purchase_transaction__enterprise = enterprise,purchase_transaction__date__date = today.date())
@@ -469,13 +462,13 @@ class StatsView(APIView):
         pts = PurchaseTransaction.objects.filter(enterprise = enterprise,date__date__range=(start_date, end_date))
         if pts:
             for pt in pts:
-                # print(pt.total_amount)
+                # #print(pt.total_amount)
                 ptamt += pt.total_amount
 
         pts = PurchaseTransaction.objects.filter(enterprise = enterprise,date__date = today.date())
         if pts:
             for pt in pts:
-                # print(pt.total_amount)
+                # #print(pt.total_amount)
                 dailyptamt += pt.total_amount
 
         stamt = 0
@@ -782,7 +775,7 @@ class VendorBrandsView(APIView):
         # if id:
         #     brand = Brand.objects.get(id=id)
         #     phones = Phone.objects.filter(brand = brand)
-        #     print(phones)
+        #     #print(phones)
         #     if phones:
         #         serializer = PhoneSerializer(phones,many=True)
         #         return Response(serializer.data)
@@ -812,6 +805,7 @@ class VendorTransactionView(APIView):
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
         transactions = VendorTransaction.objects.filter(enterprise=enterprise)
+        #print(transactions)
         
         if search:
             name = transactions.filter(vendor__name__icontains = search)
@@ -861,7 +855,7 @@ class VendorTransactionView(APIView):
     def patch(self,request,pk):
         data = request.data
         transaction = VendorTransaction.objects.filter(id=pk).first()
-        print(transaction)
+        #print(transaction)
         if transaction:
             serializer = VendorTransactionSerializer(transaction,data=data,partial=True)
             if serializer.is_valid(raise_exception = True):

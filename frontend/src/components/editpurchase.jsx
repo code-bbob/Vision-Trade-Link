@@ -31,6 +31,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import Sidebar from '@/components/sidebar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function EditPurchaseTransactionForm() {
   const api = useAxios()
@@ -42,7 +43,10 @@ function EditPurchaseTransactionForm() {
     date: '',
     purchase: [],
     vendor: '',
-    bill_no: ''
+    bill_no: '',
+    method: '',
+    cheque_number: '',
+    cashout_date: ''
   });
   const [phones, setPhones] = useState([]);
   const [filteredPhones, setFilteredPhones] = useState([]);
@@ -82,7 +86,10 @@ function EditPurchaseTransactionForm() {
             unit_price: p.unit_price.toString()
           })),
           vendor: purchaseResponse.data.vendor.toString(),
-          bill_no: purchaseResponse.data.bill_no?.toString()
+          bill_no: purchaseResponse.data.bill_no?.toString(),
+          method: purchaseResponse.data.method || '',
+          cheque_number: purchaseResponse.data.cheque_number || null,
+          cashout_date: purchaseResponse.data.cashout_date || null
         });
         setOpenPhone(new Array(purchaseResponse.data.purchase.length).fill(false));
         setLoading(false);
@@ -104,6 +111,10 @@ function EditPurchaseTransactionForm() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+  };
+
+  const handleMethodChange = (value) => {
+    setFormData({ ...formData, method: value });
   };
 
   const handlePurchaseChange = (index, e) => {
@@ -266,6 +277,9 @@ function EditPurchaseTransactionForm() {
       formData.vendor !== originalPurchaseData.vendor.toString() ||
       formData.bill_no !== originalPurchaseData.bill_no?.toString() ||
       formData.purchase.length !== originalPurchaseData.purchase.length ||
+      formData.method !== originalPurchaseData.method ||
+      formData.cheque_number !== originalPurchaseData.cheque_number ||
+      formData.cashout_date !== originalPurchaseData.cashout_date ||
       formData.purchase.some((purchase, index) => {
         const originalPurchase = originalPurchaseData.purchase[index];
         return (
@@ -486,6 +500,56 @@ function EditPurchaseTransactionForm() {
                   )}
                 </div>
               ))}
+
+<div className="flex flex-col">
+          <Label htmlFor="method" className="text-sm font-medium text-white mb-2">
+            Payment Method
+          </Label>
+          <Select onValueChange={handleMethodChange} value={formData.method}>
+            <SelectTrigger className="w-full bg-slate-700 border-slate-600 text-white">
+              <SelectValue placeholder="Select payment method" />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectItem value="cash" className="text-white">Cash</SelectItem>
+              <SelectItem value="cheque" className="text-white">Cheque</SelectItem>
+              <SelectItem value="credit" className="text-white">Credit</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {formData.method === "cheque" && (
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+            <div className="flex flex-col">
+              <Label htmlFor="cheque_number" className="text-sm font-medium text-white mb-2">
+                Cheque Number
+              </Label>
+              <Input
+                type="text"
+                id="cheque_number"
+                name="cheque_number"
+                value={formData.cheque_number}
+                onChange={handleChange}
+                className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                required
+              />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="cashout_date" className="text-sm font-medium text-white mb-2">
+                Cheque Date
+              </Label>
+              <Input
+                type="date"
+                id="cashout_date"
+                name="cashout_date"
+                value={formData.cashout_date}
+                onChange={handleChange}
+                className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                required
+              />
+            </div>
+          </div>
+        )}
+
 
               <Button type="button" onClick={handleAddPurchase} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
                 <PlusCircle className="w-4 h-4 mr-2" />

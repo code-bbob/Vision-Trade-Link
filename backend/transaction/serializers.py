@@ -21,12 +21,14 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
     purchase = PurchaseSerializer(many=True)
     vendor_name = serializers.SerializerMethodField(read_only=True)
     date = serializers.DateTimeField()
-
+   
     class Meta:
         model = PurchaseTransaction
-        fields = ['id','date', 'vendor', 'vendor_name', 'total_amount', 'purchase', 'enterprise','bill_no']
+        # fields = ['id','date', 'vendor', 'vendor_name', 'total_amount', 'purchase', 'enterprise','bill_no','method']
+        fields = '__all__'
 
     def create(self, validated_data):
+        
         purchase_data = validated_data.pop('purchase')
         transaction = PurchaseTransaction.objects.create(**validated_data)
         for data in purchase_data:
@@ -39,10 +41,27 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
         brand.stock = (brand.stock + amount) if brand.stock is not None else amount
         brand.save()
         vendor.save()
+
+        if transaction.method == 'cash':
+            print("Here")
+            serializer = VendorTransactionSerializer
+            data={'vendor': vendor, 'date': transaction.date, 'amount': transaction.total_amount, 'desc': 'Paid for purchase', 'method': 'cash', 'purchase_transaction': transaction,'enterprise':transaction.enterprise}
+            serializer.create(self,validated_data=data)
+        elif transaction.method == 'cheque':
+            print("There")
+            serializer = VendorTransactionSerializer
+            data={'vendor': vendor, 'date': transaction.date, 'amount': transaction.total_amount, 'desc': 'Paid for purchase', 'method': 'cheque', 'cheque_number': transaction.cheque_number, 'cashout_date': transaction.cashout_date, 'purchase_transaction': transaction,'enterprise':transaction.enterprise}
+            serializer.create(self,validated_data=data)
         return transaction
     
     def update(self, instance, validated_data):
 
+
+      
+#check to see if the old_method was cash or cheque or credit
+#if the method has changed then delete the previous transaction and create a new one
+#if not and just ampunt has changed then update the transaction
+        old_method = instance.method
         old_vendor = instance.vendor
         old_brand = old_vendor.brand
         old_total = instance.total_amount
@@ -52,10 +71,14 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
         instance.enterprise = validated_data.get('enterprise', instance.enterprise)
         instance.total_amount = validated_data.get('total_amount', instance.total_amount)
         instance.bill_no = validated_data.get('bill_no', instance.bill_no)
+        instance.method = validated_data.get('method', instance.method)
+        instance.cheque_number = validated_data.get('cheque_number', instance.cheque_number)
+        instance.cashout_date = validated_data.get('cashout_date', instance.cashout_date)
         instance.save()
 
         new_vendor = instance.vendor
         new_brand = new_vendor.brand
+        new_method = instance.method
 
         purchase_data = validated_data.get('purchase')
         if purchase_data:
@@ -99,6 +122,8 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
 
         instance.total_amount = instance.calculate_total_amount()
         instance.save()
+        old_vendor.refresh_from_db()
+        new_vendor.refresh_from_db()
         if old_vendor != new_vendor:
             old_vendor.due = (old_vendor.due - old_total) if old_vendor.due is not None else 0
             new_vendor.due = (new_vendor.due + instance.total_amount) if new_vendor.due is not None else instance.total_amount
@@ -121,6 +146,32 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
             sales = Sales.objects.filter(imei_number = purchase.imei_number).first()
             if sales:
                 sales.checkit()
+
+        if old_method != new_method:
+            
+            if old_method == 'cash' or old_method == 'cheque':
+                print("CALLING DELETE")
+                VendorTransaction.objects.filter(purchase_transaction=instance).first().delete()
+                vendor = Vendor.objects.filter(id=instance.vendor.id).first()
+                print("aba etaaaaaaaaaa")
+                print(vendor.due)
+            if new_method == 'cash':
+                print("I AM THERE")
+                serializer = VendorTransactionSerializer
+                data={'vendor': vendor, 'date': instance.date, 'amount': instance.total_amount, 'desc': 'Paid for purchase', 'method': 'cash', 'purchase_transaction': instance,'enterprise':instance.enterprise}
+                serializer.create(self,validated_data=data)
+                print("IAM HERE")
+            elif new_method == 'cheque':
+                print("I AM THERE")
+                serializer = VendorTransactionSerializer
+                data={'vendor': vendor, 'date': instance.date, 'amount': instance.total_amount, 'desc': 'Paid for purchase', 'method': 'cheque', 'cheque_number': instance.cheque_number, 'cashout_date': instance.cashout_date,'enterprise':instance.enterprise, 'purchase_transaction': instance}
+                serializer.create(self,validated_data=data)
+                print("I AM THERE")
+        else:
+            if old_total != instance.total_amount:
+                vendor_transaction = VendorTransaction.objects.filter(purchase_transaction=instance).first()
+                vendor_transaction.amount = instance.total_amount
+                vendor_transaction.save()
         return instance
 
 
@@ -462,8 +513,10 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         vendor = validated_data['vendor']
         amount = validated_data['amount']
-
+        print("ARKO MA CHA")
+        print(vendor.due)
         vendor.due = (vendor.due - amount) if vendor.due is not None else 0
+        print(vendor.due)
         vendor.save()
 
         transaction = VendorTransaction.objects.create(**validated_data)

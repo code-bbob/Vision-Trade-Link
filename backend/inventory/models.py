@@ -28,7 +28,7 @@ class Phone(models.Model):
             super().save(*args, **kwargs)
         
         # Now the instance is saved, we can safely filter related Items
-        print("Calculating quantity......................")
+        #print("Calculating quantity......................")
         quantity = Item.objects.filter(phone=self).count()
         self.quantity = quantity
 
@@ -37,7 +37,7 @@ class Phone(models.Model):
 
 
     def calculate_quantity(self):
-        print("Calculating quantity......................")
+        #print("Calculating quantity......................")
         quantity = Item.objects.filter(phone=self).count()
         self.quantity = quantity
         self.save()

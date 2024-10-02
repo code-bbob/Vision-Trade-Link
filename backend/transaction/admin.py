@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Vendor,Purchase,PurchaseTransaction,Subscheme,Scheme,PriceProtection ,Sales,SalesTransaction   ,PPItems
+from .models import Vendor,Purchase,PurchaseTransaction,Subscheme,Scheme,PriceProtection ,Sales,SalesTransaction   ,PPItems,VendorTransaction
 # Register your models here.
 
 admin.site.register(Vendor)
@@ -11,3 +11,4 @@ admin.site.register(PriceProtection)
 admin.site.register(Sales)
 admin.site.register(SalesTransaction)
 admin.site.register(PPItems)
+admin.site.register(VendorTransaction)

@@ -16,7 +16,7 @@ class BrandView(APIView):
         if id:
             brand = Brand.objects.get(id=id)
             phones = Phone.objects.filter(brand = brand)
-            print(phones)
+            #print(phones)
             if phones:
                 serializer = PhoneSerializer(phones,many=True)
                 return Response(serializer.data)
@@ -47,7 +47,7 @@ class PhoneView(APIView):
         # data["enterprise"] = request.user.person.enterprise.id
         serializer = PhoneSerializer(data=data)
         if serializer.is_valid(raise_exception = True):
-            print("YAHA SAMMAAA")
+            #print("YAHA SAMMAAA")
             serializer.save()
             return Response(serializer.data)
         
@@ -59,7 +59,7 @@ class PhoneIMEIView(APIView):
     def get(self,request,id):
         user = request.user
         phone = Phone.objects.filter(id = id).first()
-        print(phone)
+        #print(phone)
         items = Item.objects.filter(phone=phone)
         imei_list = []
         for item in items:

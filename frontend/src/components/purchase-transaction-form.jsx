@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "@/components/sidebar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function PurchaseTransactionForm() {
   const api = useAxios();
@@ -43,6 +44,9 @@ function PurchaseTransactionForm() {
     date: new Date().toISOString().split("T")[0],
     purchase: [{ phone: "", imei_number: "", unit_price: "", bill_no: "" }],
     vendor: "",
+    method: "credit",
+    cheque_number: null,
+    cashout_date: null,
   });
   const [phones, setPhones] = useState([]);
   const [filteredPhones, setFilteredPhones] = useState([]);
@@ -100,6 +104,10 @@ function PurchaseTransactionForm() {
   //   newPurchase[index] = { ...newPurchase[index], [name]: value };
   //   setFormData({ ...formData, purchase: newPurchase });
   // };
+
+  const handleMethodChange = (value) => {
+    setFormData({ ...formData, method: value });
+  };
 
   const handlePurchaseChange = (index, e) => {
     const { name, value } = e.target;
@@ -331,7 +339,7 @@ function PurchaseTransactionForm() {
             {error && <p className="text-red-400 mb-4">{error}</p>}
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col">
+                              <div className="flex flex-col">
                   <Label
                     htmlFor="date"
                     className="text-sm font-medium text-white mb-2"
@@ -350,6 +358,7 @@ function PurchaseTransactionForm() {
                 </div>
 
                 <div className="flex flex-col">
+                  
                   <Label
                     htmlFor="bill_no"
                     className="text-sm font-medium text-white mb-2"
@@ -626,7 +635,10 @@ function PurchaseTransactionForm() {
       readOnly
     />
   </div>
+
+  
                   </div>
+                  
 
                   {index > 0 && (
                     <Button
@@ -642,6 +654,54 @@ function PurchaseTransactionForm() {
                   )}
                 </div>
               ))}
+<div className="flex flex-col">
+          <Label htmlFor="method" className="text-sm font-medium text-white mb-2">
+            Payment Method
+          </Label>
+          <Select onValueChange={handleMethodChange} value={formData.method}>
+            <SelectTrigger className="w-full bg-slate-700 border-slate-600 text-white">
+              <SelectValue placeholder="Select payment method" />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectItem value="cash" className="text-white">Cash</SelectItem>
+              <SelectItem value="cheque" className="text-white">Cheque</SelectItem>
+              <SelectItem value="credit" className="text-white">Credit</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {formData.method === "cheque" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex flex-col">
+              <Label htmlFor="cheque_number" className="text-sm font-medium text-white mb-2">
+                Cheque Number
+              </Label>
+              <Input
+                type="text"
+                id="cheque_number"
+                name="cheque_number"
+                value={formData.cheque_number}
+                onChange={handleChange}
+                className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                required
+              />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="cashout_date" className="text-sm font-medium text-white mb-2">
+                Cheque Date
+              </Label>
+              <Input
+                type="date"
+                id="cashout_date"
+                name="cashout_date"
+                value={formData.cashout_date}
+                onChange={handleChange}
+                className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                required
+              />
+            </div>
+          </div>
+        )}
 
               <Button
                 type="button"
