@@ -29,7 +29,12 @@ class PurchaseTransaction(models.Model):
     cheque_number = models.CharField(max_length=10,null=True,blank=True)
     cashout_date = models.DateField(null=True)
 
-   
+    def calculate_total_amount(self):
+        total = sum(purchase.unit_price for purchase in self.purchase.all())
+        self.total_amount = total
+        self.save()
+        return self.total_amount
+
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)

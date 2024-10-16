@@ -59,9 +59,9 @@ class PurchaseTransactionView(APIView):
         response_data = {
             'current_page': current_page,
             'total_pages': total_pages,
-            'paginated_data': serializer.data,
+            'results': serializer.data,
         }
-        return paginator.get_paginated_response(response_data)
+        return paginator.get_paginated_response(serializer.data)
         
     def post(self, request, *args, **kwargs):
         data = request.data
