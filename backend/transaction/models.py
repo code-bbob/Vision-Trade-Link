@@ -29,11 +29,7 @@ class PurchaseTransaction(models.Model):
     cheque_number = models.CharField(max_length=10,null=True,blank=True)
     cashout_date = models.DateField(null=True)
 
-    def calculate_total_amount(self):
-        total = sum(purchase.unit_price for purchase in self.purchase.all())
-        self.total_amount = total
-        self.save()
-        return self.total_amount
+   
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -274,47 +270,47 @@ class Subscheme(models.Model):
     def __str__(self):
         return f"{self.lowerbound} to {self.upperbound} => {self.cashback}"
     
-class MoneyScheme(models.Model):
+# class MoneyScheme(models.Model):
 
-    STATUS_CHOICES = [
-        ('active', 'Active'),
-        ('expired', 'Expired'),
-    ]
-    from_date = models.DateField()
-    to_date = models.DateField()
-    phone = models.ForeignKey(Phone,on_delete=models.CASCADE, related_name='moneyscheme_phones')
-    sales = models.ManyToManyField(Sales,related_name="moneyscheme",blank=True)  #error was here
-    enterprise = models.ForeignKey(Enterprise,on_delete=models.CASCADE,related_name='moneyscheme_enterprise')
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
-    receivable = models.IntegerField(null = True)
+#     STATUS_CHOICES = [
+#         ('active', 'Active'),
+#         ('expired', 'Expired'),
+#     ]
+#     from_date = models.DateField()
+#     to_date = models.DateField()
+#     phone = models.ForeignKey(Phone,on_delete=models.CASCADE, related_name='moneyscheme_phones')
+#     sales = models.ManyToManyField(Sales,related_name="moneyscheme",blank=True)  #error was here
+#     enterprise = models.ForeignKey(Enterprise,on_delete=models.CASCADE,related_name='moneyscheme_enterprise')
+#     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
+#     receivable = models.IntegerField(null = True)
 
-    def calculate_receivable(self):
-        sales = self.sales.all()
-        count = sales.count()
-        #print(count)
-        self.save()
+#     def calculate_receivable(self):
+#         sales = self.sales.all()
+#         count = sales.count()
+#         #print(count)
+#         self.save()
     
-    def __str__(self):
-        return f"{self.phone} from {self.from_date} to {self.to_date}"
+#     def __str__(self):
+#         return f"{self.phone} from {self.from_date} to {self.to_date}"
 
 
-class MoneySubscheme(models.Model):
-    lowerbound = models.FloatField()
-    upperbound = models.IntegerField()
-    percentage_cashback = models.FloatField()
-    scheme = models.ForeignKey(MoneyScheme,on_delete=models.CASCADE, related_name='moneysubscheme') #related name here
+# class MoneySubscheme(models.Model):
+#     lowerbound = models.FloatField()
+#     upperbound = models.IntegerField()
+#     percentage_cashback = models.FloatField()
+#     scheme = models.ForeignKey(MoneyScheme,on_delete=models.CASCADE, related_name='moneysubscheme') #related name here
 
-    def __str__(self):
-        return f"{self.lowerbound} to {self.upperbound} => {self.cashback}"
-# Register your signal handlers to calculate the total amount after saving a PurchaseTransaction
+#     def __str__(self):
+#         return f"{self.lowerbound} to {self.upperbound} => {self.cashback}"
+# # Register your signal handlers to calculate the total amount after saving a PurchaseTransaction
 
 
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+# from django.db.models.signals import post_save
+# from django.dispatch import receiver
 
-@receiver(post_save, sender=Purchase)
-def update_total_amount(sender, instance, **kwargs):
-    instance.purchase_transaction.calculate_total_amount()
+# @receiver(post_save, sender=Purchase)
+# def update_total_amount(sender, instance, **kwargs):
+#     instance.purchase_transaction.calculate_total_amount()
 
 
 class PriceProtection(models.Model):

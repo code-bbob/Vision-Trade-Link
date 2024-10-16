@@ -52,9 +52,16 @@ class PurchaseTransactionView(APIView):
         paginator = PageNumberPagination()
         paginator.page_size = 5  # Set the page size here
         paginated_transactions = paginator.paginate_queryset(transactions, request)
+        current_page = paginator.page.number if paginated_transactions else None
+        total_pages = paginator.page.paginator.num_pages if paginated_transactions else None
 
         serializer = PurchaseTransactionSerializer(paginated_transactions, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        response_data = {
+            'current_page': current_page,
+            'total_pages': total_pages,
+            'paginated_data': serializer.data,
+        }
+        return paginator.get_paginated_response(response_data)
         
     def post(self, request, *args, **kwargs):
         data = request.data

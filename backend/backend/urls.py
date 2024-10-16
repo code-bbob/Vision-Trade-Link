@@ -21,5 +21,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('inventory/',include('inventory.urls')),
     path('transaction/',include('transaction.urls')),
-    path('userauth/',include('userauth.urls'))
+    path('userauth/',include('userauth.urls')),
+    path('enterprise/',include('enterprise.urls')),
+    path('allinventory/',include('allinventory.urls')),
+    path('alltransactions/',include('alltransactions.urls')),
 ]

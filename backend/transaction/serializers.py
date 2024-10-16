@@ -55,9 +55,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
         return transaction
     
     def update(self, instance, validated_data):
-
-
-      
+  
 #check to see if the old_method was cash or cheque or credit
 #if the method has changed then delete the previous transaction and create a new one
 #if not and just ampunt has changed then update the transaction
@@ -150,23 +148,16 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
         if old_method != new_method:
             
             if old_method == 'cash' or old_method == 'cheque':
-                print("CALLING DELETE")
                 VendorTransaction.objects.filter(purchase_transaction=instance).first().delete()
                 vendor = Vendor.objects.filter(id=instance.vendor.id).first()
-                print("aba etaaaaaaaaaa")
-                print(vendor.due)
             if new_method == 'cash':
-                print("I AM THERE")
                 serializer = VendorTransactionSerializer
                 data={'vendor': Vendor.objects.filter(id=instance.vendor.id).first(), 'date': instance.date, 'amount': instance.total_amount, 'desc': 'Paid for purchase', 'method': 'cash', 'purchase_transaction': instance,'enterprise':instance.enterprise}
                 serializer.create(self,validated_data=data)
-                print("IAM HERE")
             elif new_method == 'cheque':
-                print("I AM THERE")
                 serializer = VendorTransactionSerializer
-                data={'vendor': Vendor.objects.filter(id=instance.vendor.id).first(), 'date': instance.date, 'amount': instance.total_amount, 'desc': 'Paid for purchase', 'method': 'cheque', 'cheque_number': instance.cheque_number, 'cashout_date': instance.cashout_date,'enterprise':instance.enterprise, 'purchase_transaction': instance}
+                data={'vendor': Vendor.objects.filter(id=instance.vendor.id).first()    , 'date': instance.date, 'amount': instance.total_amount, 'desc': 'Paid for purchase', 'method': 'cheque', 'cheque_number': instance.cheque_number, 'cashout_date': instance.cashout_date,'enterprise':instance.enterprise, 'purchase_transaction': instance}
                 serializer.create(self,validated_data=data)
-                print("I AM THERE")
         else:
             if old_total != instance.total_amount:
                 if new_method != 'credit':

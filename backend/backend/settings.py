@@ -43,7 +43,9 @@ INSTALLED_APPS = [
     'inventory',
     'transaction',
     'userauth',
-    'enterprise'
+    'enterprise',
+    'allinventory',
+    'alltransactions',
 ]
 
 MIDDLEWARE = [
