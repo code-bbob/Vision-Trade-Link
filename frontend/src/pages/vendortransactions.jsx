@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Calendar, ChevronLeft, ChevronRight, Search, Plus, ArrowLeft } from 'lucide-react'
 import useAxios from '@/utils/useAxios'
-import { format } from 'date-fns'
+import { format, set } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '@/components/sidebar'
 
@@ -40,7 +40,8 @@ export default function VendorTransactions() {
         previous: response.data.previous,
         count: response.data.count
       })
-      setTotalPages(Math.ceil(response.data.count / 10)) // Assuming 10 items per page
+      setCurrentPage(response.data.page)
+      setTotalPages(response.data.total_pages) 
     } catch (err) {
       setError('Failed to fetch data')
     } finally {
@@ -58,7 +59,8 @@ export default function VendorTransactions() {
         previous: response.data.previous,
         count: response.data.count
       })
-      setTotalPages(Math.ceil(response.data.count / 10)) // Assuming 10 items per page
+      setCurrentPage(response.data.page)
+      setTotalPages(response.data.total_pages) 
     } catch (err) {
       setError('Failed to fetch initial data')
     } finally {

@@ -56,11 +56,6 @@ class PurchaseTransactionView(APIView):
         total_pages = paginator.page.paginator.num_pages if paginated_transactions else None
 
         serializer = PurchaseTransactionSerializer(paginated_transactions, many=True)
-        response_data = {
-            'current_page': current_page,
-            'total_pages': total_pages,
-            'results': serializer.data,
-        }
         return paginator.get_paginated_response(serializer.data)
         
     def post(self, request, *args, **kwargs):

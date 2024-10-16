@@ -84,7 +84,7 @@ export default function Sidebar() {
                   setIsOpen(false)
                 }}
               >
-                Inventory System
+                Mobile Inventory
               </div>
               <nav className="space-y-2">
                 {menuItems.map((item) => (

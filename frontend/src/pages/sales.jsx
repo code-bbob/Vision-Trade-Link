@@ -40,7 +40,8 @@ export default function SalesTransactions() {
         previous: response.data.previous,
         count: response.data.count
       })
-      setTotalPages(Math.ceil(response.data.count / 10)) // Assuming 10 items per page
+      setCurrentPage(response.data.page)
+      setTotalPages(response.data.total_pages) 
     } catch (err) {
       setError('Failed to fetch data')
     } finally {
@@ -58,7 +59,8 @@ export default function SalesTransactions() {
         previous: response.data.previous,
         count: response.data.count
       })
-      setTotalPages(Math.ceil(response.data.count / 10)) // Assuming 10 items per page
+      setCurrentPage(response.data.page)
+      setTotalPages(response.data.total_pages)
     } catch (err) {
       setError('Failed to fetch initial data')
     } finally {

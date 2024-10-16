@@ -17,8 +17,8 @@ export default function PurchaseTransactions() {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
+  const [currentPage, setCurrentPage] = useState()
+  const [totalPages, setTotalPages] = useState()
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [localSearchTerm, setLocalSearchTerm] = useState('')
@@ -40,7 +40,8 @@ export default function PurchaseTransactions() {
         previous: response.data.previous,
         count: response.data.count
       })
-      setTotalPages(Math.ceil(response.data.count / 10)) // Assuming 10 items per page
+      setTotalPages(response.data.total_pages) // Assuming 10 items per page
+      setCurrentPage(response.data.page)
     } catch (err) {
       setError('Failed to fetch data')
     } finally {
@@ -57,7 +58,8 @@ export default function PurchaseTransactions() {
         previous: response.data.previous,
         count: response.data.count
       })
-      setTotalPages(Math.ceil(response.data.count / 10)) // Assuming 10 items per page
+      setTotalPages(response.data.total_pages) // Assuming 10 items per page
+      setCurrentPage(response.data.page)
     } catch (err) {
       setError('Failed to fetch initial data')
     } finally {
