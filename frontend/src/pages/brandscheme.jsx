@@ -29,7 +29,7 @@ export default function BrandSchemePage() {
   const handleEdit = (e, schemeId) => {
     e.stopPropagation()
     e.preventDefault()
-    navigate(`/schemes/editform/${schemeId}`)
+    navigate(`mobile/schemes/editform/${schemeId}`)
   }
 
   useEffect(() => {
@@ -115,7 +115,7 @@ export default function BrandSchemePage() {
           >
             <h1 className="text-3xl lg:text-4xl font-bold  text-white">Brand Schemes</h1>
             <Button
-              onClick={() => navigate('/schemes')}
+              onClick={() => navigate('/mobile/schemes')}
               variant="outline"
               className="w-full lg:w-auto px-5 text-black border-white hover:bg-gray-700 hover:text-white"
             >
@@ -182,7 +182,7 @@ export default function BrandSchemePage() {
           <div className="space-y-6">
             {filteredSchemes.length > 0 ? (
               filteredSchemes.map((scheme) => (
-                <Card key={scheme.id} onClick={() => navigate(`/schemes/${scheme.id}`)} className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <Card key={scheme.id} onClick={() => navigate(`/mobile/schemes/${scheme.id}`)} className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
                   <CardHeader className="border-b border-slate-700">
                     <CardTitle className="text-lg lg:text-xl font-medium text-white flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-2 lg:space-y-0">
                       <span>{scheme.phone_name}</span>
@@ -226,7 +226,7 @@ export default function BrandSchemePage() {
         </div>
         <Button
           className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-          onClick={() => navigate('/schemes/new')}
+          onClick={() => navigate('/mobile/schemes/new')}
         >
           <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
         </Button>

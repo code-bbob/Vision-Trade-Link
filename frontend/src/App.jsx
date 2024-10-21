@@ -31,67 +31,105 @@ import VendorForm from "./components/postVendors";
 import VendorTransactions from "./pages/vendortransactions";
 import VendorTransactionForm from "./pages/vendortransactionform";
 import EditVendorTransactionForm from "./components/editvendortransaction";
+import AllLandingPage from "./pages/allLandingPage";
+import AllPurchaseTransactions from "./pages/allPurchase";
+import AllPurchaseTransactionForm from "./components/allpurchasetransactionform";
+import EditAllPurchaseTransactionForm from "./components/editallpurchase";
+import {AllInventoryPageComponent} from "./pages/allInventoryPage";
+import AllBrandProducts from "./pages/allsinglebrand";
+import AllSalesTransactions from "./pages/allSales";
+import AllSalesTransactionForm from "./components/allsalestransactionform";
+import useGlobalKeyPress from "./hooks/globalKeyPress";
+import { AllVendorPage } from "./pages/allvendors";
+import AllVendorBrand from "./pages/allvendorsbrand";
+import EditAllSalesTransactionForm from "./components/editallsales";
+import AllVendorTransactions from "./pages/allvendortransactions";
+import AllVendorTransactionForm from "./pages/allvendortransactionform";
+import EditAllVendorTransactionForm from "./components/editallvendortransactions";
+import BarCh from "./components/barchart";
 // import VendorTransactionForm from './pages/transaction-vendors';
 
 function App() {
   const { isAuthenticated } = useSelector((state) => state.root);
+  useGlobalKeyPress();
   return (
     <Routes>
+      {/* Protected Routes */}
       <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/inventory" element={<InventoryPageComponent />} />
-        <Route path="/brand/:id" element={<BrandPhones />} />
-        <Route path="/phone/:id" element={<SinglePhone />} />
-        <Route path="/purchases/">
-          <Route path="" element={<PurchaseTransactions />} />
-          <Route path="form" element={<PurchaseTransactionForm />} />
-          <Route
-            path="editform/:purchaseId"
-            element={<EditPurchaseTransactionForm />}
-          />
-        </Route>
-        <Route path="/sales/">
-          <Route path="" element={<SalesTransactions />} />
-          <Route path="form" element={<SalesTransactionForm />} />
-          <Route
-            path="editform/:salesId"
-            element={<EditSalesTransactionForm />}
-          />
-        </Route>
-        <Route path="/schemes/">
-          <Route path="" element={<SchemePageComponent />} />
-          <Route path="brand/:id" element={<BrandSchemePage />} />
-          <Route path="new" element={<SchemeForm />} />
-          <Route path=":id" element={<SingleScheme />} />
-          <Route path="editform/:schemeId" element={<EditSchemeForm />} />
-        </Route>
+        {/* All Landing Page */}
+        <Route path="/" element={<AllLandingPage />} />
 
-        <Route path="/price-protection/">
-          <Route path="" element={<PPPageComponent />} />
-          <Route path="brand/:id" element={<BrandPPPage />} />
-          <Route path=":id" element={<SinglePP />} />
-          <Route path="new" element={<PriceProtectionForm />} />
-          <Route
-            path="editform/:priceProtectionId"
-            element={<EditPriceProtectionForm />}
-          />
-        </Route>
+        <Route path="/purchases" element={<AllPurchaseTransactions />} />
+        <Route path="/purchases/form" element={<AllPurchaseTransactionForm />} />
+        <Route path="purchases/editform/:purchaseId" element={<EditAllPurchaseTransactionForm />} />
 
-        <Route path="/vendors/">
-          <Route path="" element={<VendorPage />} />
-          <Route path="brand/:id" element={<VendorBrand />} />
-        </Route>
+        <Route path="inventory" element={<AllInventoryPageComponent />} />
+
+        <Route path="brand/:id" element={<AllBrandProducts />} />
+
+        <Route path="sales" element={<AllSalesTransactions />} />
+        <Route path="sales/form" element={<AllSalesTransactionForm />} />
+        <Route path="sales/editform/:salesId" element={<EditAllSalesTransactionForm />} />
+
+
+        <Route path="vendors" element={<AllVendorPage />} />
+        <Route path="vendors/brand/:id" element={<AllVendorBrand />} />
+
+        
+        <Route path="vendor-transactions" element={<AllVendorTransactions />}/>
+        <Route path="vendor-transactions/form" element={<AllVendorTransactionForm />} />
+        <Route path="vendor-transactions/editform/:vendorTransactionId" element={<EditAllVendorTransactionForm />} />
+
+        
+        <Route path = "bar" element={<BarCh/>}/>
+
+
+
+
+        {/* Mobile Section */}
+        <Route path="/mobile" >
+          <Route path="" element={<LandingPage />} />
+          <Route path="inventory" element={<InventoryPageComponent />} />
+          <Route path="brand/:id" element={<BrandPhones />} />
+          <Route path="phone/:id" element={<SinglePhone />} />
+
+          {/* Purchases Section */}
+          <Route path="purchases" element={<PurchaseTransactions />} />
+          <Route path="purchases/form" element={<PurchaseTransactionForm />} />
+          <Route path="purchases/editform/:purchaseId" element={<EditPurchaseTransactionForm />} />
+
+          {/* Sales Section */}
+          <Route path="sales" element={<SalesTransactions />} />
+          <Route path="sales/form" element={<SalesTransactionForm />} />
+          <Route path="sales/editform/:salesId" element={<EditSalesTransactionForm />} />
+
+          {/* Schemes Section */}
+          <Route path="schemes" element={<SchemePageComponent />} />
+          <Route path="schemes/brand/:id" element={<BrandSchemePage />} />
+          <Route path="schemes/new" element={<SchemeForm />} />
+          <Route path="schemes/:id" element={<SingleScheme />} />
+          <Route path="schemes/editform/:schemeId" element={<EditSchemeForm />} />
+
+          {/* Price Protection Section */}
+          <Route path="price-protection" element={<PPPageComponent />} />
+          <Route path="price-protection/brand/:id" element={<BrandPPPage />} />
+          <Route path="price-protection/:id" element={<SinglePP />} />
+          <Route path="price-protection/new" element={<PriceProtectionForm />} />
+          <Route path="price-protection/editform/:priceProtectionId" element={<EditPriceProtectionForm />} />
+
+          {/* Vendors Section */}
+          <Route path="vendors" element={<VendorPage />} />
+          <Route path="vendors/brand/:id" element={<VendorBrand />} />
+
+          <Route path="vendor-transactions" element={<VendorTransactions />}/>
+          <Route path="vendor-transactions/form" element={<VendorTransactionForm />} />
+          <Route path="vendor-transactions/editform/:vendorTransactionId" element={<EditVendorTransactionForm />} />
+          </Route>
+
+     
       </Route>
 
-      <Route path = "/vendor-transactions">
-      <Route path = "" element = {<VendorTransactions/>} />
-      <Route path = "form" element = {<VendorTransactionForm/>} />
-      <Route
-            path="editform/:vendorTransactionId"
-            element={<EditVendorTransactionForm />}
-          />
-      </Route>
-
+      {/* Public Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/register" element={<UserRegister />} />

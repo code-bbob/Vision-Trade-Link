@@ -14,8 +14,8 @@ class Brand(models.Model):
 
 class Product(models.Model):
     name = models.CharField(max_length=30)
-    uid = models.CharField(max_length = 13,blank=True,unique=True) 
-    quantity = models.IntegerField(null=True)
+    uid = models.CharField(max_length = 12,blank=True,unique=True) 
+    # quantity = models.IntegerField(null=True,blank=True)
     unit_price = models.FloatField(null=True,blank=True)
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
     stock = models.IntegerField(null=True,blank=True)
@@ -32,7 +32,10 @@ class Product(models.Model):
     
 
     def generate_unique_uid(self):
+            print("Generating uid")
             while True:
-                uid = ''.join([str(random.randint(0, 9)) for _ in range(13)])
+                uid = ''.join([str(random.randint(0, 9)) for _ in range(12)])
+                if uid.startswith('0') or uid.startswith('1'):
+                    continue
                 if not Product.objects.filter(uid=uid).exists():
                     return uid

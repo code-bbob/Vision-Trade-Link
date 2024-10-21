@@ -122,7 +122,7 @@ export default function SchemePageComponent() {
               </div>
 
               <Button
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/mobile/')}
                 variant="outline"
                 className="w-full sm:w-auto text-black border-white hover:bg-gray-700 hover:text-white"
               >
@@ -137,7 +137,7 @@ export default function SchemePageComponent() {
               <SchemeCard
                 key={scheme.id}
                 scheme={scheme}
-                onClick={() => navigate(`/schemes/brand/${scheme.id}`)}
+                onClick={() => navigate(`/mobile/schemes/brand/${scheme.id}`)}
               />
             ))}
           </div>
@@ -156,7 +156,7 @@ export default function SchemePageComponent() {
 
         <Button
           className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-          onClick={() => navigate('/schemes/new')}
+          onClick={() => navigate('/mobile/schemes/new')}
         >
           <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
         </Button>

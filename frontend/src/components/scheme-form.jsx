@@ -135,7 +135,7 @@ function SchemeForm() {
     }
     finally{
       setLoading(false)
-      navigate('/schemes/')
+      navigate('/mobile/schemes/')
     }
   };
 
@@ -173,7 +173,7 @@ function SchemeForm() {
       <Sidebar/>
       <div div className=''>
       <Button
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/mobile')}
                 variant="outline"
                 className="w-full sm:w-auto px-5 text-slate-900  border-white hover:bg-gray-500 ml-80 mt-4 hover:text-slate-900 items-right"
               >

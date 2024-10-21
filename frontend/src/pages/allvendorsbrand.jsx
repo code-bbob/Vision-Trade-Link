@@ -4,13 +4,14 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Smartphone, Search, ArrowLeft } from 'lucide-react'
+import { Search, ArrowLeft, BookUser } from 'lucide-react'
 import useAxios from '../utils/useAxios'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Button } from "@/components/ui/button"
-import Sidebar from '../components/sidebar';
+import { useNavigate } from 'react-router-dom'
+import Sidebar from '../components/allsidebar';
 
-export default function BrandPhones() {
+export default function AllVendorBrand() {
   const api = useAxios()
   const { id } = useParams()
   const [phones, setPhones] = useState([])
@@ -24,7 +25,7 @@ export default function BrandPhones() {
   useEffect(() => {
     const fetchBrandPhones = async () => {
       try {
-        const response = await api.get(`inventory/brand/?id=${id}`)
+        const response = await api.get(`alltransaction/vendorbrand/${id}/`)
         setPhones(response.data)
         setFilteredPhones(response.data)
         setBrandName(response.data[0].brand_name)
@@ -37,7 +38,7 @@ export default function BrandPhones() {
     }
 
     fetchBrandPhones()
-  }, [id])
+  }, [id, api])
 
   useEffect(() => {
     const results = phones.filter(phone =>
@@ -67,22 +68,22 @@ export default function BrandPhones() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col lg:flex-row">
-      <Sidebar />
-      <div className="flex-1 p-6 lg:p-10 lg:ml-64">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col md:flex-row">
+      <Sidebar className="w-full lg:w-64 md:min-h-screen" />
+      <div className="w-full lg:ml-64 p-4 md:p-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="flex flex-col space-y-4 mb-8"
+          className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 space-y-4 md:space-y-0"
         >
-          <h1 className="text-2xl lg:text-4xl text-center font-bold text-white">{brandName} Phones</h1>
-          <div className="flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0 sm:space-x-4">
+          <h1 className="text-2xl md:text-4xl font-bold text-white">{brandName} Vendors</h1>
+          <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
             <div className="relative w-full sm:w-60">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <Input
                 type="text"
-                placeholder="Search phones..."
+                placeholder="Search vendors..."
                 value={searchTerm}
                 onChange={handleSearch}
                 className="pl-10 w-full bg-slate-700 text-white border-gray-600 focus:border-purple-500 focus:ring-purple-500"
@@ -91,7 +92,7 @@ export default function BrandPhones() {
             <Button
               onClick={() => navigate('/mobile/inventory')}
               variant="outline"
-              className="w-full sm:w-auto px-5 text-black border-white hover:bg-gray-700 hover:text-white"
+              className="w-full sm:w-auto px-5 text-slate-900 border-white hover:bg-gray-500 hover:text-slate-900"
             >
               <ArrowLeft className="mr-2 h-4 w-3" />
               Back to Inventory
@@ -101,10 +102,9 @@ export default function BrandPhones() {
 
         <Card className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg">
           <CardContent className="p-0">
-            <div className="grid grid-cols-12 gap-2 p-4 text-sm font-medium text-slate-300 border-b border-slate-700">
-              <div className="col-span-6 lg:col-span-6">Particulars</div>
-              <div className="col-span-3 lg:col-span-3 text-center">Quantity</div>
-              <div className="col-span-3 lg:col-span-3 text-right">Unit Price</div>
+            <div className="grid grid-cols-12 gap-4 p-4 text-sm font-medium text-slate-300 border-b border-slate-700">
+              <div className="col-span-6 md:col-span-9">Vendors</div>
+              <div className="col-span-6 md:col-span-3 text-right">Due Amount</div>
             </div>
             {filteredPhones?.map((phone) => (
               <motion.div
@@ -112,18 +112,15 @@ export default function BrandPhones() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
-                onClick={() => navigate(`/mobile/phone/${phone.id}`)}
-                className="grid grid-cols-12 gap-2 p-4 items-center hover:bg-slate-800 transition-colors duration-200 cursor-pointer"
+                className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-slate-800 transition-colors duration-200"
               >
-                <div className="col-span-6 lg:col-span-6 flex items-center">
-                  <Smartphone className="h-4 w-4 lg:h-5 lg:w-5 text-purple-400 mr-2 flex-shrink-0" />
-                  <span className="text-white text-sm lg:text-base truncate">{phone.name}</span>
+                <div className="col-span-6 md:col-span-9 flex items-center">
+                  <BookUser className="h-5 w-5 text-purple-400 mr-2 flex-shrink-0" />
+                  <span className="text-white truncate">{phone.name}</span>
                 </div>
-                <div className={`col-span-3 lg:col-span-3 text-center ${phone.quantity < 3 ? 'text-red-500' : 'text-green-500'} text-sm lg:text-base`}>
-                  {phone.quantity}
-                </div>
-                <div className="col-span-3 lg:col-span-3 text-right text-white text-sm lg:text-base">
-                  {phone.unit_price ? `RS. ${phone.unit_price.toLocaleString()}` : 'N/A'}
+                
+                <div className="col-span-6 md:col-span-3 text-right text-white">
+                  {phone.due ? `RS. ${phone?.due.toLocaleString()}` : 'N/A'}
                 </div>
               </motion.div>
             ))}

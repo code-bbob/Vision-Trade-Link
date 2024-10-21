@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Smartphone, ArrowLeft, Search, Plus } from 'lucide-react'
 import useAxios from '../utils/useAxios'
-import Sidebar from '../components/sidebar';
+import Sidebar from '../components/allsidebar';
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
-export function VendorPage() {
+export function AllInventoryPageComponent() {
   const api = useAxios()
   const navigate = useNavigate()
   const [brands, setBrands] = useState([])
@@ -34,7 +34,7 @@ export function VendorPage() {
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const response = await api.get('transaction/vendorbrand/')
+        const response = await api.get('allinventory/brand/')
         setBrands(response.data)
         setFilteredBrands(response.data)
         setLoading(false)
@@ -62,7 +62,7 @@ export function VendorPage() {
   const handleAddBrand = async (e) => {
     e.preventDefault()
     try {
-      const response = await api.post('inventory/brand/', { name: newBrandName })
+      const response = await api.post('allinventory/brand/', { name: newBrandName })
       console.log('New Brand Added:', response.data)
       setBrands([...brands, response.data])
       setFilteredBrands([...filteredBrands, response.data])
@@ -86,19 +86,19 @@ export function VendorPage() {
   )
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-      <Sidebar className="w-full md:w-64 md:min-h-screen" />
-      <div className="flex-1 lg:ml-64 overflow-auto relative p-4 md:p-6">
-        <div className="max-w-6xl mx-auto">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+      <Sidebar />
+      <div className="flex-1 lg:ml-64 overflow-auto relative p-8 lg:p-6">
+        <div className="max-w-6xl  mx-auto">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="flex flex-col space-y-4 mb-8"
           >
-            <h1 className="text-3xl md:text-4xl font-bold text-white">Vendor Brands</h1>
+            <h1 className="text-3xl lg:text-4xl font-bold text-center pb-4 text-white">Inventory Brands</h1>
 
-            <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
+            <div className="flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0 sm:space-x-4 w-full">
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
@@ -111,9 +111,9 @@ export function VendorPage() {
               </div>
 
               <Button
-                onClick={() => navigate('/mobile/')}
+                onClick={() => navigate('/')}
                 variant="outline"
-                className="w-full sm:w-auto text-slate-900 border-white hover:bg-gray-500 hover:text-slate-900"
+                className="w-full sm:w-auto text-black  border-white hover:bg-gray-700 hover:text-white"
               >
                 <ArrowLeft className="mr-2 h-4 w-3" />
                 Back to Dashboard
@@ -121,12 +121,12 @@ export function VendorPage() {
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredBrands.map((brand) => (
               <BrandCard
                 key={brand.id}
                 brand={brand}
-                onClick={() => navigate(`/mobile/vendors/brand/${brand.id}`)}
+                onClick={() => navigate(`/brand/${brand.id}`)}
               />
             ))}
           </div>
@@ -146,10 +146,10 @@ export function VendorPage() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button
-              className="fixed bottom-4 right-4 md:bottom-8 md:right-8 rounded-full w-12 h-12 md:w-16 md:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
+              className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
               onClick={() => setIsDialogOpen(true)}
             >
-              <Plus className="w-6 h-6 md:w-8 md:h-8" />
+              <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
@@ -200,14 +200,17 @@ function BrandCard({ brand, onClick }) {
         <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
         <div className="absolute inset-0 bg-purple-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-          <CardTitle className="text-lg md:text-xl font-medium text-slate-300 group-hover:text-white transition-colors duration-300">
+          <CardTitle className="text-lg sm:text-xl font-medium text-slate-300 group-hover:text-white transition-colors duration-300">
             {brand.name}
           </CardTitle>
-          <Smartphone className="h-5 w-5 md:h-6 md:w-6 text-purple-400" />
+          <Smartphone className="h-5 w-5 sm:h-6 sm:w-6 text-purple-400" />
         </CardHeader>
         <CardContent className="relative z-10">
-          <div className="text-xs md:text-sm text-slate-400 group-hover:text-purple-200 transition-colors duration-300">
-            Vendors: {brand.count}
+          <div className="text-xs sm:text-sm text-slate-400 group-hover:text-purple-200 transition-colors duration-300">
+            Items in stock: {brand.count}
+          </div>
+          <div className="text-xs sm:text-sm text-blue-400 mt-1 group-hover:text-purple-200 transition-colors duration-300">
+          RS. {brand.stock}
           </div>
         </CardContent>
       </Card>

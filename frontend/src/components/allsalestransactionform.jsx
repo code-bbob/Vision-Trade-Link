@@ -29,39 +29,39 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import Sidebar from '@/components/sidebar';
+import Sidebar from '@/components/allsidebar';
 
-function SalesTransactionForm() {
+function AllSalesTransactionForm() {
   const api = useAxios()
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     name: '',
     phone_number: '',
     bill_no: '',
-    sales: [{ phone: '', imei_number: '', unit_price: '' }]
+    sales: [{ product: '', unit_price: '',quantity: '', total_price: '' }]
   });
-  const [phones, setPhones] = useState([]);
+  const [products, setProducts] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showNewPhoneDialog, setShowNewPhoneDialog] = useState(false);
+  const [showNewProductDialog, setShowNewProductDialog] = useState(false);
   const [showNewBrandDialog, setShowNewBrandDialog] = useState(false);
-  const [newPhoneData, setNewPhoneData] = useState({ name: '', brand: '' });
+  const [newProductData, setNewProductData] = useState({ name: '', brand: '' });
   const [newBrandName, setNewBrandName] = useState('');
-  const [openPhone, setOpenPhone] = useState(Array(formData.sales.length).fill(false));
-  const [openIMEI, setOpenIMEI] = useState(Array(formData.sales.length).fill(false));
+  const [openProduct, setOpenProduct] = useState(Array(formData.sales.length).fill(false));
   const [openBrand, setOpenBrand] = useState(false);
   const [subLoading, setSubLoading] = useState(false);
   const navigate = useNavigate();
 
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [phonesResponse, brandsResponse] = await Promise.all([
-          api.get('inventory/phone/'),
-          api.get('inventory/brand/')
+        const [productsResponse, brandsResponse] = await Promise.all([
+          api.get('allinventory/product/'),
+          api.get('allinventory/brand/')
         ]);
-        setPhones(phonesResponse.data);
+        setProducts(productsResponse.data);
         setBrands(brandsResponse.data);
         setLoading(false);
       } catch (error) {
@@ -79,40 +79,42 @@ function SalesTransactionForm() {
     const newSales = [...formData.sales];
     newSales[index] = { ...newSales[index], [name]: value };
     setFormData({ ...formData, sales: newSales });
+
+    
+    const { unit_price, quantity } = newSales[index];
+    if (unit_price && quantity) {
+      newSales[index].total_price = calculateTotalPrice(unit_price, quantity);
+    }
+    console.log(newSales[index])
+  
+    setFormData({ ...formData, sales: newSales });
   };
 
-  const handlePhoneChange = (index, value) => {
+  const handleProductChange = (index, value) => {
     if (value === 'new') {
-      setShowNewPhoneDialog(true);
+      setShowNewProductDialog(true);
     } else {
       const newSales = [...formData.sales];
-      newSales[index] = { ...newSales[index], phone: value, imei_number: '' };
+      newSales[index] = { ...newSales[index], product: value };
       setFormData({ ...formData, sales: newSales });
     }
-    const newOpenPhone = [...openPhone];
-    newOpenPhone[index] = false;
-    setOpenPhone(newOpenPhone);
+    const newOpenProduct = [...openProduct];
+    newOpenProduct[index] = false;
+    setOpenProduct(newOpenProduct);
+
+
   };
 
-  const handleIMEIChange = (index, value) => {
-    const newSales = [...formData.sales];
-    newSales[index] = { ...newSales[index], imei_number: value };
-    setFormData({ ...formData, sales: newSales });
-    const newOpenIMEI = [...openIMEI];
-    newOpenIMEI[index] = false;
-    setOpenIMEI(newOpenIMEI);
-  };
-
-  const handleNewPhoneChange = (e) => {
+  const handleNewProductChange = (e) => {
     const { name, value } = e.target;
-    setNewPhoneData({ ...newPhoneData, [name]: value });
+    setNewProductData({ ...newProductData, [name]: value });
   };
 
-  const handleNewPhoneBrandChange = (value) => {
+  const handleNewProductBrandChange = (value) => {
     if (value === 'new') {
       setShowNewBrandDialog(true);
     } else {
-      setNewPhoneData({ ...newPhoneData, brand: value });
+      setNewProductData({ ...newProductData, brand: value });
     }
     setOpenBrand(false);
   };
@@ -124,28 +126,26 @@ function SalesTransactionForm() {
   const handleAddSale = () => {
     setFormData({
       ...formData,
-      sales: [...formData.sales, { phone: '', imei_number: '', unit_price: '' }]
+      sales: [...formData.sales, { product: '',unit_price: '', quantity:'', total_price: '' }]
     });
-    setOpenPhone([...openPhone, false]);
-    setOpenIMEI([...openIMEI, false]);
+    setOpenProduct([...openProduct, false]);
   };
 
   const handleRemoveSale = (index) => {
     const newSales = formData.sales.filter((_, i) => i !== index);
     setFormData({ ...formData, sales: newSales });
-    const newOpenPhone = openPhone.filter((_, i) => i !== index);
-    setOpenPhone(newOpenPhone);
-    const newOpenIMEI = openIMEI.filter((_, i) => i !== index);
-    setOpenIMEI(newOpenIMEI);
+    const newOpenProduct = openProduct.filter((_, i) => i !== index);
+    setOpenProduct(newOpenProduct);
+
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setSubLoading(true)
-      const response = await api.post('transaction/salestransaction/', formData);
+      const response = await api.post('alltransaction/salestransaction/', formData);
       console.log('Response:', response.data);
-      navigate('/mobile/sales')
+      navigate('/sales')
     } catch (error) {
       console.error('Error posting data:', error);
     } finally {
@@ -153,16 +153,16 @@ function SalesTransactionForm() {
     }
   };
 
-  const handleAddPhone = async (e) => {
+  const handleAddProduct = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post('inventory/phone/', newPhoneData);
-      console.log('New Phone Added:', response.data);
-      setPhones([...phones, response.data]);
-      setNewPhoneData({ name: '', brand: '' });
-      setShowNewPhoneDialog(false);
+      const response = await api.post('inventory/product/', newProductData);
+      console.log('New Product Added:', response.data);
+      setProducts([...products, response.data]);
+      setNewProductData({ name: '', brand: '' });
+      setShowNewProductDialog(false);
     } catch (error) {
-      console.error('Error adding phone:', error);
+      console.error('Error adding product:', error);
     }
   };
 
@@ -174,15 +174,73 @@ function SalesTransactionForm() {
       setBrands([...brands, response.data]);
       setNewBrandName('');
       setShowNewBrandDialog(false);
-      setNewPhoneData({ ...newPhoneData, brand: response.data.id.toString() });
+      setNewProductData({ ...newProductData, brand: response.data.id.toString() });
     } catch (error) {
       console.error('Error adding brand:', error);
     }
   };
 
-  
+  const calculateTotalPrice = (quantity,unit_price) => {
+    return quantity * unit_price;
+    };
+
+  const [currentWord, setCurrentWord] = useState('');
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+        console.log("Word is:", currentWord.slice(0,-1));
+        const matchingProduct = products.find((product) => product.uid === currentWord.slice(0,-1));
+        console.log("Matching product:", matchingProduct);
+        
+        if (matchingProduct) {
+            // Check if there is an existing sale with an empty product field
+            const emptySaleIndex = formData.sales.findIndex(sale => !sale.product);
+            
+            if (emptySaleIndex !== -1) {
+                // If an empty sale exists, update it with the matched product
+                const updatedSales = [...formData.sales];
+                updatedSales[emptySaleIndex].product = matchingProduct.id.toString();
+                updatedSales[emptySaleIndex].unit_price = matchingProduct.unit_price;
+                setFormData((prevFormData) => ({
+                    ...prevFormData,
+                    sales: updatedSales
+                }));
+            } else {
+                // If no empty sale exists, add a new sale with the scanned product
+                const newSale = {
+                    product: matchingProduct.id.toString(),
+                    unit_price: matchingProduct.unit_price, // You can pre-fill this if you have default unit prices
+                    quantity: '',
+                    total_price: ''
+                };
+                setFormData((prevFormData) => ({
+                    ...prevFormData,
+                    sales: [...prevFormData.sales, newSale]
+                }));
+            }
+        } else {
+            console.log("Product not found");
+        }
+        setCurrentWord(''); // Clear the current word after processing
+    } else {
+        setCurrentWord((prev) => prev + e.key); // Accumulate the key pressed
+    }
+};
+
+
+
+  useEffect(() => {
+
+  window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+        }
+    }, [currentWord,products]);
+
 
   return (
+
+
     <div className="flex min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
       <Sidebar className="hidden lg:block w-64 flex-shrink-0" />
       <div className="flex-grow p-4 lg:p-6 lg:ml-64 overflow-auto">
@@ -231,13 +289,13 @@ function SalesTransactionForm() {
                 </div>
                 <div className="flex flex-col">
                   <Label htmlFor="phone_number" className="text-sm font-medium text-white mb-2">
-                    Customer's Phone Number
+                    Customer's Phone number
                   </Label>
                   <Input
                     type="text"
                     id="phone_number"
                     name="phone_number"
-                    placeholder="Customer's Phone Number"
+                    placeholder="Customer's Phone number"
                     value={formData.phone_number}
                     onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
                     className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
@@ -266,59 +324,59 @@ function SalesTransactionForm() {
                   <h3 className="text-lg font-semibold mb-4">Sale {index + 1}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex flex-col">
-                      <Label htmlFor={`phone-${index}`} className="text-sm font-medium text-white mb-2">
-                        Phone
+                      <Label htmlFor={`product-${index}`} className="text-sm font-medium text-white mb-2">
+                        Product
                       </Label>
-                      <Popover open={openPhone[index]} onOpenChange={(open) => {
-                        const newOpenPhone = [...openPhone];
-                        newOpenPhone[index] = open;
-                        setOpenPhone(newOpenPhone);
+                      <Popover open={openProduct[index]} onOpenChange={(open) => {
+                        const newOpenProduct = [...openProduct];
+                        newOpenProduct[index] = open;
+                        setOpenProduct(newOpenProduct);
                       }}>
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
                             role="combobox"
-                            aria-expanded={openPhone[index]}
+                            aria-expanded={openProduct[index]}
                             className="w-full justify-between bg-slate-600 border-slate-500 text-white hover:bg-slate-500"
                           >
-                            {sale.phone
-                              ? phones.find((phone) => phone.id.toString() === sale.phone)?.name
-                              : "Select a phone..."}
+                            {sale.product
+                              ? products.find((product) => product.id.toString() === sale.product)?.name
+                              : "Select a product..."}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-full p-0">
                           <Command className='bg-slate-700 border-slate-600'>
-                            <CommandInput className="bg-slate-700 text-white" placeholder="Search phone..." />
+                            <CommandInput className="bg-slate-700 text-white" placeholder="Search product..." />
                             <CommandList>
-                              <CommandEmpty>No phone found.</CommandEmpty>
+                              <CommandEmpty>No product found.</CommandEmpty>
                               <CommandGroup>
-                                {!loading && phones.length > 0 ? (
+                                {!loading && products.length > 0 ? (
                                   <>
-                                    {phones.map((phone) => (
+                                    {products.map((product) => (
                                       <CommandItem
-                                        key={phone.id}
-                                        onSelect={() => handlePhoneChange(index, phone.id.toString())}
+                                        key={product.id}
+                                        onSelect={() => handleProductChange(index, product.id.toString())}
                                         className="bg-slate-700 text-white hover:bg-slate-600"
                                       >
                                         <Check
                                           className={cn(
                                             "mr-2 h-4 w-4",
-                                            sale.phone === phone.id.toString() ? "opacity-100" : "opacity-0"
+                                            sale.product === product.id.toString() ? "opacity-100" : "opacity-0"
                                           )}
                                         />
-                                        {phone.name}
+                                        {product.name}
                                       </CommandItem>
                                     ))}
-                                    <CommandItem className="bg-slate-700 text-white hover:bg-slate-600" onSelect={() => handlePhoneChange(index, 'new')}>
+                                    <CommandItem className="bg-slate-700 text-white hover:bg-slate-600" onSelect={() => handleProductChange(index, 'new')}>
                                       <PlusCircle className="mr-2 h-4 w-4" />
-                                      Add a new phone
+                                      Add a new product
                                     </CommandItem>
                                   </>
                                 ) : loading ? (
                                   <CommandItem>Loading...</CommandItem>
                                 ) : (
-                                  <CommandItem>No phones available</CommandItem>
+                                  <CommandItem>No products available</CommandItem>
                                 )}
                               </CommandGroup>
                             </CommandList>
@@ -326,53 +384,7 @@ function SalesTransactionForm() {
                         </PopoverContent>
                       </Popover>
                     </div>
-                    <div className="flex flex-col">
-                      <Label htmlFor={`imei-${index}`} className="text-sm font-medium text-white mb-2">
-                        IMEI Number
-                      </Label>
-                      <Popover open={openIMEI[index]} onOpenChange={(open) => {
-                        const newOpenIMEI = [...openIMEI];
-                        newOpenIMEI[index] = open;
-                        setOpenIMEI(newOpenIMEI);
-                      }}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={openIMEI[index]}
-                            className="w-full justify-between bg-slate-600 border-slate-500 text-white hover:bg-slate-500"
-                          >
-                            {sale.imei_number || "Select IMEI..."}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-full p-0">
-                          <Command className='bg-slate-700 border-slate-600 h-60 overflow-y-scroll'>
-                            <CommandInput className="bg-slate-700 text-white" placeholder="Search IMEI..." />
-                            <CommandList>
-                              <CommandEmpty>No IMEI found.</CommandEmpty>
-                              <CommandGroup>
-                                {sale.phone && phones.find(phone => phone.id.toString() === sale.phone)?.imeis.map((imei) => (
-                                  <CommandItem
-                                    key={imei}
-                                    onSelect={() => handleIMEIChange(index, imei)}
-                                    className="bg-slate-700 text-white hover:bg-slate-600"
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        sale.imei_number === imei ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                    {imei}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
+                   
                     <div className="flex flex-col">
                       <Label htmlFor={`price-${index}`} className="text-sm font-medium text-white mb-2">
                         Unit Price
@@ -385,6 +397,37 @@ function SalesTransactionForm() {
                         onChange={(e) => handleChange(index, e)}
                         className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
                         placeholder="Enter unit price"
+                        required
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <Label htmlFor={`price-${index}`} className="text-sm font-medium text-white mb-2">
+                        Quantity
+                      </Label>
+                      <Input
+                        type="number"
+                        id={`quantity-${index}`}
+                        name="quantity"
+                        value={sale.quantity}
+                        onChange={(e) => handleChange(index, e)}
+                        className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
+                        placeholder="Enter quantity"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex flex-col">
+                      <Label htmlFor={`price-${index}`} className="text-sm font-medium text-white mb-2">
+                        Total Price
+                      </Label>
+                      <Input
+                        type="number"
+                        id={`total_price-${index}`}
+                        name="total_price"
+                        value={calculateTotalPrice(sale.quantity,sale.unit_price)}
+                        onChange={(e) => handleChange(index, e)}
+                        className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
+                        placeholder="Enter total price"
                         required
                       />
                     </div>
@@ -414,30 +457,30 @@ function SalesTransactionForm() {
               </Button>
             </form>
 
-            <Dialog open={showNewPhoneDialog} onOpenChange={setShowNewPhoneDialog}>
+            <Dialog open={showNewProductDialog} onOpenChange={setShowNewProductDialog}>
               <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
                 <DialogHeader>
-                  <DialogTitle>Add New Phone</DialogTitle>
+                  <DialogTitle>Add New Product</DialogTitle>
                   <DialogDescription>
-                    Enter the details of the new phone you want to add.
+                    Enter the details of the new product you want to add.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="newPhoneName" className="text-right">
+                    <Label htmlFor="newProductName" className="text-right">
                       Name
                     </Label>
                     <Input
-                      id="newPhoneName"
+                      id="newProductName"
                       name="name"
-                      value={newPhoneData.name}
-                      onChange={handleNewPhoneChange}
+                      value={newProductData.name}
+                      onChange={handleNewProductChange}
                       className="col-span-3 bg-slate-700 border-slate-600 text-white"
-                      placeholder="Enter phone name"
+                      placeholder="Enter product name"
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="newPhoneBrand" className="text-right">
+                    <Label htmlFor="newProductBrand" className="text-right">
                       Brand
                     </Label>
                     <div className="col-span-3">
@@ -449,8 +492,8 @@ function SalesTransactionForm() {
                             aria-expanded={openBrand}
                             className="w-full justify-between bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
                           >
-                            {newPhoneData.brand
-                              ? brands.find((brand) => brand.id.toString() === newPhoneData.brand)?.name
+                            {newProductData.brand
+                              ? brands.find((brand) => brand.id.toString() === newProductData.brand)?.name
                               : "Select a brand..."}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
@@ -464,19 +507,19 @@ function SalesTransactionForm() {
                                 {brands.map((brand) => (
                                   <CommandItem
                                     key={brand.id}
-                                    onSelect={() => handleNewPhoneBrandChange(brand.id.toString())}
+                                    onSelect={() => handleNewProductBrandChange(brand.id.toString())}
                                     className="text-white hover:bg-slate-600"
                                   >
                                     <Check
                                       className={cn(
                                         "mr-2 h-4 w-4",
-                                        newPhoneData.brand === brand.id.toString() ? "opacity-100" : "opacity-0"
+                                        newProductData.brand === brand.id.toString() ? "opacity-100" : "opacity-0"
                                       )}
                                     />
                                     {brand.name}
                                   </CommandItem>
                                 ))}
-                                <CommandItem className="text-white hover:bg-slate-600" onSelect={() => handleNewPhoneBrandChange('new')}>
+                                <CommandItem className="text-white hover:bg-slate-600" onSelect={() => handleNewProductBrandChange('new')}>
                                   <PlusCircle className="mr-2 h-4 w-4" />
                                   Add a new brand
                                 </CommandItem>
@@ -489,7 +532,7 @@ function SalesTransactionForm() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button type="button" onClick={handleAddPhone} className="bg-purple-600 hover:bg-purple-700 text-white">Add Phone</Button>
+                  <Button type="button" onClick={handleAddProduct} className="bg-purple-600 hover:bg-purple-700 text-white">Add Product</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -528,4 +571,4 @@ function SalesTransactionForm() {
   );
 }
 
-export default SalesTransactionForm;
+export default AllSalesTransactionForm;

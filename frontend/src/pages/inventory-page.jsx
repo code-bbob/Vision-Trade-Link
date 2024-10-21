@@ -111,7 +111,7 @@ export function InventoryPageComponent() {
               </div>
 
               <Button
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/mobile/')}
                 variant="outline"
                 className="w-full sm:w-auto text-black  border-white hover:bg-gray-700 hover:text-white"
               >
@@ -126,7 +126,7 @@ export function InventoryPageComponent() {
               <BrandCard
                 key={brand.id}
                 brand={brand}
-                onClick={() => navigate(`/brand/${brand.id}`)}
+                onClick={() => navigate(`/mobile/brand/${brand.id}`)}
               />
             ))}
           </div>
@@ -210,7 +210,7 @@ function BrandCard({ brand, onClick }) {
             Items in stock: {brand.items}
           </div>
           <div className="text-xs sm:text-sm text-blue-400 mt-1 group-hover:text-purple-200 transition-colors duration-300">
-          RS. {brand.stock}
+          RS. {brand.stock.toFixed(2)}
           </div>
         </CardContent>
       </Card>

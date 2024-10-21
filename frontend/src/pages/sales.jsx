@@ -144,7 +144,7 @@ export default function SalesTransactions() {
         >
           <h1 className="text-3xl lg:text-4xl font-bold text-white mb-4 lg:mb-0">Sales Transactions</h1>
           <Button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/mobile/')}
             variant="outline"
             className="w-full lg:w-auto px-5 text-black border-white hover:bg-gray-700 hover:text-white"
           >
@@ -254,7 +254,7 @@ export default function SalesTransactions() {
       </div>
       <Button
         className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={() => navigate('/sales/form/')}
+        onClick={() => navigate('/mobile/sales/form/')}
       >
         <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
       </Button>

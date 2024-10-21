@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import useAxios from "@/utils/useAxios";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,10 +11,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, ArrowLeft, Check, ChevronsUpDown } from "lucide-react";
+import { PlusCircle, Trash2, Check, ChevronsUpDown, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Command,
@@ -28,21 +30,25 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useNavigate } from "react-router-dom";
 import Sidebar from "@/components/sidebar";
 
-function VendorTransactionForm() {
+export default function EditAllVendorTransactionForm() {
   const api = useAxios();
+  const navigate = useNavigate();
+  const { vendorTransactionId } = useParams();
+
+  const [originalVendorTransactionData, setOriginalVendorTransactionData] = useState(null);
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split("T")[0],
-    cashout_date: new Date().toISOString().split("T")[0],
+    date: "",
+    cashout_date: "",
     amount: "",
     cheque_number: "",
-    method: "cheque",
+    method: "",
     vendor: "",
-    desc: "",
+    desc:"",
   });
   const [vendors, setVendors] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showNewVendorDialog, setShowNewVendorDialog] = useState(false);
@@ -52,18 +58,27 @@ function VendorTransactionForm() {
   const [openVendor, setOpenVendor] = useState(false);
   const [openBrand, setOpenBrand] = useState(false);
   const [subLoading, setSubLoading] = useState(false);
-  const [brands, setBrands] = useState([]);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [vendorsResponse, brandsResponse] = await Promise.all([
-          api.get("transaction/vendor/"),
-          api.get("inventory/brand/"),
+        const [vendorsResponse, brandsResponse, vendorTransactionResponse] = await Promise.all([
+          api.get("alltransaction/vendor/"),
+          api.get("allinventory/brand/"),
+          api.get(`alltransaction/vendortransaction/${vendorTransactionId}/`)
         ]);
         setVendors(vendorsResponse.data);
         setBrands(brandsResponse.data);
+        setOriginalVendorTransactionData(vendorTransactionResponse.data);
+        setFormData({
+          date: vendorTransactionResponse.data.date,
+          cashout_date: vendorTransactionResponse.data.cashout_date || "",
+          cheque_number: vendorTransactionResponse.data.cheque_number || "",
+          vendor: vendorTransactionResponse.data.vendor.toString(),
+          amount: vendorTransactionResponse.data.amount.toString(),
+          method: vendorTransactionResponse.data.method,
+          desc: vendorTransactionResponse.data.desc
+        });
         setLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -73,7 +88,17 @@ function VendorTransactionForm() {
     };
 
     fetchData();
-  }, []);
+  }, [vendorTransactionId]);
+
+  const handleDelete = async () => {
+    try {
+      await api.delete(`alltransaction/vendortransaction/${vendorTransactionId}/`);
+      navigate("/vendor-transactions");
+    } catch (error) {
+      console.error("Error deleting vendor transaction:", error);
+      setError("Failed to delete vendor transaction. Please try again.");
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -84,10 +109,7 @@ function VendorTransactionForm() {
     if (value === "new") {
       setShowNewVendorDialog(true);
     } else {
-      setFormData((prevState) => ({
-        ...prevState,
-        vendor: value,
-      }));
+      setFormData({ ...formData, vendor: value });
     }
     setOpenVendor(false);
   };
@@ -114,15 +136,12 @@ function VendorTransactionForm() {
     e.preventDefault();
     try {
       setSubLoading(true);
-      const response = await api.post(
-        "transaction/vendortransaction/",
-        formData
-      );
+      const response = await api.patch(`alltransaction/vendortransaction/${vendorTransactionId}/`, formData);
       console.log("Response:", response.data);
-      navigate("/mobile/vendor-transactions");
+      navigate("/vendor-transactions");
     } catch (error) {
-      console.error("Error posting data:", error);
-      setError("Failed to submit vendor transaction. Please try again.");
+      console.error("Error updating data:", error);
+      setError("Failed to update vendor transaction. Please try again.");
     } finally {
       setSubLoading(false);
     }
@@ -131,13 +150,10 @@ function VendorTransactionForm() {
   const handleAddVendor = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post("transaction/vendor/", newVendorData);
+      const response = await api.post("alltransaction/vendor/", newVendorData);
       console.log("New Vendor Added:", response.data);
       setVendors((prevVendors) => [...prevVendors, response.data]);
-      setFormData((prevState) => ({
-        ...prevState,
-        vendor: response.data.id.toString(),
-      }));
+      setFormData({ ...formData, vendor: response.data.id.toString() });
       setNewVendorData({ name: "", brand: "" });
       setShowNewVendorDialog(false);
     } catch (error) {
@@ -149,35 +165,36 @@ function VendorTransactionForm() {
   const handleAddBrand = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post("inventory/brand/", {
-        name: newBrandName,
-      });
+      const response = await api.post("allinventory/brand/", { name: newBrandName });
       console.log("New Brand Added:", response.data);
       setBrands((prevBrands) => [...prevBrands, response.data]);
       setNewBrandName("");
       setShowNewBrandDialog(false);
-      setNewVendorData((prevData) => ({
-        ...prevData,
-        brand: response.data.id.toString(),
-      }));
+      setNewVendorData((prevData) => ({ ...prevData, brand: response.data.id.toString() }));
     } catch (error) {
       console.error("Error adding brand:", error);
       setError("Failed to add new brand. Please try again.");
     }
   };
 
+  const hasFormChanged = () => {
+    if (!originalVendorTransactionData) return false;
+    
+    return (
+      formData.date !== originalVendorTransactionData.date ||
+      formData.vendor !== originalVendorTransactionData.vendor.toString() ||
+      formData.amount !== originalVendorTransactionData.amount.toString() ||
+      formData.method !== originalVendorTransactionData.method ||
+      formData.cashout_date !== (originalVendorTransactionData.cashout_date || "") ||
+      formData.cheque_number !== (originalVendorTransactionData.cheque_number || "") ||
+      formData.desc !== originalVendorTransactionData.desc
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
         Loading...
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-red-500">
-        {error}
       </div>
     );
   }
@@ -198,7 +215,7 @@ function VendorTransactionForm() {
 
           <div className="bg-slate-800 p-6 rounded-lg shadow-lg">
             <h2 className="text-2xl lg:text-3xl font-bold mb-6 text-white">
-              Add Vendor Transaction
+              Edit Vendor Transaction
             </h2>
             {error && <p className="text-red-400 mb-4">{error}</p>}
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -241,42 +258,43 @@ function VendorTransactionForm() {
                   </select>
                 </div>
 
-                {formData.method === "cheque" && <>
+                {formData.method === "cheque" && (
+                  <>
                     <div className="flex flex-col">
-                  <Label
-                    htmlFor="cashout_date"
-                    className="text-sm font-medium text-white mb-2"
-                  >
-                    cashout Date
-                  </Label>
-                  <Input
-                    type="date"
-                    id="cashout_date"
-                    name="cashout_date"
-                    value={formData.cashout_date}
-                    onChange={handleChange}
-                    className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
-                  />
-                </div>
-                <div className="flex flex-col">
-                  <Label
-                    htmlFor="cheque_number"
-                    className="text-sm font-medium text-white mb-2"
-                  >
-                    Cheque No.
-                  </Label>
-                  <Input
-                    type="text"
-                    id="cheque_number"
-                    name="cheque_number"
-                    placeholder="Enter cheque number"
-                    value={formData.cheque_no}
-                    onChange={handleChange}
-                    className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
-                  />
-                </div>
-                </>}
-                
+                      <Label
+                        htmlFor="cashout_date"
+                        className="text-sm font-medium text-white mb-2"
+                      >
+                        cashout Date
+                      </Label>
+                      <Input
+                        type="date"
+                        id="cashout_date"
+                        name="cashout_date"
+                        value={formData.cashout_date}
+                        onChange={handleChange}
+                        className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <Label
+                        htmlFor="cheque_number"
+                        className="text-sm font-medium text-white mb-2"
+                      >
+                        Cheque No.
+                      </Label>
+                      <Input
+                        type="text"
+                        id="cheque_number"
+                        name="cheque_number"
+                        placeholder="Enter cheque number"
+                        value={formData.cheque_number}
+                        onChange={handleChange}
+                        className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex flex-col">
@@ -370,7 +388,7 @@ function VendorTransactionForm() {
                   Description
                 </Label>
                 <Input
-                  type="text"
+                  type="desc"
                   id="desc"
                   name="desc"
                   value={formData.desc}
@@ -383,12 +401,39 @@ function VendorTransactionForm() {
 
               <Button
                 type="submit"
-                disabled={subLoading}
+                disabled={!hasFormChanged() || subLoading}
                 className="w-full bg-green-600 hover:bg-green-700 text-white"
               >
-                Submit Vendor Transaction
+                Update Vendor Transaction
               </Button>
             </form>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  type="button"
+                  className="w-full bg-red-600 mt-6 hover:bg-red-700 text-white"
+                >
+                  Delete Transaction
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-slate-800 text-white">
+                <DialogHeader>
+                  <DialogTitle>Are you absolutely sure?</DialogTitle>
+                  <DialogDescription className="text-slate-300">
+                    This action cannot be undone. This will permanently delete your vendor transaction
+                    and remove your data from our servers.
+                  </DialogDescription>
+                </DialogHeader>
+                <Button
+                  type="button"
+                  className="w-full bg-red-600 mt-6 hover:bg-red-700 text-white"
+                  onClick={handleDelete}
+                >
+                  Delete Transaction
+                </Button>
+              </DialogContent>
+            </Dialog>
 
             <Dialog
               open={showNewVendorDialog}
@@ -548,5 +593,3 @@ function VendorTransactionForm() {
     </div>
   );
 }
-
-export default VendorTransactionForm;

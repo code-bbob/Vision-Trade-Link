@@ -33,7 +33,7 @@ import {
 import Sidebar from '@/components/sidebar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-function EditPurchaseTransactionForm() {
+function EditAllPurchaseTransactionForm() {
   const api = useAxios()
   const navigate = useNavigate()
   const { purchaseId } = useParams()
@@ -48,19 +48,19 @@ function EditPurchaseTransactionForm() {
     cheque_number: '',
     cashout_date: ''
   });
-  const [phones, setPhones] = useState([]);
-  const [filteredPhones, setFilteredPhones] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showNewPhoneDialog, setShowNewPhoneDialog] = useState(false);
+  const [showNewProductDialog, setShowNewProductDialog] = useState(false);
   const [showNewVendorDialog, setShowNewVendorDialog] = useState(false);
   const [showNewBrandDialog, setShowNewBrandDialog] = useState(false);
-  const [newPhoneData, setNewPhoneData] = useState({ name: '', brand: '' });
+  const [newProductData, setNewProductData] = useState({ name: '', brand: '' });
   const [newVendorData, setNewVendorData] = useState({ name: '', brand: '' });
   const [newBrandName, setNewBrandName] = useState('');
-  const [openPhone, setOpenPhone] = useState([]);
+  const [openProduct, setOpenProduct] = useState([]);
   const [openVendor, setOpenVendor] = useState(false);
   const [openBrand, setOpenBrand] = useState(false);
   const [subLoading, setSubLoading] = useState(false)
@@ -68,13 +68,13 @@ function EditPurchaseTransactionForm() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [phonesResponse, vendorsResponse, brandsResponse, purchaseResponse] = await Promise.all([
-          api.get('inventory/phone/'),
-          api.get('transaction/vendor/'),
-          api.get('inventory/brand/'),
-          api.get(`transaction/purchasetransaction/${purchaseId}/`)
+        const [productsResponse, vendorsResponse, brandsResponse, purchaseResponse] = await Promise.all([
+          api.get('allinventory/product/'),
+          api.get('alltransaction/vendor/'),
+          api.get('allinventory/brand/'),
+          api.get(`alltransaction/purchasetransaction/${purchaseId}/`)
         ]);
-        setPhones(phonesResponse.data);
+        setProducts(productsResponse.data);
         setVendors(vendorsResponse.data);
         setBrands(brandsResponse.data);
         setOriginalPurchaseData(purchaseResponse.data);
@@ -82,8 +82,10 @@ function EditPurchaseTransactionForm() {
           date: purchaseResponse.data.date,
           purchase: purchaseResponse.data.purchase.map(p => ({
             ...p,
-            phone: p.phone.toString(),
-            unit_price: p.unit_price.toString()
+            product: p.product.toString(),
+            quantity: p.quantity.toString(),
+            unit_price: p.unit_price.toString(),
+            total_price: p.total_price.toString()
           })),
           vendor: purchaseResponse.data.vendor.toString(),
           bill_no: purchaseResponse.data.bill_no?.toString(),
@@ -91,7 +93,7 @@ function EditPurchaseTransactionForm() {
           cheque_number: purchaseResponse.data.cheque_number || null,
           cashout_date: purchaseResponse.data.cashout_date || null
         });
-        setOpenPhone(new Array(purchaseResponse.data.purchase.length).fill(false));
+        setOpenProduct(new Array(purchaseResponse.data.purchase.length).fill(false));
         setLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -104,8 +106,8 @@ function EditPurchaseTransactionForm() {
   }, [purchaseId]);
 
   const handleDelete = (e) => {
-    api.delete(`transaction/purchasetransaction/${purchaseId}/`)
-    navigate('/mobile/purchases/')
+    api.delete(`alltransaction/purchasetransaction/${purchaseId}/`)
+    navigate('/purchases/')
   }
 
   const handleChange = (e) => {
@@ -122,22 +124,30 @@ function EditPurchaseTransactionForm() {
     const newPurchase = [...formData.purchase];
     newPurchase[index] = { ...newPurchase[index], [name]: value };
     setFormData({ ...formData, purchase: newPurchase });
+
+    
+    const { unit_price, quantity } = newPurchase[index];
+    if (unit_price && quantity) {
+      newPurchase[index].total_price = calculateTotal(unit_price, quantity);
+    }
+  
+    setFormData({ ...formData, purchase: newPurchase });
   };
 
-  const handlePhoneChange = (index, value) => {
+  const handleProductChange = (index, value) => {
     if (value === 'new') {
-      setShowNewPhoneDialog(true);
+      setShowNewProductDialog(true);
     } else {
       const newPurchase = [...formData.purchase];
-      newPurchase[index] = { ...newPurchase[index], phone: value };
+      newPurchase[index] = { ...newPurchase[index], product: value };
       setFormData(prevState => ({
         ...prevState,
         purchase: newPurchase
       }));
     }
-    const newOpenPhone = [...openPhone];
-    newOpenPhone[index] = false;
-    setOpenPhone(newOpenPhone);
+    const newOpenProduct = [...openProduct];
+    newOpenProduct[index] = false;
+    setOpenProduct(newOpenProduct);
   };
 
   const handleVendorChange = (value) => {
@@ -150,16 +160,16 @@ function EditPurchaseTransactionForm() {
       }));
       const selectedVendor = vendors.find(vendor => vendor.id.toString() === value);
       if (selectedVendor) {
-        const filteredPhones = phones.filter(phone => phone.brand === selectedVendor.brand);
-        setFilteredPhones(filteredPhones);
+        const filteredProducts = products.filter(product => product.brand === selectedVendor.brand);
+        setFilteredProducts(filteredProducts);
       }
     }
     setOpenVendor(false);
   };
 
-  const handleNewPhoneChange = (e) => {
+  const handleNewProductChange = (e) => {
     const { name, value } = e.target;
-    setNewPhoneData({ ...newPhoneData, [name]: value });
+    setNewProductData({ ...newProductData, [name]: value });
   };
 
   const handleNewVendorChange = (e) => {
@@ -167,11 +177,11 @@ function EditPurchaseTransactionForm() {
     setNewVendorData({ ...newVendorData, [name]: value });
   };
 
-  const handleNewPhoneBrandChange = (value) => {
+  const handleNewProductBrandChange = (value) => {
     if (value === 'new') {
       setShowNewBrandDialog(true);
     } else {
-      setNewPhoneData({ ...newPhoneData, brand: value });
+      setNewProductData({ ...newProductData, brand: value });
     }
     setOpenBrand(false);
   };
@@ -192,9 +202,9 @@ function EditPurchaseTransactionForm() {
   const handleAddPurchase = () => {
     setFormData(prevState => ({
       ...prevState,
-      purchase: [...prevState.purchase, { phone: '', imei_number: '', unit_price: '' }]
+      purchase: [...prevState.purchase, { product: '', unit_price: '',quantity: '',total_price:'' }]
     }));
-    setOpenPhone(prevState => [...prevState, false]);
+    setOpenProduct(prevState => [...prevState, false]);
   };
 
   const handleRemovePurchase = (index) => {
@@ -202,16 +212,16 @@ function EditPurchaseTransactionForm() {
       ...prevState,
       purchase: prevState.purchase.filter((_, i) => i !== index)
     }));
-    setOpenPhone(prevState => prevState.filter((_, i) => i !== index));
+    setOpenProduct(prevState => prevState.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setSubLoading(true)
-      const response = await api.patch(`transaction/purchasetransaction/${purchaseId}/`, formData);
+      const response = await api.patch(`alltransaction/purchasetransaction/${purchaseId}/`, formData);
       console.log('Response:', response.data);
-      navigate('/mobile/purchases');
+      navigate('/purchases');
     } catch (error) {
       console.error('Error updating data:', error);
       setError('Failed to update purchase transaction. Please try again.');
@@ -221,17 +231,17 @@ function EditPurchaseTransactionForm() {
     }
   };
 
-  const handleAddPhone = async (e) => {
+  const handleAddProduct = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post('inventory/phone/', newPhoneData);
-      console.log('New Phone Added:', response.data);
-      setPhones(prevPhones => [...prevPhones, response.data]);
-      setNewPhoneData({ name: '', brand: '' });
-      setShowNewPhoneDialog(false);
+      const response = await api.post('inventory/product/', newProductData);
+      console.log('New Product Added:', response.data);
+      setProducts(prevProducts => [...prevProducts, response.data]);
+      setNewProductData({ name: '', brand: '' });
+      setShowNewProductDialog(false);
     } catch (error) {
-      console.error('Error adding phone:', error);
-      setError('Failed to add new phone. Please try again.');
+      console.error('Error adding product:', error);
+      setError('Failed to add new product. Please try again.');
     }
   };
 
@@ -261,13 +271,20 @@ function EditPurchaseTransactionForm() {
       setBrands(prevBrands => [...prevBrands, response.data]);
       setNewBrandName('');
       setShowNewBrandDialog(false);
-      setNewPhoneData(prevData => ({ ...prevData, brand: response.data.id.toString() }));
+      setNewProductData(prevData => ({ ...prevData, brand: response.data.id.toString() }));
       setNewVendorData(prevData => ({ ...prevData, brand: response.data.id.toString() }));
     } catch (error) {
       console.error('Error adding brand:', error);
       setError('Failed to add new brand. Please try again.');
     }
   };
+
+  
+
+  const calculateTotal = (price,quantity) => {
+    return (price * quantity).toFixed(2);
+  };
+
 
   const hasFormChanged = () => {
     if (!originalPurchaseData) return false;
@@ -283,9 +300,12 @@ function EditPurchaseTransactionForm() {
       formData.purchase.some((purchase, index) => {
         const originalPurchase = originalPurchaseData.purchase[index];
         return (
-          purchase.phone !== originalPurchase.phone.toString() ||
+          purchase.product !== originalPurchase.product.toString() ||
           purchase.imei_number !== originalPurchase.imei_number ||
-          purchase.unit_price !== originalPurchase.unit_price.toString()
+          purchase.unit_price !== originalPurchase.unit_price.toString() ||
+            purchase.quantity !== originalPurchase.quantity.toString() ||
+            purchase.total_price !== originalPurchase.total_price.toString()
+
         );
       })
     );
@@ -403,51 +423,51 @@ function EditPurchaseTransactionForm() {
                   <h4 className="text-lg font-semibold mb-4 text-white">Purchase {index + 1}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex flex-col">
-                      <Label htmlFor={`phone-${index}`} className="text-sm font-medium text-white mb-2">
-                        Phone
+                      <Label htmlFor={`product-${index}`} className="text-sm font-medium text-white mb-2">
+                        Product
                       </Label>
-                      <Popover open={openPhone[index]} onOpenChange={(open) => {
-                        const newOpenPhone = [...openPhone];
-                        newOpenPhone[index] = open;
-                        setOpenPhone(newOpenPhone);
+                      <Popover open={openProduct[index]} onOpenChange={(open) => {
+                        const newOpenProduct = [...openProduct];
+                        newOpenProduct[index] = open;
+                        setOpenProduct(newOpenProduct);
                       }}>
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
                             role="combobox"
-                            aria-expanded={openPhone[index]}
+                            aria-expanded={openProduct[index]}
                             className="w-full justify-between bg-slate-600 border-slate-500 text-white hover:bg-slate-500"
                           >
-                            {purchase.phone
-                              ? phones.find((phone) => phone.id.toString() === purchase.phone)?.name
-                              : "Select a phone..."}
+                            {purchase.product
+                              ? products.find((product) => product.id.toString() === purchase.product)?.name
+                              : "Select a product..."}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-full p-0 bg-slate-700 border-slate-600">
                           <Command className='bg-slate-700 border-slate-600'>
-                            <CommandInput placeholder="Search phone..." className="bg-slate-700 text-white" />
+                            <CommandInput placeholder="Search product..." className="bg-slate-700 text-white" />
                             <CommandList className="max-h-[200px] overflow-auto">
-                              <CommandEmpty>No phone found.</CommandEmpty>
+                              <CommandEmpty>No product found.</CommandEmpty>
                               <CommandGroup>
-                                {filteredPhones.map((phone) => (
+                                {filteredProducts.map((product) => (
                                   <CommandItem
-                                    key={phone.id}
-                                    onSelect={() => handlePhoneChange(index, phone.id.toString())}
+                                    key={product.id}
+                                    onSelect={() => handleProductChange(index, product.id.toString())}
                                     className="text-white hover:bg-slate-600"
                                   >
                                     <Check
                                       className={cn(
                                         "mr-2 h-4 w-4",
-                                        purchase.phone === phone.id.toString() ? "opacity-100" : "opacity-0"
+                                        purchase.product === product.id.toString() ? "opacity-100" : "opacity-0"
                                       )}
                                     />
-                                    {phone.name}
+                                    {product.name}
                                   </CommandItem>
                                 ))}
-                                <CommandItem onSelect={() => handlePhoneChange(index, 'new')} className="text-white hover:bg-slate-600">
+                                <CommandItem onSelect={() => handleProductChange(index, 'new')} className="text-white hover:bg-slate-600">
                                   <PlusCircle className="mr-2 h-4 w-4" />
-                                  Add a new phone
+                                  Add a new product
                                 </CommandItem>
                               </CommandGroup>
                             </CommandList>
@@ -456,17 +476,17 @@ function EditPurchaseTransactionForm() {
                       </Popover>
                     </div>
                     <div className="flex flex-col">
-                      <Label htmlFor={`imei-${index}`} className="text-sm font-medium text-white mb-2">
-                        IMEI Number
+                      <Label htmlFor={`quantity-${index}`} className="text-sm font-medium text-white mb-2">
+                        Quantity
                       </Label>
                       <Input
-                        type="text"
-                        id={`imei-${index}`}
-                        name="imei_number"
-                        value={purchase.imei_number}
+                        type="number"
+                        id={`quantity-${index}`}
+                        name="quantity"
+                        value={purchase.quantity}
                         onChange={(e) => handlePurchaseChange(index, e)}
                         className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
-                        placeholder="Enter IMEI number"
+                        placeholder="Enter quantity"
                         required
                       />
                     </div>
@@ -479,6 +499,21 @@ function EditPurchaseTransactionForm() {
                         id={`price-${index}`}
                         name="unit_price"
                         value={purchase.unit_price}
+                        onChange={(e) => handlePurchaseChange(index, e)}
+                        className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
+                        placeholder="Enter unit price"
+                        required
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <Label htmlFor={`total_price-${index}`} className="text-sm font-medium text-white mb-2">
+                        Total Price
+                      </Label>
+                      <Input
+                        type="number"
+                        id={`total_price-${index}`}
+                        name="total_price"
+                        value={calculateTotal(purchase.unit_price,purchase.quantity)}
                         onChange={(e) => handlePurchaseChange(index, e)}
                         className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
                         placeholder="Enter unit price"
@@ -592,31 +627,31 @@ function EditPurchaseTransactionForm() {
               </DialogContent>
             </Dialog>
 
-            {/* Add New Phone Dialog */}
-            <Dialog open={showNewPhoneDialog} onOpenChange={setShowNewPhoneDialog}>
+            {/* Add New Product Dialog */}
+            <Dialog open={showNewProductDialog} onOpenChange={setShowNewProductDialog}>
               <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
                 <DialogHeader>
-                  <DialogTitle>Add New Phone</DialogTitle>
+                  <DialogTitle>Add New Product</DialogTitle>
                   <DialogDescription className="text-slate-300">
-                    Enter the details of the new phone you want to add.
+                    Enter the details of the new product you want to add.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="newPhoneName" className="text-right text-white">
+                    <Label htmlFor="newProductName" className="text-right text-white">
                       Name
                     </Label>
                     <Input
-                      id="newPhoneName"
+                      id="newProductName"
                       name="name"
-                      value={newPhoneData.name}
-                      onChange={handleNewPhoneChange}
+                      value={newProductData.name}
+                      onChange={handleNewProductChange}
                       className="col-span-3 bg-slate-700 border-slate-600 text-white"
-                      placeholder="Enter phone name"
+                      placeholder="Enter product name"
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="newPhoneBrand" className="text-right text-white">
+                    <Label htmlFor="newProductBrand" className="text-right text-white">
                       Brand
                     </Label>
                     <div className="col-span-3">
@@ -628,8 +663,8 @@ function EditPurchaseTransactionForm() {
                             aria-expanded={openBrand}
                             className="w-full justify-between bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
                           >
-                            {newPhoneData.brand
-                              ? brands.find((brand) => brand.id.toString() === newPhoneData.brand)?.name
+                            {newProductData.brand
+                              ? brands.find((brand) => brand.id.toString() === newProductData.brand)?.name
                               : "Select a brand..."}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
@@ -643,19 +678,19 @@ function EditPurchaseTransactionForm() {
                                 {brands.map((brand) => (
                                   <CommandItem
                                     key={brand.id}
-                                    onSelect={() => handleNewPhoneBrandChange(brand.id.toString())}
+                                    onSelect={() => handleNewProductBrandChange(brand.id.toString())}
                                     className="text-white hover:bg-slate-600"
                                   >
                                     <Check
                                       className={cn(
                                         "mr-2 h-4 w-4",
-                                        newPhoneData.brand === brand.id.toString() ? "opacity-100" : "opacity-0"
+                                        newProductData.brand === brand.id.toString() ? "opacity-100" : "opacity-0"
                                       )}
                                     />
                                     {brand.name}
                                   </CommandItem>
                                 ))}
-                                <CommandItem onSelect={() => handleNewPhoneBrandChange('new')} className="text-white hover:bg-slate-600">
+                                <CommandItem onSelect={() => handleNewProductBrandChange('new')} className="text-white hover:bg-slate-600">
                                   <PlusCircle className="mr-2 h-4 w-4" />
                                   Add a new brand
                                 </CommandItem>
@@ -668,7 +703,7 @@ function EditPurchaseTransactionForm() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button type="button" onClick={handleAddPhone} className="bg-green-600 hover:bg-green-700 text-white">Add Phone</Button>
+                  <Button type="button" onClick={handleAddProduct} className="bg-green-600 hover:bg-green-700 text-white">Add Product</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -789,4 +824,4 @@ function EditPurchaseTransactionForm() {
   );
 }
 
-export default EditPurchaseTransactionForm;
+export default EditAllPurchaseTransactionForm;

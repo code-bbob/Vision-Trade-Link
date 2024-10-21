@@ -96,7 +96,7 @@ export default function EditSalesTransactionForm() {
   const handleDelete = async () => {
     try {
       await api.delete(`transaction/salestransaction/${salesId}/`);
-      navigate('/sales');
+      navigate('/mobile/sales');
     } catch (error) {
       console.error('Error deleting sales transaction:', error);
       setError('Failed to delete sales transaction. Please try again.');
@@ -179,7 +179,7 @@ export default function EditSalesTransactionForm() {
       setSubLoading(true)
       const response = await api.patch(`transaction/salestransaction/${salesId}/`, formData);
       console.log('Response:', response.data);
-      navigate('/sales');
+      navigate('/mobile/sales');
     } catch (error) {
       console.error('Error updating data:', error);
       setError('Failed to update sales transaction. Please try again.');
@@ -239,7 +239,7 @@ export default function EditSalesTransactionForm() {
   };
 
   if (loading) {
-    return <div className="text-white p-4">Loading...</div>;
+    return <div className="text-white  bg-gradient-to-br from-slate-900 to-slate-800  p-4">Loading...</div>;
   }
 
   return (
@@ -249,7 +249,7 @@ export default function EditSalesTransactionForm() {
         <div className='flex justify-end mt-10 lg:mt-3'>
 
         <Button
-          onClick={() => navigate('/sales')}
+          onClick={() => navigate('/mobile/sales')}
           variant="outline"
           className="mb-4 w-full sm:w-auto px-5 text-black border-white hover:bg-gray-700 hover:text-white"
           >

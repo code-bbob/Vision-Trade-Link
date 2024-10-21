@@ -7,6 +7,7 @@ import {
   Smartphone,
   ShoppingCart,
   TrendingUp,
+  Container,
   Zap,
   Shield,
   LogOut,
@@ -47,15 +48,13 @@ export default function Sidebar() {
   }
 
   const menuItems = [
-    { title: 'Inventory', icon: Smartphone, path: '/mobile/inventory' },
-    { title: 'Purchases', icon: ShoppingCart, path: '/mobile/purchases' },
-    { title: 'Sales', icon: TrendingUp, path: '/mobile/sales' },
-    { title: 'Schemes', icon: Zap, path: '/mobile/schemes' },
-    { title: 'Price Protection', icon: Shield, path: '/mobile/price-protection' },
-    { title: 'Vendors', icon: BookUser, path: '/mobile/vendors' },
-    { title: 'VendorTransactions', icon: BookUser, path: '/mobile/vendor-transactions' },
-    { title: 'AllInventory', icon: BookUser, path: '/' },
-
+    { title: 'Inventory', icon: Container, path: '/inventory' },
+    { title: 'Purchases', icon: ShoppingCart, path: '/purchases' },
+    { title: 'Sales', icon: TrendingUp, path: '/sales' },
+    { title: 'Vendors', icon: BookUser, path: '/vendors' },
+    { title: 'VendorTransactions', icon: BookUser, path: '/vendor-transactions' },
+    { title: 'Phone Only', icon: Smartphone, path: '/mobile' },
+    
   ]
 
   return (
@@ -82,11 +81,11 @@ export default function Sidebar() {
               <div 
                 className="text-2xl font-bold mb-6 text-white cursor-pointer" 
                 onClick={() => {
-                  navigate('/mobile/')
+                  navigate('/')
                   setIsOpen(false)
                 }}
               >
-                Mobile Inventory
+                Inventory System
               </div>
               <nav className="space-y-2">
                 {menuItems.map((item) => (

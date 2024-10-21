@@ -109,7 +109,7 @@ const id = useParams();
         >
           <h1 className="text-4xl font-bold mb-8 text-white">Brand Schemes</h1>
           <Button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/mobile/')}
             variant="outline"
             className="w-full sm:w-auto px-5 text-slate-900 border-white hover:bg-gray-500 mx-9 hover:text-slate-900"
           >

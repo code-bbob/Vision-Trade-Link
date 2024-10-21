@@ -101,7 +101,7 @@ function PriceProtectionForm() {
     }
     finally{
       setSubLoading(false)
-      navigate('/price-protection/')
+      navigate('/mobile/price-protection/')
     }
   };
 
@@ -139,7 +139,7 @@ function PriceProtectionForm() {
       <Sidebar/>
       <div className=''>
       <Button
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/mobile/')}
                 variant="outline"
                 className="w-full sm:w-auto px-5 text-slate-900 border-white hover:bg-gray-500 mx-9 ml-80 mt-3 hover:text-slate-900 items-right"
               >

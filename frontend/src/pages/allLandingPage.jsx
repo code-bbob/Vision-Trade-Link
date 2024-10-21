@@ -26,9 +26,9 @@ import {
 } from "recharts"
 import { useDispatch } from "react-redux"
 import { logout } from "../redux/accessSlice"
-import Sidebar from "./sidebar"
+import Sidebar from "../components/allsidebar"
 
-export default function LandingPage() {
+export default function AllLandingPage() {
   const api = useAxios()
   const navigate = useNavigate()
   const [stats, setStats] = useState(null)
@@ -48,7 +48,7 @@ export default function LandingPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await api.get("transaction/stats/")
+        const response = await api.get("alltransaction/stats/")
         setStats(response.data)
         setLoading(false)
       } catch (err) {
@@ -88,7 +88,6 @@ export default function LandingPage() {
       <div className="flex-1 p-4 lg:p-10 lg:ml-64 overflow-y-auto">
         <div className="relative mb-8 pt-12 lg:pt-0"> {/* Added padding-top for mobile */}
           <motion.div
-          
             initial={{ opacity: 0, x: -1000 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 2, ease: "easeInOut" }}
@@ -103,11 +102,11 @@ export default function LandingPage() {
             </motion.h1>
           </motion.div>
           <Button
-            onClick={()=>navigate("/")}
-            className="absolute right-0 top-full mt-2 lg:top-1/2 lg:-translate-y-1/2 bg-white hover:bg-gray-500 text-black"
+            onClick={handleLogout}
+            className="absolute right-0 top-full mt-2 lg:top-1/2 lg:-translate-y-1/2 hover:bg-red-600 text-white"
           >
             <LogOut className="mr-2 h-4 w-4" />
-            Back to Inventory
+            Logout
           </Button>
         </div>
 

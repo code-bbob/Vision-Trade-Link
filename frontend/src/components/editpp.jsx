@@ -111,7 +111,7 @@ export default function EditPriceProtectionForm() {
       setSubLoading(true)
       const response = await api.patch(`transaction/priceprotection/${priceProtectionId}/`, formData);
       console.log('Response:', response.data);
-      navigate('/price-protection');
+      navigate('/mobile/price-protection');
     } catch (error) {
       console.error('Error updating data:', error);
       setError('Failed to update price protection. Please try again.');
@@ -124,7 +124,7 @@ export default function EditPriceProtectionForm() {
   const handleDelete = async () => {
     try {
       await api.delete(`transaction/priceprotection/${priceProtectionId}/`);
-      navigate('/price-protection');
+      navigate('/mobile/price-protection');
     } catch (error) {
       console.error('Error deleting price protection:', error);
       setError('Failed to delete price protection. Please try again.');
@@ -181,7 +181,7 @@ export default function EditPriceProtectionForm() {
       <Sidebar />
       <div className="flex-1 p-4 lg:ml-64">
         <Button
-          onClick={() => navigate('/price-protection')}
+          onClick={() => navigate('/mobile/price-protection')}
           variant="outline"
           className="mb-4 w-full sm:w-auto px-5 text-white border-white hover:bg-gray-700 hover:text-white"
         >

@@ -10,9 +10,9 @@ import { Calendar, ChevronLeft, ChevronRight, Search, Plus, ArrowLeft } from 'lu
 import useAxios from '@/utils/useAxios'
 import { format } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
-import Sidebar from '@/components/sidebar'
+import Sidebar from '@/components/allsidebar'
 
-export default function PurchaseTransactions() {
+export default function AllPurchaseTransactions() {
   const api = useAxios()
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -51,8 +51,9 @@ export default function PurchaseTransactions() {
 
   const fetchInitData = async () => {
     try {
-      const response = await api.get("transaction/purchasetransaction/")
+      const response = await api.get("alltransaction/purchasetransaction/")
       setTransactions(response.data.results)
+      console.log(response.data.results)
       setMetadata({
         next: response.data.next,
         previous: response.data.previous,
@@ -75,7 +76,7 @@ export default function PurchaseTransactions() {
     e.preventDefault()
     setLoading(true)
     try {
-      const response = await api.get(`transaction/purchasetransaction/?search=${localSearchTerm}`)
+      const response = await api.get(`alltransaction/purchasetransaction/?search=${localSearchTerm}`)
       setTransactions(response.data.results)
       setMetadata({
         next: response.data.next,
@@ -95,7 +96,7 @@ export default function PurchaseTransactions() {
     e.preventDefault()
     setLoading(true)
     try {
-      const response = await api.get(`transaction/purchasetransaction/?start_date=${startDate}&end_date=${endDate}`)
+      const response = await api.get(`alltransaction/purchasetransaction/?start_date=${startDate}&end_date=${endDate}`)
       setTransactions(response.data.results)
       setMetadata({
         next: response.data.next,
@@ -204,14 +205,17 @@ export default function PurchaseTransactions() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4">
-                  {transaction.purchase.map((item, index) => (
+                  {transaction?.purchase.map((item, index) => (
                     <div key={`${transaction.id}-${index}`} className="mb-4 last:mb-0 p-3 lg:p-4 bg-slate-800 rounded-lg hover:bg-slate-750 transition-colors duration-300">
                       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-2">
-                        <span className="text-white font-medium mb-2 lg:mb-0">{item.phone_name}</span>
-                        <span className="text-purple-400 text-sm">IMEI: {item.imei_number}</span>
+                        <span className="text-white font-medium mb-2 lg:mb-0">{item.product_name}</span>
                       </div>
                       <div className="flex justify-between items-center text-sm text-slate-300">
-                        <span>Unit Price: RS. {item.unit_price.toLocaleString()}</span>
+                      <span className="text-purple-400 text-sm">Quantity: {item.quantity}</span>
+
+                        <span className='text-blue-400'>Unit Price: RS. {item.unit_price.toLocaleString()}</span>
+                        <span className='font-bold text-green-400 text-l'>Total Price: RS. {item.total_price.toLocaleString()}</span>
+
                       </div>
                     </div>
                   ))}
@@ -248,7 +252,7 @@ export default function PurchaseTransactions() {
       </div>
       <Button
         className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={() => navigate('/mobile/purchases/form/')}
+        onClick={() => navigate('/purchases/form/')}
       >
         <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
       </Button>

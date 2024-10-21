@@ -4,7 +4,11 @@ from rest_framework import status
 from rest_framework.views import APIView
 from .models import Product,Brand
 from .serializers import ProductSerializer,BrandSerializer
-
+from rest_framework.decorators import api_view
+from barcode import EAN13
+from barcode.writer import SVGWriter
+import io
+from django.http import FileResponse
 from rest_framework.permissions import IsAuthenticated
 
 # Create your views here.
@@ -63,12 +67,14 @@ class BrandView(APIView):
 
     def get(self, request,pk=None, format=None):
         if pk:
-            try:
-                brand = Brand.objects.get(pk=pk)
-                serializer = BrandSerializer(brand)
+            brand = Brand.objects.get(id=pk)
+            products = Product.objects.filter(brand = brand)
+            #print(phones)
+            if products:
+                serializer = ProductSerializer(products,many=True)
                 return Response(serializer.data)
-            except Brand.DoesNotExist:
-                return Response(status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response("NONE")
         search = request.GET.get('search')
         if search:
             brands = Brand.objects.filter(enterprise=request.user.person.enterprise,name__icontains=search)
@@ -109,3 +115,20 @@ class BrandView(APIView):
             return Response("Deleted")
         except Brand.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
+        
+
+
+@api_view(['GET'])
+def generate_barcode(request,pk=None):
+    if pk:
+        uid = Product.objects.get(id=pk).uid
+        print(uid)
+
+    barcode = EAN13(uid, writer=SVGWriter())
+    
+    buffer = io.BytesIO()
+    barcode.write(buffer)
+    buffer.seek(0)
+
+    print("BARCODE GENERATED")
+    return FileResponse(buffer, content_type='image/svg+xml')

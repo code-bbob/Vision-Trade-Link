@@ -12,14 +12,21 @@ class VendorSerializer(serializers.ModelSerializer):
     
 class PurchaseSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
+    product_name = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = Purchase
-        fields = ['id', 'product', 'quantity', 'unit_price', 'total_price']
+        fields = ['id','product_name', 'product', 'quantity', 'unit_price', 'total_price']
         read_only_fields = ['total_price']
+
+    def get_product_name(self, obj):
+        return obj.product.name
 
 
 class PurchaseTransactionSerializer(serializers.ModelSerializer):
-    allpurchase = PurchaseSerializer(many=True)
+    purchase = PurchaseSerializer(many=True)
+    vendor_name = serializers.SerializerMethodField(read_only=True)
+    date = serializers.DateTimeField()
+
     class Meta:
         model = PurchaseTransaction
         fields = '__all__'
@@ -27,11 +34,13 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         
         print(validated_data)
-        purchases = validated_data.pop('allpurchase')
+        purchases = validated_data.pop('purchase')
         purchase_transaction = PurchaseTransaction.objects.create(**validated_data)
 
         with transaction.atomic():
             for purchase in purchases:
+                if not purchase.get('total_price'):
+                    purchase['total_price'] = purchase['quantity'] * purchase['unit_price']
                 purchaseobj = Purchase.objects.create(purchase_transaction=purchase_transaction, **purchase)
                 product = purchaseobj.product
                 product.count = (product.count + purchaseobj.quantity) if product.count  is not None else purchaseobj.quantity
@@ -47,7 +56,6 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
             vendor = purchase_transaction.vendor
             brand = vendor.brand
             vendor.due = (vendor.due + amount) if vendor.due is not None else amount
-            brand.stock = (brand.stock + amount) if brand.stock is not None else amount
             brand.save()
             vendor.save()
 
@@ -56,7 +64,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         print(validated_data)
         print("HERERER")
-        purchases_data = validated_data.pop('allpurchase', [])
+        purchases_data = validated_data.pop('purchase', [])
         
         # Update transaction fields
         for attr, value in validated_data.items():
@@ -66,7 +74,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
         # Begin an atomic transaction to ensure data integrity
         with transaction.atomic():
             # Keep track of existing purchases
-            existing_purchases = {purchase.id: purchase for purchase in instance.allpurchase.all()}
+            existing_purchases = {purchase.id: purchase for purchase in instance.purchase.all()}
             new_purchase_ids = []
 
             for purchase_data in purchases_data:
@@ -176,8 +184,8 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
             brand = vendor.brand
 
             # Calculate total amount of purchases
-            new_total_amount = sum(purchase.total_price for purchase in instance.allpurchase.all())
-            old_total_amount = instance.total_price or 0  # Use the previous total price
+            new_total_amount = sum(purchase.total_price for purchase in instance.purchase.all())
+            old_total_amount = instance.total_amount or 0  # Use the previous total price
 
             amount_diff = new_total_amount - old_total_amount
 
@@ -193,22 +201,40 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
 
         return instance
     
+    
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Format the date in 'YYYY-MM-DD' format for the response
+        representation['date'] = instance.date.strftime('%Y-%m-%d')
+        return representation
+    
+    def get_vendor_name(self,obj):
+        return obj.vendor.name
+    
 class SalesSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+    product_name = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = Sales
-        fields = ['id', 'customer', 'phone', 'product', 'quantity', 'unit_price', 'total_price']
+        fields = ['id', 'product', 'quantity', 'unit_price', 'total_price','product_name']
         read_only_fields = ['total_price']
+
+    def get_product_name(self, obj):
+        return obj.product.name
 
 
 class SalesTransactionSerializer(serializers.ModelSerializer):
-    allsales = SalesSerializer(many=True)
+    sales = SalesSerializer(many=True)
+    date = serializers.DateTimeField()
+
     class Meta:
         model = SalesTransaction
         fields = '__all__'
     
     def create(self, validated_data):
         
-        sales = validated_data.pop('allsales')
+        sales = validated_data.pop('sales')
+        print(sales)
         transaction = SalesTransaction.objects.create(**validated_data)
 
 
@@ -229,7 +255,7 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
         return transaction
     
     def update(self, instance, validated_data):
-        sales_data = validated_data.pop('allsales', [])
+        sales_data = validated_data.pop('sales', [])
         
         # Update transaction fields
         for attr, value in validated_data.items():
@@ -239,7 +265,7 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
         # Begin an atomic transaction
         with transaction.atomic():
             # Keep track of existing sales
-            existing_sales = {sale.id: sale for sale in instance.allsales.all()}
+            existing_sales = {sale.id: sale for sale in instance.sales.all()}
             new_sales_ids = []
 
             for sale_data in sales_data:
@@ -341,14 +367,19 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
             instance.calculate_total_amount()
 
             # Update the transaction's total price
-            instance.total_price = sum((sale.total_price or 0) for sale in instance.allsales.all())
+            instance.total_price = sum((sale.total_price or 0) for sale in instance.sales.all())
             instance.save()
 
         return instance
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Format the date in 'YYYY-MM-DD' format for the response
+        representation['date'] = instance.date.strftime('%Y-%m-%d')
+        return representation
 
 class VendorTransactionSerialzier(serializers.ModelSerializer):
-
+    date = serializers.DateTimeField()
     class Meta:
         model = VendorTransactions
         fields = '__all__'
@@ -382,3 +413,20 @@ class VendorTransactionSerialzier(serializers.ModelSerializer):
             new_vendor.save()
 
         return instance
+    
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Format the date in 'YYYY-MM-DD' format for the response
+        representation['date'] = instance.date.strftime('%Y-%m-%d')
+        return representation
+
+class VendorBrandSerializer(serializers.ModelSerializer):
+    count = serializers.SerializerMethodField(read_only = True)
+
+    class Meta:
+        model = Brand
+        fields = '__all__'
+    
+    def get_count(self,obj):
+        vendors = Vendor.objects.filter(enterprise = obj.enterprise, brand = obj).count()
+        return vendors

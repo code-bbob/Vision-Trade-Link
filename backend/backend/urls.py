@@ -24,5 +24,5 @@ urlpatterns = [
     path('userauth/',include('userauth.urls')),
     path('enterprise/',include('enterprise.urls')),
     path('allinventory/',include('allinventory.urls')),
-    path('alltransactions/',include('alltransactions.urls')),
+    path('alltransaction/',include('alltransactions.urls')),
 ]

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Smartphone, ArrowLeft, Search, Plus } from 'lucide-react'
 import useAxios from '../utils/useAxios'
-import Sidebar from '../components/sidebar';
+import Sidebar from '../components/allsidebar';
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
-export function VendorPage() {
+export function AllVendorPage() {
   const api = useAxios()
   const navigate = useNavigate()
   const [brands, setBrands] = useState([])
@@ -34,7 +34,7 @@ export function VendorPage() {
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const response = await api.get('transaction/vendorbrand/')
+        const response = await api.get('alltransaction/vendorbrand/')
         setBrands(response.data)
         setFilteredBrands(response.data)
         setLoading(false)
@@ -62,7 +62,7 @@ export function VendorPage() {
   const handleAddBrand = async (e) => {
     e.preventDefault()
     try {
-      const response = await api.post('inventory/brand/', { name: newBrandName })
+      const response = await api.post('allinventory/brand/', { name: newBrandName })
       console.log('New Brand Added:', response.data)
       setBrands([...brands, response.data])
       setFilteredBrands([...filteredBrands, response.data])
@@ -86,9 +86,9 @@ export function VendorPage() {
   )
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
       <Sidebar className="w-full md:w-64 md:min-h-screen" />
-      <div className="flex-1 lg:ml-64 overflow-auto relative p-4 md:p-6">
+      <div className="flex-1 p-4 lg:ml-64 md:p-6 overflow-auto">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -126,7 +126,7 @@ export function VendorPage() {
               <BrandCard
                 key={brand.id}
                 brand={brand}
-                onClick={() => navigate(`/mobile/vendors/brand/${brand.id}`)}
+                onClick={() => navigate(`/vendors/brand/${brand.id}`)}
               />
             ))}
           </div>

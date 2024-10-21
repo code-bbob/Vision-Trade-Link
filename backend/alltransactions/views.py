@@ -1,10 +1,17 @@
 from django.shortcuts import render
 from rest_framework.response import Response
-from .serializers import PurchaseTransactionSerializer,SalesTransactionSerializer,VendorSerializer,VendorTransactionSerialzier
+from .serializers import PurchaseTransactionSerializer,SalesTransactionSerializer,VendorSerializer,VendorTransactionSerialzier,VendorBrandSerializer
 from rest_framework.views import APIView
 from rest_framework import status
-from .models import PurchaseTransaction,SalesTransaction,Vendor,VendorTransactions
+from .models import PurchaseTransaction,SalesTransaction,Vendor,VendorTransactions,Purchase,Sales
 from rest_framework.permissions import IsAuthenticated
+from allinventory.models import Product,Brand
+from django.utils.dateparse import parse_date
+from django.utils import timezone
+from datetime import date, datetime
+from django.utils.dateparse import parse_date
+from rest_framework.pagination import PageNumberPagination
+
 
 # Create your views here.
 
@@ -20,16 +27,52 @@ class PurchaseTransactionView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    def get(self, request, format=None):
-        purchase_transaction = PurchaseTransaction.objects.filter(enterprise=request.user.person.enterprise)
-        serializer = PurchaseTransactionSerializer(purchase_transaction, many=True)
-        return Response(serializer.data)
+    def get(self, request,pk=None, format=None):
+        user = request.user
+        enterprise = user.person.enterprise
+        search = request.GET.get('search')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        transactions = PurchaseTransaction.objects.filter(enterprise=enterprise)
+
+        if pk:
+            print(pk)
+            purchase_transaction = PurchaseTransaction.objects.get(id=pk)
+            serializer = PurchaseTransactionSerializer(purchase_transaction)
+            return Response(serializer.data)
+        
+        if search:
+            phone_transactions = transactions.filter(purchase__product__name__icontains = search)
+            vendor_trasactions = transactions.filter(vendor__name__icontains = search)
+            transactions = phone_transactions.union(vendor_trasactions)
+        
+        if start_date and end_date:
+            start_date = parse_date(start_date)
+            end_date = parse_date(end_date)
+
+        if start_date and end_date:
+            start_date = datetime.combine(start_date, datetime.min.time())
+            end_date = datetime.combine(end_date, datetime.max.time())
+            
+            transactions = PurchaseTransaction.objects.filter(
+                date__range=(start_date, end_date)
+            )
+
+        transactions = transactions.order_by('-date')
+
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 5  # Set the page size here
+        paginated_transactions = paginator.paginate_queryset(transactions, request)
+
+        serializer = PurchaseTransactionSerializer(paginated_transactions, many=True)
+        return paginator.get_paginated_response(serializer.data)
     
     def patch(self,request,pk,format=None):
         data = request.data
         data['enterprise'] = request.user.person.enterprise.id
         print(data)
-        
+        print(pk)
         try:
             purchase_transaction = PurchaseTransaction.objects.get(id=pk)
         except PurchaseTransaction.DoesNotExist:
@@ -44,6 +87,22 @@ class PurchaseTransactionView(APIView):
     
     def delete(self,request,pk,format=None):
         purchase_transaction = PurchaseTransaction.objects.get(id=pk)
+        purchases = purchase_transaction.purchase.all()
+        for purchase in purchases:
+            product = purchase.product
+            product.count -= purchase.quantity
+            product.stock -= purchase.total_price
+            product.save()
+            brand = product.brand
+            brand.count -= purchase.quantity
+            brand.stock -= purchase.total_price
+            print(brand.stock)
+            brand.save()
+        amount = purchase_transaction.total_amount
+        vendor = purchase_transaction.vendor
+        brand = vendor.brand
+        vendor.due -= amount
+        vendor.save()
         purchase_transaction.delete()
         return Response("Deleted")
 
@@ -59,12 +118,78 @@ class SalesTransactionView(APIView):
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        def get(self, request, format=None):
-            sales_transaction = SalesTransaction.objects.filter(enterprise=request.user.person.enterprise)
-            serializer = SalesTransactionSerializer(sales_transaction, many=True)
-            return Response(serializer.data)
-        
+        def get(self, request,pk=None, format=None):
+            user = request.user
+            enterprise = user.person.enterprise
+            search = request.GET.get('search')
+            start_date = request.GET.get('start_date')
+            end_date = request.GET.get('end_date')
+            transactions = SalesTransaction.objects.filter(enterprise=enterprise)
 
+            if pk:
+                sales_transaction = SalesTransaction.objects.get(id=pk)
+                serializer = SalesTransactionSerializer(sales_transaction)
+                return Response(serializer.data)
+            
+            if search:
+                product_transactions = transactions.filter(sales__product__name__icontains = search)
+                customer_transactions = transactions.filter(name__icontains = search)
+                phone_transactions = transactions.filter(phone_number__icontains = search)
+                transactions = product_transactions.union(customer_transactions,phone_transactions)
+            
+            if start_date and end_date:
+                start_date = parse_date(start_date)
+                end_date = parse_date(end_date)
+
+            if start_date and end_date:
+                start_date = datetime.combine(start_date, datetime.min.time())
+                end_date = datetime.combine(end_date, datetime.max.time())
+                
+                transactions = SalesTransaction.objects.filter(
+                    date__range=(start_date, end_date)
+                )
+
+            transactions = transactions.order_by('-id')
+
+
+            paginator = PageNumberPagination()
+            paginator.page_size = 5  # Set the page size here
+            paginated_transactions = paginator.paginate_queryset(transactions, request)
+
+            serializer = SalesTransactionSerializer(paginated_transactions, many=True)
+            return paginator.get_paginated_response(serializer.data)
+        
+        def patch(self,request,pk,format=None):
+            data = request.data
+            data['enterprise'] = request.user.person.enterprise.id
+
+            try:
+                sales_transaction = SalesTransaction.objects.get(id=pk)
+            except SalesTransaction.DoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
+            serializer = SalesTransactionSerializer(sales_transaction,data=data,partial=True)
+            print("asdmnb",serializer)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors)
+        
+        def delete(self,request,pk,format=None):
+            sales_transaction = SalesTransaction.objects.get(id=pk)
+            sales = sales_transaction.sales.all()
+            for sale in sales:
+                product = sale.product
+                product.count += sale.quantity
+                product.stock += sale.total_price
+                product.save()
+                brand = product.brand
+                brand.count += sale.quantity
+                brand.stock += sale.total_price
+                brand.save()
+            sales_transaction.delete()
+            return Response("Deleted")
+        
 class VendorView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -77,6 +202,14 @@ class VendorView(APIView):
         serializer = VendorSerializer(vendors,many=True)
         return Response(serializer.data)
     
+    def post(self,request,*args, **kwargs):
+        data = request.data
+        data["enterprise"] = request.user.person.enterprise.id
+        serializer = VendorSerializer(data=data)
+        if serializer.is_valid(raise_exception = True):
+            serializer.save()
+            return Response(serializer.data)
+    
 
 class VendorTransactionView(APIView):
     permission_classes = [IsAuthenticated]
@@ -87,13 +220,34 @@ class VendorTransactionView(APIView):
             serializer = VendorTransactionSerialzier(vendor_transactions)
             return Response(serializer.data)
         query = request.GET.get('search')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
         vendor_transactions = VendorTransactions.objects.filter(enterprise = request.user.person.enterprise)
         if query:
             vendor_transactions_name = VendorTransactions.objects.filter(vendor__name__icontains=query,enterprise = request.user.person.enterprise)
             vendor_transactions_brand = VendorTransactions.objects.filter(vendor__brand__name__icontains=query,enterprise = request.user.person.enterprise)
             vendor_transactions = vendor_transactions_name.union(vendor_transactions_brand)
-        serializer = VendorTransactionSerialzier(vendor_transactions,many=True)
-        return Response(serializer.data)
+
+        if start_date and end_date:
+            start_date = parse_date(start_date)
+            end_date = parse_date(end_date)
+
+        if start_date and end_date:
+            start_date = datetime.combine(start_date, datetime.min.time())
+            end_date = datetime.combine(end_date, datetime.max.time())
+            
+            vendor_transactions = VendorTransactions.objects.filter(
+                date__range=(start_date, end_date)
+            )
+
+        vendor_transactions = vendor_transactions.order_by('-date')
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 5  # Set the page size here
+        paginated_transactions = paginator.paginate_queryset(vendor_transactions, request)
+
+        serializer = VendorTransactionSerialzier(paginated_transactions, many=True)
+        return paginator.get_paginated_response(serializer.data)
     
     def post(self,request,*args, **kwargs):
         data = request.data
@@ -122,3 +276,118 @@ class VendorTransactionView(APIView):
         vendor.due += amount
         vendor.save()
         return Response("Deleted")
+    
+
+class StatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request):
+
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        if not start_date or not end_date:
+            today = timezone.now()
+            start_date = today.replace(day=1)  # First day of the current month
+            end_date = today
+        
+        start_date = parse_date(start_date) if isinstance(start_date, str) else start_date
+        end_date = parse_date(end_date) if isinstance(end_date, str) else end_date
+
+        print(start_date,end_date)
+
+        enterprise = request.user.person.enterprise
+        print("HERE")
+    
+        allstock = Product.objects.filter(brand__enterprise = enterprise).count()
+        allbrands = Brand.objects.filter(enterprise = enterprise).count()
+
+        monthlypurchases = Purchase.objects.filter(purchase_transaction__enterprise = enterprise,purchase_transaction__date__range=(start_date, end_date))
+        print(monthlypurchases)
+        monthlysales = Sales.objects.filter(sales_transaction__enterprise = enterprise,sales_transaction__date__range=(start_date, end_date))
+
+        dailypurchases = Purchase.objects.filter(purchase_transaction__enterprise = enterprise,purchase_transaction__date = today.date())
+        dailysales = Sales.objects.filter(sales_transaction__enterprise = enterprise,sales_transaction__date = today.date())
+
+
+
+
+        ptamt = 0
+        dailyptamt = 0
+
+        pts = PurchaseTransaction.objects.filter(enterprise = enterprise,date__range=(start_date, end_date))
+        if pts:
+            for pt in pts:
+                # #print(pt.total_amount)
+                ptamt = (pt.total_amount+ptamt) if pt.total_amount else ptamt
+
+        pts = PurchaseTransaction.objects.filter(enterprise = enterprise,date = today.date())
+        if pts:
+            for pt in pts:
+                # #print(pt.total_amount)
+                dailyptamt += pt.total_amount
+
+        stamt = 0
+        dailystamt = 0
+       
+
+        sts = SalesTransaction.objects.filter(enterprise = enterprise,date__range=(start_date, end_date))
+        if sts:
+            for st in sts:
+                stamt = (st.total_amount + stamt) if st.total_amount else stamt
+        
+        sts = SalesTransaction.objects.filter(enterprise=enterprise,date = today.date())
+        if sts:
+            for st in sts:
+                dailystamt = (st.total_amount + dailystamt) if st.total_amount else dailystamt
+
+        daily_profit = 0
+        # for sale in dailysales:
+        #     purchase = Purchase.objects.filter(imei_number = sale.imei_number).first()
+        #     if purchase:
+        #         daily_profit += sale.unit_price - purchase.unit_price
+        
+        monthly_profit = 0
+        # for sale in monthlysales:
+        #     purchase = Purchase.objects.filter(imei_number = sale.imei_number).first()
+        #     if purchase:
+        #         monthly_profit += sale.unit_price - purchase.unit_price
+        
+        stat = { 
+            "enterprise" : enterprise.name,
+            "daily":{
+                "purchases" : dailypurchases.count(),
+                "dailyptamt":dailyptamt,
+                "sales": dailysales.count(),
+                "dailystamt":dailystamt,
+                "profit": round(daily_profit,2)
+            },
+            "monthly":{
+                "purchases" : monthlypurchases.count(),
+                "ptamt":ptamt,
+                "stamt":stamt,
+                "sales": monthlysales.count(),
+                "profit": round(monthly_profit,2)
+            },
+            "stock": allstock,
+            "brands" : allbrands
+        }
+        return Response(stat)
+    
+class VendorBrandsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request,*args, **kwargs):
+        brands = Brand.objects.filter(enterprise = request.user.person.enterprise)
+        serializer = VendorBrandSerializer(brands,many=True)
+
+
+        return Response(serializer.data)
+    
+class SingleVendorBrandView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request,pk):
+        vendors = Vendor.objects.filter(enterprise = request.user.person.enterprise, brand=pk)
+        serializer = VendorSerializer(vendors, many=True)
+        return Response(serializer.data)

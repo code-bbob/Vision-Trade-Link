@@ -465,7 +465,7 @@ class StatsView(APIView):
         if pts:
             for pt in pts:
                 # #print(pt.total_amount)
-                ptamt += pt.total_amount
+                ptamt = (pt.total_amount+ptamt) if pt.total_amount else ptamt
 
         pts = PurchaseTransaction.objects.filter(enterprise = enterprise,date__date = today.date())
         if pts:
@@ -874,3 +874,50 @@ class VendorTransactionView(APIView):
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(status=status.HTTP_404_NOT_FOUND)
     
+
+class BarChartView(APIView):
+    
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request,*args, **kwargs):
+
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        if not start_date or not end_date:
+            today = timezone.now()
+            start_date = today.replace(day=1)  # First day of the current month
+            end_date = today
+        
+        start_date = parse_date(start_date) if isinstance(start_date, str) else start_date
+        end_date = parse_date(end_date) if isinstance(end_date, str) else end_date
+
+        enterprise = request.user.person.enterprise
+        sales = Sales.objects.filter(sales_transaction__enterprise = enterprise,sales_transaction__date__date__range=(start_date, end_date))
+        print(sales)
+        brands = Brand.objects.filter(enterprise = enterprise)
+        count_list = []
+        for brand in brands:
+            sales_count = sales.filter(phone__brand = brand).count()
+            count_list.append({'Brand':brand.name,'Sales':sales_count})
+        
+        res = {"count":count_list}
+        amount_list = []
+        for brand in brands:
+            sales_amount = sales.filter(phone__brand = brand).aggregate(total=models.Sum('unit_price'))['total'] or 0
+            amount_list.append({'Brand':brand.name,'Sales':sales_amount})
+        res["amount"] = amount_list
+
+        profit_list = []
+        for brand in brands:
+            profit_sales = sales.filter(phone__brand = brand)
+            profit = 0
+            for sale in profit_sales:
+                purchase = Purchase.objects.filter(imei_number = sale.imei_number).first()
+                if purchase:
+                    profit += sale.unit_price - purchase.unit_price
+            profit_list.append({'Brand':brand.name,'Sales':round(profit,2)})
+        res["profit"] = profit_list
+
+
+        return Response(res)

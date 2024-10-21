@@ -10,15 +10,15 @@ import { Calendar, ChevronLeft, ChevronRight, Search, Plus, ArrowLeft } from 'lu
 import useAxios from '@/utils/useAxios'
 import { format } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
-import Sidebar from '@/components/sidebar'
+import Sidebar from '@/components/allsidebar'
 
-export default function PurchaseTransactions() {
+export default function AllSalesTransactions() {
   const api = useAxios()
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [currentPage, setCurrentPage] = useState()
-  const [totalPages, setTotalPages] = useState()
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [localSearchTerm, setLocalSearchTerm] = useState('')
@@ -40,8 +40,8 @@ export default function PurchaseTransactions() {
         previous: response.data.previous,
         count: response.data.count
       })
-      setTotalPages(response.data.total_pages) // Assuming 10 items per page
       setCurrentPage(response.data.page)
+      setTotalPages(response.data.total_pages) 
     } catch (err) {
       setError('Failed to fetch data')
     } finally {
@@ -51,15 +51,17 @@ export default function PurchaseTransactions() {
 
   const fetchInitData = async () => {
     try {
-      const response = await api.get("transaction/purchasetransaction/")
+      const response = await api.get("alltransaction/salestransaction/")
       setTransactions(response.data.results)
+      console.log(response.data.results)
+      console.log(response.data.results)
       setMetadata({
         next: response.data.next,
         previous: response.data.previous,
         count: response.data.count
       })
-      setTotalPages(response.data.total_pages) // Assuming 10 items per page
       setCurrentPage(response.data.page)
+      setTotalPages(response.data.total_pages)
     } catch (err) {
       setError('Failed to fetch initial data')
     } finally {
@@ -75,7 +77,7 @@ export default function PurchaseTransactions() {
     e.preventDefault()
     setLoading(true)
     try {
-      const response = await api.get(`transaction/purchasetransaction/?search=${localSearchTerm}`)
+      const response = await api.get(`alltransaction/salestransaction/?search=${localSearchTerm}`)
       setTransactions(response.data.results)
       setMetadata({
         next: response.data.next,
@@ -95,7 +97,7 @@ export default function PurchaseTransactions() {
     e.preventDefault()
     setLoading(true)
     try {
-      const response = await api.get(`transaction/purchasetransaction/?start_date=${startDate}&end_date=${endDate}`)
+      const response = await api.get(`alltransaction/salestransaction/?start_date=${startDate}&end_date=${endDate}`)
       setTransactions(response.data.results)
       setMetadata({
         next: response.data.next,
@@ -110,6 +112,10 @@ export default function PurchaseTransactions() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    console.log('Transactions updated:', transactions)
+  }, [transactions])
 
   if (loading) {
     return (
@@ -137,7 +143,7 @@ export default function PurchaseTransactions() {
           transition={{ duration: 0.5 }}
           className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6"
         >
-          <h1 className="text-3xl lg:text-4xl font-bold text-white mb-4 lg:mb-0">Purchase Transactions</h1>
+          <h1 className="text-3xl lg:text-4xl font-bold text-white mb-4 lg:mb-0">Sales Transactions</h1>
           <Button
             onClick={() => navigate('/mobile/')}
             variant="outline"
@@ -191,31 +197,31 @@ export default function PurchaseTransactions() {
         </div>
 
         <div className="space-y-6">
-          {transactions.length > 0 ? (
-            transactions.map((transaction) => (
+          {transactions?.length > 0 ? (
+            transactions?.map((transaction) => (
               <Card key={`${transaction.id}-${transaction.date}`} onClick={() => navigate(`editform/${transaction.id}`)} className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="border-b border-slate-700">
                   <CardTitle className="text-lg lg:text-xl font-medium text-white flex flex-col lg:flex-row justify-between items-start lg:items-center">
                     <div>
-                      <p>{transaction.vendor_name}</p>
+                      <p>{transaction.name}</p>
                       <p className='text-sm text-gray-400'>Bill No: {transaction.bill_no}</p>
                     </div>
+                    <span className="mt-2 lg:mt-0">{transaction.phone_number}</span>
                     <span className="mt-2 lg:mt-0 text-sm lg:text-base">{format(new Date(transaction.date), 'dd MMM yyyy')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4">
-                  {transaction.purchase.map((item, index) => (
+                  {transaction.sales.map((item, index) => (
                     <div key={`${transaction.id}-${index}`} className="mb-4 last:mb-0 p-3 lg:p-4 bg-slate-800 rounded-lg hover:bg-slate-750 transition-colors duration-300">
                       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-2">
-                        <span className="text-white font-medium mb-2 lg:mb-0">{item.phone_name}</span>
-                        <span className="text-purple-400 text-sm">IMEI: {item.imei_number}</span>
+                        <span className="text-white font-medium mb-2 lg:mb-0">{item.product_name}</span>
                       </div>
                       <div className="flex justify-between items-center text-sm text-slate-300">
                         <span>Unit Price: RS. {item.unit_price.toLocaleString()}</span>
                       </div>
                     </div>
                   ))}
-                  <div className="mt-4 text-right text-white font-bold">
+                  <div className="mt-4 flex justify-end text-white font-bold">
                     Total Amount: RS. {transaction?.total_amount?.toLocaleString()}
                   </div>
                 </CardContent>
@@ -248,7 +254,7 @@ export default function PurchaseTransactions() {
       </div>
       <Button
         className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={() => navigate('/mobile/purchases/form/')}
+        onClick={() => navigate('/sales/form/')}
       >
         <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
       </Button>

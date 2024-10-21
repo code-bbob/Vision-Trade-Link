@@ -1,138 +1,127 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  Search,
-  Plus,
-  ArrowLeft,
-} from "lucide-react";
-import useAxios from "@/utils/useAxios";
-import { format, set } from "date-fns";
-import { useNavigate } from "react-router-dom";
-import Sidebar from "@/components/sidebar";
+import React, { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Calendar, ChevronLeft, ChevronRight, Search, Plus, ArrowLeft } from 'lucide-react'
+import useAxios from '@/utils/useAxios'
+import { format, set } from 'date-fns'
+import { useNavigate } from 'react-router-dom'
+import Sidebar from '@/components/allsidebar'
 
-export default function VendorTransactions() {
-  const api = useAxios();
-  const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [localSearchTerm, setLocalSearchTerm] = useState("");
+export default function AllVendorTransactions() {
+  const api = useAxios()
+  const [transactions, setTransactions] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [localSearchTerm, setLocalSearchTerm] = useState('')
   const [metadata, setMetadata] = useState({
     next: null,
     previous: null,
-    count: 0,
-  });
+    count: 0
+  })
 
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   async function fetchPaginatedData(url) {
-    setLoading(true);
+    setLoading(true)
     try {
-      const response = await api.get(url);
-      setTransactions(response.data.results);
+      const response = await api.get(url)
+      setTransactions(response.data.results)
       setMetadata({
         next: response.data.next,
         previous: response.data.previous,
-        count: response.data.count,
-      });
-      setCurrentPage(response.data.page);
-      setTotalPages(response.data.total_pages);
+        count: response.data.count
+      })
+      setCurrentPage(response.data.page)
+      setTotalPages(response.data.total_pages) 
     } catch (err) {
-      setError("Failed to fetch data");
+      setError('Failed to fetch data')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 
   const fetchInitData = async () => {
     try {
-      const response = await api.get("transaction/vendortransaction/");
-      setTransactions(response.data.results);
-      console.log(response.data.results);
+      const response = await api.get("alltransaction/vendortransaction/")
+      setTransactions(response.data.results)
+      console.log(response.data.results)
       setMetadata({
         next: response.data.next,
         previous: response.data.previous,
-        count: response.data.count,
-      });
-      setCurrentPage(response.data.page);
-      setTotalPages(response.data.total_pages);
+        count: response.data.count
+      })
+      setCurrentPage(response.data.page)
+      setTotalPages(response.data.total_pages) 
     } catch (err) {
-      setError("Failed to fetch initial data");
+      setError('Failed to fetch initial data')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    fetchInitData();
-  }, []);
+    fetchInitData()
+  }, [])
 
   const handleSearch = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault()
+    setLoading(true)
     try {
-      const response = await api.get(
-        `transaction/vendortransaction/?search=${localSearchTerm}`
-      );
-      setTransactions(response.data.results);
+      const response = await api.get(`alltransaction/vendortransaction/?search=${localSearchTerm}`)
+      setTransactions(response.data.results)
       setMetadata({
         next: response.data.next,
         previous: response.data.previous,
-        count: response.data.count,
-      });
-      setTotalPages(Math.ceil(response.data.count / 10)); // Assuming 10 items per page
-      setCurrentPage(1);
+        count: response.data.count
+      })
+      setTotalPages(Math.ceil(response.data.count / 10)) // Assuming 10 items per page
+      setCurrentPage(1)
     } catch (err) {
-      setError("Failed to search transactions");
+      setError('Failed to search transactions')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleDateSearch = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault()
+    setLoading(true)
     try {
-      const response = await api.get(
-        `transaction/vendortransaction/?start_date=${startDate}&end_date=${endDate}`
-      );
-      setTransactions(response.data.results);
+      const response = await api.get(`alltransaction/vendortransaction/?start_date=${startDate}&end_date=${endDate}`)
+      setTransactions(response.data.results)
       setMetadata({
         next: response.data.next,
         previous: response.data.previous,
-        count: response.data.count,
-      });
-      setTotalPages(Math.ceil(response.data.count / 10)); // Assuming 10 items per page
-      setCurrentPage(1);
+        count: response.data.count
+      })
+      setTotalPages(Math.ceil(response.data.count / 10)) // Assuming 10 items per page
+      setCurrentPage(1)
     } catch (err) {
-      setError("Failed to filter transactions by date");
+      setError('Failed to filter transactions by date')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    console.log("Transactions updated:", transactions);
-  }, [transactions]);
+    console.log('Transactions updated:', transactions)
+  }, [transactions])
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
         Loading...
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -140,7 +129,7 @@ export default function VendorTransactions() {
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-red-500">
         {error}
       </div>
-    );
+    )
   }
 
   return (
@@ -153,11 +142,9 @@ export default function VendorTransactions() {
           transition={{ duration: 0.5 }}
           className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6"
         >
-          <h1 className="text-3xl lg:text-4xl font-bold text-white mb-4 lg:mb-0">
-            Vendor Transactions
-          </h1>
+          <h1 className="text-3xl lg:text-4xl font-bold text-white mb-4 lg:mb-0">Vendor Transactions</h1>
           <Button
-            onClick={() => navigate("/mobile/")}
+            onClick={() => navigate('/mobile/')}
             variant="outline"
             className="w-full lg:w-auto px-5 text-black border-white hover:bg-gray-700 hover:text-white"
           >
@@ -180,17 +167,9 @@ export default function VendorTransactions() {
             </div>
           </form>
 
-          <form
-            onSubmit={handleDateSearch}
-            className="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4"
-          >
+          <form onSubmit={handleDateSearch} className="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4">
             <div className="flex items-center space-x-2">
-              <Label
-                htmlFor="startDate"
-                className="text-white whitespace-nowrap"
-              >
-                Start:
-              </Label>
+              <Label htmlFor="startDate" className="text-white whitespace-nowrap">Start:</Label>
               <Input
                 type="date"
                 id="startDate"
@@ -200,9 +179,7 @@ export default function VendorTransactions() {
               />
             </div>
             <div className="flex items-center space-x-2">
-              <Label htmlFor="endDate" className="text-white whitespace-nowrap">
-                End:
-              </Label>
+              <Label htmlFor="endDate" className="text-white whitespace-nowrap">End:</Label>
               <Input
                 type="date"
                 id="endDate"
@@ -211,10 +188,7 @@ export default function VendorTransactions() {
                 className="bg-slate-700 text-white border-gray-600 focus:border-purple-500 focus:ring-purple-500"
               />
             </div>
-            <Button
-              type="submit"
-              className="w-full lg:w-auto bg-purple-600 hover:bg-purple-700 text-white"
-            >
+            <Button type="submit" className="w-full lg:w-auto bg-purple-600 hover:bg-purple-700 text-white">
               <Calendar className="w-4 h-4 mr-2" />
               Search by Date
             </Button>
@@ -224,46 +198,26 @@ export default function VendorTransactions() {
         <div className="space-y-6">
           {transactions?.length > 0 ? (
             transactions?.map((transaction) => (
-              <Card
-                key={`${transaction.id}-${transaction.date}`}
-                onClick={() => navigate(`editform/${transaction.id}`)}
-                className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow duration-300"
-              >
+              <Card key={`${transaction.id}-${transaction.date}`} onClick={() => navigate(`editform/${transaction.id}`)} className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="border-b border-slate-700">
                   <CardTitle className="text-lg lg:text-xl font-medium text-white flex flex-col lg:flex-row justify-between items-start lg:items-center">
                     <div>
-                      <p className="text-sm">
-                        {" "}
-                        {format(
-                          new Date(transaction.cashout_date),
-                          "dd MMM yyyy"
-                        )}
-                      </p>
-                      <p className="text-sm text-gray-400">
-                        Cheque No: {transaction.cheque_number || "N/A"}
-                      </p>
+                      <p className='text-sm'> {format(new Date(transaction.cashout_date), 'dd MMM yyyy')}</p>
+                      <p className='text-sm text-gray-400'>Cheque No: {transaction.cheque_number || 'N/A'}</p>
                     </div>
-                    <span className="mt-2 lg:mt-0">
-                      {transaction.vendor_name}
-                    </span>
-                    <span className="mt-2 lg:mt-0 text-sm lg:text-lg ">
-                      {format(new Date(transaction.date), "dd MMM yyyy")}
-                    </span>
+                    <span className="mt-2 lg:mt-0">{transaction.vendor_name}</span>
+                    <span className="mt-2 lg:mt-0 text-sm lg:text-lg ">{format(new Date(transaction.date), 'dd MMM yyyy')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="mb-4 last:mb-0 p-3 lg:p-4 bg-slate-800 rounded-lg hover:bg-slate-750 transition-colors duration-300">
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-2">
-                      <span className="text-white">{transaction.desc}</span>
-                      <span className="text-purple-400 text-sm">
-                        Method: {transaction.method}
-                      </span>
+                        <span className='text-white'>{transaction.desc}</span>
+                      <span className="text-purple-400 text-sm">Method: {transaction.method}</span>
                     </div>
                   </div>
                 </CardContent>
-                <div className="p-4 text-white text-right">
-                  RS. {transaction.amount}
-                </div>
+                <div className='p-4 text-white text-right'>RS. {transaction.amount}</div>
               </Card>
             ))
           ) : (
@@ -280,9 +234,7 @@ export default function VendorTransactions() {
             <ChevronLeft className="w-4 h-4 mr-2" />
             Previous
           </Button>
-          <span className="text-white self-center">
-            Page {currentPage} of {totalPages}
-          </span>
+          <span className="text-white self-center">Page {currentPage} of {totalPages}</span>
           <Button
             onClick={() => fetchPaginatedData(metadata.next)}
             disabled={!metadata.next}
@@ -295,10 +247,10 @@ export default function VendorTransactions() {
       </div>
       <Button
         className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={() => navigate("/mobile/vendor-transactions/form/")}
+        onClick={() => navigate('/vendor-transactions/form/')}
       >
         <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
       </Button>
     </div>
-  );
+  )
 }

@@ -29,9 +29,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "@/components/sidebar";
+import Sidebar from "@/components/allsidebar";
 
-function VendorTransactionForm() {
+function AllVendorTransactionForm() {
   const api = useAxios();
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -59,8 +59,8 @@ function VendorTransactionForm() {
     const fetchData = async () => {
       try {
         const [vendorsResponse, brandsResponse] = await Promise.all([
-          api.get("transaction/vendor/"),
-          api.get("inventory/brand/"),
+          api.get("alltransaction/vendor/"),
+          api.get("allinventory/brand/"),
         ]);
         setVendors(vendorsResponse.data);
         setBrands(brandsResponse.data);
@@ -115,11 +115,11 @@ function VendorTransactionForm() {
     try {
       setSubLoading(true);
       const response = await api.post(
-        "transaction/vendortransaction/",
+        "alltransaction/vendortransaction/",
         formData
       );
       console.log("Response:", response.data);
-      navigate("/mobile/vendor-transactions");
+      navigate("/vendor-transactions");
     } catch (error) {
       console.error("Error posting data:", error);
       setError("Failed to submit vendor transaction. Please try again.");
@@ -131,7 +131,7 @@ function VendorTransactionForm() {
   const handleAddVendor = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post("transaction/vendor/", newVendorData);
+      const response = await api.post("alltransaction/vendor/", newVendorData);
       console.log("New Vendor Added:", response.data);
       setVendors((prevVendors) => [...prevVendors, response.data]);
       setFormData((prevState) => ({
@@ -149,7 +149,7 @@ function VendorTransactionForm() {
   const handleAddBrand = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post("inventory/brand/", {
+      const response = await api.post("allinventory/brand/", {
         name: newBrandName,
       });
       console.log("New Brand Added:", response.data);
@@ -549,4 +549,4 @@ function VendorTransactionForm() {
   );
 }
 
-export default VendorTransactionForm;
+export default AllVendorTransactionForm;
