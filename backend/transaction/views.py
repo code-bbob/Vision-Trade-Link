@@ -15,6 +15,8 @@ from rest_framework import generics
 from django.utils import timezone
 from .models import VendorTransaction
 from .serializers import VendorTransactionSerializer
+from django.db.models import Sum
+from django.db.models.functions import ExtractWeekDay
 
 
 class PurchaseTransactionView(APIView):
@@ -921,3 +923,101 @@ class BarChartView(APIView):
 
 
         return Response(res)
+
+# class LineGraphView(APIView):
+
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self,request,*args, **kwargs):
+        
+#         today = timezone.now()
+#         today = today - timezone.timedelta(days=3)
+#         start_date = today - timezone.timedelta(days=7)
+        
+        
+#         print(today)
+#         print(start_date)
+#         enterprise = request.user.person.enterprise
+
+#         sales = (
+#             Sales.objects.filter(sales_transaction__enterprise=enterprise, sales_transaction__date__date__range=[start_date, today])
+#             .values('sales_transaction__date__date')
+#             .annotate(total_sales=Sum('unit_price'))
+#         )
+
+#         sales_by_day = {
+#             (today - timezone.timedelta(days=i)).strftime('%A'): 0 for i in range(6, -1, -1)
+#         }
+#         for sale in sales:
+#             day_name = sale['sales_transaction__date__date'].strftime('%A')
+#             sales_by_day[day_name] = sale['total_sales']
+#         return Response(sales_by_day)
+    
+# # const chartData = [
+# #   { month: "January", desktop: 186 },
+# #   { month: "February", desktop: 305 },
+# #   { month: "March", desktop: 237 },
+# #   { month: "April", desktop: 73 },
+# #   { month: "May", desktop: 209 },
+# #   { month: "June", desktop: 214 },
+# #   { month: "June", desktop: 214 },
+
+# # ]
+
+        # sales = Sales.objects.filter(sales_transaction__enterprise = request.user.person.enterprise).annotate(total_sales=Sum('unit_price'))
+        # print(sales)
+        # return Response("sales")
+
+        from django.db.models import Sum
+from django.utils import timezone
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+
+class LineGraphView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        # Step 1: Import necessary modules
+        from django.db.models import Sum
+        from django.utils import timezone
+
+        # Step 2: Calculate the date range for the last 7 days
+        today = timezone.now().date()
+        start_date = today - timezone.timedelta(days=6)  # Include today and the previous 6 days
+
+        # Step 3: Get the enterprise associated with the current user
+        enterprise = request.user.person.enterprise
+
+        # Step 4: Query to get total sales per day in the date range
+        sales = (
+            Sales.objects.filter(
+                sales_transaction__enterprise=enterprise,
+                sales_transaction__date__date__range=[start_date, today]
+            )
+            .values('sales_transaction__date__date')
+            .annotate(total_sales=Sum('unit_price'))
+        )
+
+        # Step 5: Initialize a list of dictionaries for the last 7 days
+        sales_by_day = [
+            {'day': (today - timezone.timedelta(days=i)).strftime('%A'), 'count': 0}
+            for i in range(6, -1, -1)
+        ]
+
+        # Step 6: Create a mapping from day name to index in the list
+        day_name_to_index = {entry['day']: idx for idx, entry in enumerate(sales_by_day)}
+
+        # Step 7: Update the list with actual sales data
+        for sale in sales:
+            sale_date = sale['sales_transaction__date__date']
+            day_name = sale_date.strftime('%A')
+            total_sales = sale['total_sales']
+
+            # Find the index in the list for this day and update the count
+            idx = day_name_to_index.get(day_name)
+            if idx is not None:
+                sales_by_day[idx]['count'] = total_sales
+
+        # Step 8: Return the response with the sales by day
+        return Response(sales_by_day)
