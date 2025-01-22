@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import PurchaseTransactionView,VendorView,SalesTransactionView,SchemeView,PriceProtectionView,StatsView,SchemeBrandView,SchemePhoneView,SingleScheme,PPBrandView,PPPhoneView,SinglePP,VendorBrandsView,SingleVendorBrandView,PurchaseTransactionChangeView,SalesTransactionChangeView,SchemeChangeView,PriceProtectionChangeView,VendorTransactionView,BarChartView
+from .views import PurchaseTransactionView,VendorView,SalesTransactionView,SchemeView,PriceProtectionView,StatsView,SchemeBrandView,SchemePhoneView,SingleScheme,PPBrandView,PPPhoneView,SinglePP,VendorBrandsView,SingleVendorBrandView,PurchaseTransactionChangeView,SalesTransactionChangeView,SchemeChangeView,PriceProtectionChangeView,VendorTransactionView,BarChartView,LineGraphView
 
 urlpatterns = [
     path('purchasetransaction/', PurchaseTransactionView.as_view(), name='purchasetransaction-create'),
@@ -31,7 +31,8 @@ urlpatterns = [
     path('vendorbrand/',VendorBrandsView.as_view(), name='vendorbrand'),
     path('vendorbrand/<int:id>/',SingleVendorBrandView.as_view(), name = 'singlevendorbrand'),
 
-    path('barchart/',BarChartView.as_view(),name='barchart')
+    path('barchart/',BarChartView.as_view(),name='barchart'),
+    path('linegraph/',LineGraphView.as_view(),name='linegraph')
 
     
 

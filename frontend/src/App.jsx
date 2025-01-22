@@ -47,6 +47,7 @@ import AllVendorTransactions from "./pages/allvendortransactions";
 import AllVendorTransactionForm from "./pages/allvendortransactionform";
 import EditAllVendorTransactionForm from "./components/editallvendortransactions";
 import BarCh from "./components/barchart";
+import LineGraph from "./components/linegraph";
 // import VendorTransactionForm from './pages/transaction-vendors';
 
 function App() {
@@ -82,6 +83,7 @@ function App() {
 
         
         <Route path = "bar" element={<BarCh/>}/>
+        <Route path = "line" element={<LineGraph/>}/>
 
 
 
