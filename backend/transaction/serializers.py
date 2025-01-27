@@ -1,8 +1,9 @@
 from rest_framework import serializers
-from .models import Vendor, Phone, Purchase, PurchaseTransaction,Sales, SalesTransaction,Scheme,Subscheme,Item, PriceProtection
+from .models import Vendor, Phone, Purchase, PurchaseTransaction,Sales, SalesTransaction,Scheme,Subscheme,Item, PriceProtection,PurchaseReturn
 from inventory.models import Brand
 from django.db import transaction
 from .models import VendorTransaction
+from django.utils.timezone import localtime
 
 
 class PurchaseSerializer(serializers.ModelSerializer):
@@ -11,7 +12,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Purchase
-        fields = ['id','phone', 'imei_number', 'unit_price','phone_name']
+        fields = ['id','phone', 'imei_number', 'unit_price','phone_name','returned']
         
     def get_phone_name(self,obj):
         return obj.phone.name
@@ -66,6 +67,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
 
         instance.vendor = validated_data.get('vendor', instance.vendor)
         instance.date = validated_data.get('date', instance.date)
+        print(instance.date)
         instance.enterprise = validated_data.get('enterprise', instance.enterprise)
         instance.total_amount = validated_data.get('total_amount', instance.total_amount)
         instance.bill_no = validated_data.get('bill_no', instance.bill_no)
@@ -73,6 +75,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
         instance.cheque_number = validated_data.get('cheque_number', instance.cheque_number)
         instance.cashout_date = validated_data.get('cashout_date', instance.cashout_date)
         instance.save()
+        print(instance.date)
 
         new_vendor = instance.vendor
         new_brand = new_vendor.brand
@@ -171,10 +174,17 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
     def get_vendor_name(self, obj):
         return obj.vendor.name
     
+    # def to_representation(self, instance):
+    #     representation = super().to_representation(instance)
+        
+    #     # Format the date in 'YYYY-MM-DD' format for the response
+    #     representation['date'] = instance.date.strftime('%Y-%m-%d')
+    #     return representation
+
+
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        # Format the date in 'YYYY-MM-DD' format for the response
-        representation['date'] = instance.date.strftime('%Y-%m-%d')
+        representation['date'] = localtime(instance.date).strftime('%Y-%m-%d')
         return representation
 
 class VendorSerializer(serializers.ModelSerializer):
@@ -548,3 +558,83 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
         # Format the date in 'YYYY-MM-DD' format for the response
         representation['date'] = instance.date.strftime('%Y-%m-%d')
         return representation
+    
+class PurchaseReturnSerializer(serializers.ModelSerializer):
+   
+    purchase_transaction = PurchaseTransactionSerializer(read_only=True)
+    purchases = PurchaseSerializer(many=True,read_only=True) ##related name
+
+    # Write-only fields for accepting the IDs in the request
+    purchase_transaction_id = serializers.PrimaryKeyRelatedField(
+        queryset=PurchaseTransaction.objects.all(),
+        write_only=True,
+        source='purchase_transaction'
+    )
+    purchase_ids = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Purchase.objects.all(),
+        write_only=True
+    )
+
+
+    class Meta:
+        model = PurchaseReturn
+        # fields = '__all__'
+        fields = [
+            'id',
+            'date',
+            'enterprise',
+            'purchase_transaction',
+            'purchase_transaction_id',  # for write
+            'purchases',       # for read
+            'purchase_ids'     # for write
+        ]
+
+    @transaction.atomic
+    def create(self, validated_data):
+
+        
+        purchase_ids = validated_data.pop('purchase_ids', [])
+
+        # Create the PurchaseReturn instance
+        purchase_return = PurchaseReturn.objects.create(**validated_data)
+
+
+        # Retrieve the vendor from the linked transaction
+        vendor = purchase_return.purchase_transaction.vendor
+
+        # We'll subtract the total of all returned purchases
+        total_unit_price = 0
+        print(purchase_ids)
+
+        # Attach each purchase to this return
+        for purchase in purchase_ids:
+
+            purchase.purchase_return = purchase_return
+            purchase.returned = True
+            purchase.save()
+            total_unit_price += purchase.unit_price
+
+        # Update vendor dues if needed
+        if vendor.due is None:
+            vendor.due = 0
+        vendor.due -= total_unit_price
+        vendor.save()
+
+        return purchase_return
+
+
+    def delete(self, instance):
+        purchase_ids = instance.purchases.all()
+        vendor = instance.purchase_transaction.vendor
+        total_unit_price = 0
+        for purchase in purchase_ids:
+            purchase.returned = False
+            purchase.save()
+            total_unit_price += purchase.unit_price
+        vendor.due += total_unit_price
+        vendor.save()
+        instance.delete()
+        return instance
+
+

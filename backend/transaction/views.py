@@ -1,8 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import PurchaseTransaction, Vendor, Purchase, Scheme,PriceProtection
-from .serializers import PurchaseTransactionSerializer, VendorSerializer,SalesTransactionSerializer,SalesSerializer,Sales,SalesTransaction,SchemeSerializer,PurchaseSerializer,PurchaseTransactionSerializer, PriceProtectionSerializer, VendorBrandSerializer
+from .models import PurchaseTransaction, Vendor, Purchase, Scheme,PriceProtection, PurchaseReturn
+from .serializers import PurchaseTransactionSerializer, VendorSerializer,SalesTransactionSerializer,SalesSerializer,Sales,SalesTransaction,SchemeSerializer,PurchaseSerializer,PurchaseTransactionSerializer, PriceProtectionSerializer, VendorBrandSerializer,PurchaseReturnSerializer
 from inventory.serializers import BrandSerializer
 from rest_framework.permissions import IsAuthenticated
 from inventory.models import Item,Brand,Phone
@@ -1021,3 +1021,84 @@ class LineGraphView(APIView):
 
         # Step 8: Return the response with the sales by day
         return Response(sales_by_day)
+
+
+class PurchaseReturnView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+
+    def get(self, request):
+        enterprise = request.user.person.enterprise
+        search = request.GET.get('search')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        # Base QuerySet
+        purchase_returns = PurchaseReturn.objects.filter(enterprise=enterprise)
+
+        # -----------------
+        # 1) Search Filter
+        # -----------------
+        if search:
+            name_filter = purchase_returns.filter(purchase_transaction__vendor__name__icontains=search)
+            # amount_filter = purchase_returns.filter(amount__icontains=search)
+            phone_name = purchase_returns.filter(purchases__phone__name__icontains=search)
+            imei_number = purchase_returns.filter(purchases__imei_number__icontains=search)
+            
+            # union() will merge the two QuerySets without duplicates.
+            purchase_returns = name_filter.union(phone_name,imei_number)
+            if search.isdigit():
+                id = purchase_returns.filter(id__icontains=search)
+                purchase_returns = purchase_returns.union(id)
+
+        # ---------------------
+        # 2) Date Range Filter
+        # ---------------------
+        # Only attempt date range filter if both start and end date are provided
+        if start_date and end_date:
+            start_date_obj = parse_date(start_date)
+            end_date_obj = parse_date(end_date)
+            if start_date_obj and end_date_obj:
+                # Combine with min and max time to capture full day range
+                start_datetime = datetime.combine(start_date_obj, datetime.min.time())
+                end_datetime = datetime.combine(end_date_obj, datetime.max.time())
+
+                purchase_returns = purchase_returns.filter(
+                    date__range=(start_datetime, end_datetime)
+                )
+
+        # ---------------------------------
+        # 3) Sort and Paginate the Results
+        # ---------------------------------
+        purchase_returns = purchase_returns.order_by('-date')  # Sorting
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 5  # Set your desired page size
+        paginated_data = paginator.paginate_queryset(purchase_returns, request)
+
+        serializer = PurchaseReturnSerializer(paginated_data, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    
+    def post(self,request):
+        data = request.data 
+        user = request.user
+        enterprise = user.person.enterprise
+        data['enterprise'] = enterprise.id 
+        if "date" in data:
+            date_str = data["date"]
+            # Assuming the format is 'YYYY-MM-DD'
+            date_object = datetime.strptime(date_str, '%Y-%m-%d').date()
+            datetime_with_current_time = datetime.combine(date_object, timezone.now().time())
+            data["date"] = datetime_with_current_time.isoformat()
+        serializer = PurchaseReturnSerializer(data=data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self,request,pk):
+        purchase_return = PurchaseReturn.objects.filter(id=pk).first()
+        serializer = PurchaseReturnSerializer()
+        serializer.delete(purchase_return)
+        return Response(status=status.HTTP_204_NO_CONTENT)

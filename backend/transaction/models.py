@@ -45,6 +45,17 @@ class PurchaseTransaction(models.Model):
     
     def __str__(self):
         return f"Transaction on {self.date} with {self.vendor}"
+    
+class PurchaseReturn(models.Model):
+    date = models.DateField(auto_now_add=True)
+    enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
+    purchase_transaction = models.ForeignKey(PurchaseTransaction, on_delete=models.CASCADE,related_name='purchase_return')
+    # phone = models.ForeignKey(Phone, on_delete=models.CASCADE)
+    # imei_number = models.CharField(max_length=15)
+    # purchase = models.ForeignKey(Purchase,related_name='purchase_return', on_delete=models.CASCADE,blank=True)
+    # desc = models.CharField(max_length=50)
+
+
 
 class Purchase(models.Model):
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE)
@@ -52,6 +63,15 @@ class Purchase(models.Model):
     imei_number = models.CharField(max_length=15,validators=[MinLengthValidator(15)])
     unit_price = models.FloatField()
     purchase_transaction = models.ForeignKey(PurchaseTransaction, related_name="purchase", on_delete=models.CASCADE) ###relatedname here 
+    returned = models.BooleanField(default=False)
+
+    purchase_return = models.ForeignKey(
+        PurchaseReturn,
+        on_delete=models.SET_NULL,   # or CASCADE
+        null=True,
+        blank=True,
+        related_name='purchases'
+    )
 
     def __str__(self):
         return f" {self.phone} @ {self.unit_price}"
@@ -59,7 +79,7 @@ class Purchase(models.Model):
     def save(self, *args, **kwargs):
         #print("ATLEAST HERE")
         if self.pk is None:  # Only update stock for new purchases
-            #print("HI I AM HERE")
+            # print("HI I AM HERE")
             #print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
             if isinstance(self.phone, int):
                 phone = Phone.objects.get(id=self.phone)
@@ -373,3 +393,6 @@ class VendorTransaction(models.Model):
         super().delete(*args, **kwargs)
         vendor = Vendor.objects.get(id=vendor)
         #print(vendor.due)
+
+
+
