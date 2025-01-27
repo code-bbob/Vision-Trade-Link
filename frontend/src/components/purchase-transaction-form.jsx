@@ -215,7 +215,7 @@ function PurchaseTransactionForm() {
         submissionData
       );
       console.log("Response:", response.data);
-      navigate("/purchases");
+      navigate("/mobile/purchases");
     } catch (error) {
       console.error("Error posting data:", error);
       setError("Failed to submit purchase transaction. Please try again.");

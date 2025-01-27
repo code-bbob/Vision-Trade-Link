@@ -54,6 +54,7 @@ export default function Sidebar() {
     { title: 'Price Protection', icon: Shield, path: '/mobile/price-protection' },
     { title: 'Vendors', icon: BookUser, path: '/mobile/vendors' },
     { title: 'VendorTransactions', icon: BookUser, path: '/mobile/vendor-transactions' },
+    { title: 'PurchaseReturns', icon: ShoppingCart, path: '/mobile/purchase-returns' },
     { title: 'AllInventory', icon: BookUser, path: '/' },
 
   ]

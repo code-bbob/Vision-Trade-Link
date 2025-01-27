@@ -11,7 +11,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger
+  DialogTrigger,
+  DialogClose
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -64,6 +65,7 @@ function EditPurchaseTransactionForm() {
   const [openVendor, setOpenVendor] = useState(false);
   const [openBrand, setOpenBrand] = useState(false);
   const [subLoading, setSubLoading] = useState(false)
+  const [returns, setReturns] = useState([])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -235,6 +237,18 @@ function EditPurchaseTransactionForm() {
     }
   };
 
+  const appendReturn = (id) => {
+    setReturns(prevReturns => [...prevReturns, id])
+    setFormData(prevState => ({
+      ...prevState,
+      purchase: prevState.purchase.map(purchase => 
+        purchase.id === id ? { ...purchase, returned: true } : purchase
+      )
+    }));
+
+    console.log(returns)
+  }
+
   const handleAddVendor = async (e) => {
     e.preventDefault();
     try {
@@ -267,6 +281,30 @@ function EditPurchaseTransactionForm() {
       console.error('Error adding brand:', error);
       setError('Failed to add new brand. Please try again.');
     }
+  };
+
+  const handleReturn = async (e) =>{
+    // e.preventDefault();
+    
+    try {
+      setSubLoading(true);
+      const response = await api.post('transaction/purchase-return/', {"purchase_ids":returns, "purchase_transaction_id":purchaseId});
+      console.log('Returned:', response.data);
+
+      
+      
+
+    } catch (error) {
+      console.error('Error adding phone:', error);
+      setError('Failed to add new phone. Please try again.');
+    }
+    finally{
+      setSubLoading(false);
+      navigate('/mobile/purchases');
+      
+      // window.location.reload();
+    }
+    
   };
 
   const hasFormChanged = () => {
@@ -400,7 +438,35 @@ function EditPurchaseTransactionForm() {
               <h3 className="text-xl font-semibold mb-2 text-white">Purchases</h3>
               {formData.purchase.map((purchase, index) => (
                 <div key={index} className="bg-slate-700 p-4 rounded-md shadow mb-4">
+                  <div className='flex justify-between'>
                   <h4 className="text-lg font-semibold mb-4 text-white">Purchase {index + 1}</h4>
+                  <Dialog>
+                  <DialogTrigger asChild>
+                  <Button className="bg-blue-500" disabled = {purchase.returned}>Returned</Button>
+                  </DialogTrigger>
+              <DialogContent className="bg-slate-800 text-white">
+                <DialogHeader>
+                  <DialogTitle>Are you absolutely sure?</DialogTitle>
+                  <DialogDescription className="text-slate-300">
+                    This action cannot be undone. This will permanently save your purchase as returned
+                    and remove your data from our servers.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogClose asChild>
+                <Button 
+                  type="button" 
+                  disabled = {subLoading}
+                  className="w-full bg-red-600 mt-6 hover:bg-red-700 text-white"
+                  onClick={()=>appendReturn(purchase.id)}
+                >
+                  Yes
+                </Button>
+                </DialogClose>
+              </DialogContent>
+            </Dialog>
+                
+                  </div>
+                 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex flex-col">
                       <Label htmlFor={`phone-${index}`} className="text-sm font-medium text-white mb-2">
@@ -563,8 +629,21 @@ function EditPurchaseTransactionForm() {
               >
                 Update Purchase Transaction
               </Button>
+
+              
+
             </form>
-            
+
+            <Button 
+                type="submit" 
+                className="w-full bg-green-600 hover:bg-green-700 text-white mt-5"
+                onClick={(e)=>{handleReturn(e)}}
+                disabled={returns.length === 0 || subLoading}
+              >
+                Return Purchase
+              </Button>
+
+
             <Dialog>
               <DialogTrigger asChild>
                 <Button 
@@ -591,6 +670,8 @@ function EditPurchaseTransactionForm() {
                 </Button>
               </DialogContent>
             </Dialog>
+
+            
 
             {/* Add New Phone Dialog */}
             <Dialog open={showNewPhoneDialog} onOpenChange={setShowNewPhoneDialog}>
