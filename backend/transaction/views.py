@@ -34,7 +34,8 @@ class PurchaseTransactionView(APIView):
             phone_transactions = transactions.filter(purchase__phone__name__icontains = search)
             vendor_trasactions = transactions.filter(vendor__name__icontains = search)
             imei_transactions = transactions.filter(purchase__imei_number__icontains = search)
-            transactions = phone_transactions.union(vendor_trasactions,imei_transactions)
+            bill_transactions = transactions.filter(bill_no__icontains = search)
+            transactions = phone_transactions.union(vendor_trasactions,imei_transactions,bill_transactions)
         
         if start_date and end_date:
             start_date = parse_date(start_date)
@@ -233,7 +234,8 @@ class SalesTransactionView(APIView):
             phone_transactions = transactions.filter(sales__phone__name__icontains = search)
             customer_trasactions = transactions.filter(name__icontains = search)
             imei_transactions = transactions.filter(sales__imei_number__icontains = search)
-            transactions = phone_transactions.union(customer_trasactions,imei_transactions)
+            bill_transactions = transactions.filter(bill_no__icontains = search)
+            transactions = phone_transactions.union(customer_trasactions,imei_transactions,bill_transactions)
         
         if start_date and end_date:
             start_date = parse_date(start_date)

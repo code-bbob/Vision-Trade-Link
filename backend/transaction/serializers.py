@@ -614,6 +614,10 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
             purchase.returned = True
             purchase.save()
             total_unit_price += purchase.unit_price
+            item = Item.objects.filter(imei_number=purchase.imei_number).first()
+            phone = item.phone
+            item.delete()
+            phone.calculate_quantity()
 
         # Update vendor dues if needed
         if vendor.due is None:
@@ -632,6 +636,9 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
             purchase.returned = False
             purchase.save()
             total_unit_price += purchase.unit_price
+            item = Item.objects.create(imei_number=purchase.imei_number,phone=purchase.phone)
+            purchase.phone.calculate_quantity()
+            
         vendor.due += total_unit_price
         vendor.save()
         instance.delete()
