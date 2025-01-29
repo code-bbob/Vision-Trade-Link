@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import PurchaseTransactionView,VendorView,SalesTransactionView,SchemeView,PriceProtectionView,StatsView,SchemeBrandView,SchemePhoneView,SingleScheme,PPBrandView,PPPhoneView,SinglePP,VendorBrandsView,SingleVendorBrandView,PurchaseTransactionChangeView,SalesTransactionChangeView,SchemeChangeView,PriceProtectionChangeView,VendorTransactionView,BarChartView,LineGraphView,PurchaseReturnView
+from .views import PurchaseTransactionView,VendorView,SalesTransactionView,SchemeView,PriceProtectionView,StatsView,SchemeBrandView,SchemePhoneView,SingleScheme,PPBrandView,PPPhoneView,SinglePP,VendorBrandsView,SingleVendorBrandView,PurchaseTransactionChangeView,SalesTransactionChangeView,SchemeChangeView,PriceProtectionChangeView,VendorTransactionView,BarChartView,LineGraphView,PurchaseReturnView,SalesReportView
 
 urlpatterns = [
     path('purchasetransaction/', PurchaseTransactionView.as_view(), name='purchasetransaction-create'),
@@ -35,7 +35,9 @@ urlpatterns = [
     path('linegraph/',LineGraphView.as_view(),name='linegraph'),
 
     path('purchase-return/',PurchaseReturnView.as_view(),name='purchase_return'),
-    path('purchase-return/<int:pk>/',PurchaseReturnView.as_view(),name='purchase_return')
+    path('purchase-return/<int:pk>/',PurchaseReturnView.as_view(),name='purchase_return'),
+
+    path('sales-report/',SalesReportView.as_view(),name='sales_report'),
 
 
 

@@ -1104,3 +1104,47 @@ class PurchaseReturnView(APIView):
         serializer = PurchaseReturnSerializer()
         serializer.delete(purchase_return)
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+
+class SalesReportView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request):
+        
+
+        search = request.GET.get('search')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        sales = Sales.objects.filter(sales_transaction__enterprise = request.user.person.enterprise, sales_transaction__date__date = timezone.now().date())
+        if search:
+            sales = sales.filter(phone__brand__name__icontains = search)
+
+        if start_date and end_date:
+            start_date = parse_date(start_date)
+            end_date = parse_date(end_date)
+            sales = sales.filter(sales_transaction__date__date__range=(start_date, end_date))
+
+        total_profit = 0
+        total_sales = 0
+        list = []
+        for sale in sales:
+            purchase = Purchase.objects.filter(imei_number = sale.imei_number).first()
+            profit = sale.unit_price - purchase.unit_price
+            total_profit += profit
+            total_sales += sale.unit_price
+            list.append({
+                "date": sale.sales_transaction.date.date(),
+                "brand": sale.phone.brand.name,
+                "phone": sale.phone.name,
+                "imei_number": sale.imei_number,
+                "unit_price": sale.unit_price,
+                "profit": profit
+            })
+        
+        list.append({
+            "total_profit": total_profit,
+            "total_sales": total_sales
+        })
+        return Response(list)
