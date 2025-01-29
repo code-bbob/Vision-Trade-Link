@@ -49,6 +49,7 @@ import EditAllVendorTransactionForm from "./components/editallvendortransactions
 import BarCh from "./components/barchart";
 import LineGraph from "./components/linegraph";
 import PurchaseReturns from "./pages/purchaseReturn";
+import SalesReport from "./pages/salesReport";
 // import VendorTransactionForm from './pages/transaction-vendors';
 
 function App() {
@@ -129,6 +130,8 @@ function App() {
           <Route path="vendor-transactions" element={<VendorTransactions />}/>
           <Route path="vendor-transactions/form" element={<VendorTransactionForm />} />
           <Route path="vendor-transactions/editform/:vendorTransactionId" element={<EditVendorTransactionForm />} />
+
+          <Route path = "sales-report" element = {<SalesReport/>}/>
           </Route>
 
      

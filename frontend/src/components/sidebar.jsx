@@ -49,12 +49,13 @@ export default function Sidebar() {
   const menuItems = [
     { title: 'Inventory', icon: Smartphone, path: '/mobile/inventory' },
     { title: 'Purchases', icon: ShoppingCart, path: '/mobile/purchases' },
+    { title: 'PurchaseReturns', icon: ShoppingCart, path: '/mobile/purchase-returns' },
     { title: 'Sales', icon: TrendingUp, path: '/mobile/sales' },
+    { title: 'SalesReport', icon: TrendingUp, path: '/mobile/sales-report' },
     { title: 'Schemes', icon: Zap, path: '/mobile/schemes' },
     { title: 'Price Protection', icon: Shield, path: '/mobile/price-protection' },
     { title: 'Vendors', icon: BookUser, path: '/mobile/vendors' },
     { title: 'VendorTransactions', icon: BookUser, path: '/mobile/vendor-transactions' },
-    { title: 'PurchaseReturns', icon: ShoppingCart, path: '/mobile/purchase-returns' },
     { title: 'AllInventory', icon: BookUser, path: '/' },
 
   ]
@@ -109,7 +110,7 @@ export default function Sidebar() {
       </AnimatePresence>
 
       {isOpen && (
-        <div 
+      <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden" 
           onClick={() => setIsOpen(false)}
         />
