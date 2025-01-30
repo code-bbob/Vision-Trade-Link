@@ -1124,13 +1124,18 @@ class SalesReportView(APIView):
             sales = sales.filter(phone__brand__name__icontains = search)
             sales = sales.filter(sales_transaction__date__date__range=(first_date_of_month,today))
 
+
         if start_date and end_date:
             start_date = parse_date(start_date)
             end_date = parse_date(end_date)
-            sales = sales.filter(sales_transaction__date__date__range=(start_date, end_date))
+            sales = sales.filter(sales_transaction__date__date__gte=start_date, 
+                     sales_transaction__date__date__lte=end_date)
+
         
         if not search and not start_date and not end_date:
             sales = sales.filter(sales_transaction__date__date = timezone.now().date())
+
+        count = sales.count()
 
         total_profit = 0
         total_sales = 0
@@ -1151,6 +1156,7 @@ class SalesReportView(APIView):
         
         list.append({
             "total_profit": total_profit,
-            "total_sales": total_sales
+            "total_sales": total_sales,
+            "count": count
         })
         return Response(list)
