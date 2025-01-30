@@ -6,7 +6,7 @@ from .serializers import PurchaseTransactionSerializer, VendorSerializer,SalesTr
 from inventory.serializers import BrandSerializer
 from rest_framework.permissions import IsAuthenticated
 from inventory.models import Item,Brand,Phone
-from datetime import date, datetime
+from datetime import date, datetime, time
 from django.utils.dateparse import parse_date
 from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import get_object_or_404
@@ -17,7 +17,7 @@ from .models import VendorTransaction
 from .serializers import VendorTransactionSerializer
 from django.db.models import Sum
 from django.db.models.functions import ExtractWeekDay
-
+from django.utils.timezone import make_aware,localtime
 
 class PurchaseTransactionView(APIView):
     permission_classes = [IsAuthenticated]
@@ -1128,8 +1128,9 @@ class SalesReportView(APIView):
         if start_date and end_date:
             start_date = parse_date(start_date)
             end_date = parse_date(end_date)
-            sales = sales.filter(sales_transaction__date__date__gte=start_date, 
-                     sales_transaction__date__date__lte=end_date)
+            start_date = make_aware(datetime.combine(start_date, time.min))
+            end_date = make_aware(datetime.combine(end_date, time.max))
+            sales = sales.filter(sales_transaction__date__range=(start_date, end_date))
 
         
         if not search and not start_date and not end_date:
@@ -1145,8 +1146,9 @@ class SalesReportView(APIView):
             profit = sale.unit_price - purchase.unit_price
             total_profit += profit
             total_sales += sale.unit_price
+            local_dt = localtime(sale.sales_transaction.date)
             list.append({
-                "date": sale.sales_transaction.date.date(),
+                "date": local_dt.date(),
                 "brand": sale.phone.brand.name,
                 "phone": sale.phone.name,
                 "imei_number": sale.imei_number,
