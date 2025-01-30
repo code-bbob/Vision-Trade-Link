@@ -11,6 +11,8 @@ import { Printer, Download, ChevronDown, Search, Calendar, ArrowLeft } from "luc
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import useAxios from "@/utils/useAxios"
 import { useNavigate } from "react-router-dom"
+import jsPDF from "jspdf"
+import "jspdf-autotable"
 
 const SalesReport = () => {
   const [data, setData] = useState(null)
@@ -61,15 +63,73 @@ const SalesReport = () => {
   const handlePrint = () => {
     window.print()
   }
-
-  const handleDownloadPDF = () => {
-    // Implement PDF download logic here
-    console.log("Downloading PDF...")
-  }
-
   const handleDownloadCSV = () => {
-    // Implement CSV download logic here
-    console.log("Downloading CSV...")
+    if (!data || !data.sales.length) {
+      console.warn("No data available for CSV export")
+      return
+    }
+  
+    // Create CSV header
+    let csvContent = "Date,Phone,Brand,IMEI,Unit Price,Profit\n"
+  
+    // Convert each sale into a CSV row
+    data.sales.forEach((item) => {
+      const row = `${item.date},${item.phone},${item.brand},${item.imei_number},${item.unit_price},${item.profit}`
+      csvContent += row + "\n"
+    })
+  
+    // Add summary row
+    csvContent += `\nTotal Sales: ,,,${data.total_sales}\n`
+    csvContent += `Total Profit: ,,,${data.total_profit}\n`
+    csvContent += `Total Transactions: ,,,${data.count}\n`
+  
+    // Create a downloadable CSV file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.setAttribute("download", "Sales_Report.csv")
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+  
+  const handleDownloadPDF = () => {
+    if (!data || !data.sales.length) {
+      console.warn("No data available for PDF export")
+      return
+    }
+  
+    const doc = new jsPDF()
+    doc.text("Sales Report", 14, 10)
+  
+    // Table Headers
+    const headers = [["Date", "Phone", "Brand", "IMEI", "Unit Price", "Profit"]]
+  
+    // Table Data
+    const tableData = data.sales.map((item) => [
+      item.date,
+      item.phone,
+      item.brand,
+      item.imei_number,
+      item.unit_price,
+      item.profit,
+    ])
+  
+    // Add Summary Row
+    tableData.push(["", "", "", "Total Sales", data.total_sales])
+    tableData.push(["", "", "", "Total Profit", data.total_profit])
+    tableData.push(["", "", "", "Total Transactions", data.count])
+  
+    // Generate table
+    doc.autoTable({
+      head: headers,
+      body: tableData,
+      startY: 20,
+    })
+  
+    // Save PDF
+    doc.save("Sales_Report.pdf")
   }
 
   if (loading)
