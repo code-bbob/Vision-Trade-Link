@@ -1,13 +1,13 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { format } from "date-fns"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Printer, Download, RefreshCw, ChevronDown, Search, Calendar, ArrowLeft } from "lucide-react"
+import { Printer, Download, ChevronDown, Search, Calendar, ArrowLeft } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import useAxios from "@/utils/useAxios"
 import { useNavigate } from "react-router-dom"
@@ -26,10 +26,11 @@ const SalesReport = () => {
     fetchSalesData()
   }, [])
 
-  const fetchSalesData = async () => {
+  const fetchSalesData = async (params = {}) => {
     setLoading(true)
     try {
-      const response = await api.get("transaction/sales-report/")
+      const queryString = new URLSearchParams(params).toString()
+      const response = await api.get(`transaction/sales-report/?${queryString}`)
       const salesData = {
         sales: response.data.slice(0, -1),
         ...response.data[response.data.length - 1],
@@ -44,36 +45,17 @@ const SalesReport = () => {
 
   const handleSearch = async (e) => {
     e.preventDefault()
-    setLoading(true)
-    try {
-      const response = await api.get(`transaction/sales-report/?search=${searchTerm}`)
-      const salesData = {
-        sales: response.data.slice(0, -1),
-        ...response.data[response.data.length - 1],
-      }
-      setData(salesData)
-    } catch (err) {
-      setError("Failed to search sales data")
-    } finally {
-      setLoading(false)
-    }
+    const params = { search: searchTerm }
+    if (startDate) params.start_date = startDate
+    if (endDate) params.end_date = endDate
+    fetchSalesData(params)
   }
 
   const handleDateSearch = async (e) => {
     e.preventDefault()
-    setLoading(true)
-    try {
-      const response = await api.get(`transaction/sales-report/?start_date=${startDate}&end_date=${endDate}`)
-      const salesData = {
-        sales: response.data.slice(0, -1),
-        ...response.data[response.data.length - 1],
-      }
-      setData(salesData)
-    } catch (err) {
-      setError("Failed to filter sales data by date")
-    } finally {
-      setLoading(false)
-    }
+    const params = { start_date: startDate, end_date: endDate }
+    if (searchTerm) params.search = searchTerm
+    fetchSalesData(params)
   }
 
   const handlePrint = () => {
@@ -107,13 +89,13 @@ const SalesReport = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-4 lg:px-8 print:bg-white print:p-0">
       <Button
-            onClick={() => navigate('/mobile/')}
-            variant="outline"
-            className="w-full lg:w-auto px-5 mb-4 text-black border-white print:hidden hover:bg-gray-700 hover:text-white"
-          >
-            <ArrowLeft className="mr-2 h-4 w-3" />
-            Back to Dashboard
-          </Button>
+        onClick={() => navigate("/mobile/")}
+        variant="outline"
+        className="w-full lg:w-auto px-5 mb-4 text-black border-white print:hidden hover:bg-gray-700 hover:text-white"
+      >
+        <ArrowLeft className="mr-2 h-4 w-3" />
+        Back to Dashboard
+      </Button>
       <Card className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg print:shadow-none print:bg-white">
         <CardHeader className="border-b border-slate-700 print:border-gray-200">
           <CardTitle className="text-2xl lg:text-3xl font-bold text-white print:text-black">Sales Report</CardTitle>
@@ -189,7 +171,7 @@ const SalesReport = () => {
           <Table>
             <TableHeader>
               <TableRow>
-              <TableHead className="w-[180px] text-white print:text-black">Date</TableHead>
+                <TableHead className="w-[180px] text-white print:text-black">Date</TableHead>
                 <TableHead className="w-[180px] text-white print:text-black">Phone</TableHead>
                 <TableHead className="text-white print:text-black">Brand</TableHead>
                 <TableHead className="text-white print:text-black">IMEI</TableHead>
@@ -223,12 +205,17 @@ const SalesReport = () => {
                   {data.total_sales.toLocaleString("en-US", { style: "currency", currency: "NPR" })}
                 </span>
               </div>
+              <div className="flex justify-between mb-2">
+                <span className="font-semibold text-white print:text-black">Total Sales Count:</span>
+                <span className="text-white print:text-black">{data.count}</span>
+              </div>
               <div className="flex justify-between font-bold text-lg">
                 <span className="text-white print:text-black">Total Profit:</span>
                 <span className="text-white print:text-black">
                   {data.total_profit.toLocaleString("en-US", { style: "currency", currency: "NPR" })}
                 </span>
               </div>
+           
             </div>
           </div>
 
