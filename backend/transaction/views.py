@@ -1117,14 +1117,20 @@ class SalesReportView(APIView):
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
 
-        sales = Sales.objects.filter(sales_transaction__enterprise = request.user.person.enterprise, sales_transaction__date__date = timezone.now().date())
+        sales = Sales.objects.filter(sales_transaction__enterprise = request.user.person.enterprise)
         if search:
+            first_date_of_month = timezone.now().replace(day=1)
+            today = timezone.now()
             sales = sales.filter(phone__brand__name__icontains = search)
+            sales = sales.filter(sales_transaction__date__date__range=(first_date_of_month,today))
 
         if start_date and end_date:
             start_date = parse_date(start_date)
             end_date = parse_date(end_date)
             sales = sales.filter(sales_transaction__date__date__range=(start_date, end_date))
+        
+        if not search and not start_date and not end_date:
+            sales = sales.filter(sales_transaction__date__date = timezone.now().date())
 
         total_profit = 0
         total_sales = 0
