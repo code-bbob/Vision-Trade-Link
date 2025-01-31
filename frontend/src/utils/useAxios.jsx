@@ -3,7 +3,7 @@ import {jwtDecode} from 'jwt-decode';
 import dayjs from 'dayjs';
 import { useState } from 'react';
 
-const baseURL =  'http://127.0.0.1:8000/'; //'https://ezinventory.pythonanywhere.com/' or 'http://127.0.0.1:8000/'
+const baseURL =  'https://ezinventory.pythonanywhere.com'; //'https://ezinventory.pythonanywhere.com/' or 'http://127.0.0.1:8000/'
 
 const useAxios = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
