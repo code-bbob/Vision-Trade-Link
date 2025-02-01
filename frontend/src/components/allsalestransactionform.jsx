@@ -145,7 +145,7 @@ function AllSalesTransactionForm() {
       setSubLoading(true)
       const response = await api.post('alltransaction/salestransaction/', formData);
       console.log('Response:', response.data);
-      navigate('/sales')
+      navigate('/invoice/' + response.data.id);
     } catch (error) {
       console.error('Error posting data:', error);
     } finally {

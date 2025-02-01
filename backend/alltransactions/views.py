@@ -1,16 +1,17 @@
 from django.shortcuts import render
 from rest_framework.response import Response
-from .serializers import PurchaseTransactionSerializer,SalesTransactionSerializer,VendorSerializer,VendorTransactionSerialzier,VendorBrandSerializer
+from .serializers import PurchaseTransactionSerializer,PurchaseReturnSerializer,SalesTransactionSerializer,VendorSerializer,VendorTransactionSerialzier,VendorBrandSerializer
 from rest_framework.views import APIView
 from rest_framework import status
-from .models import PurchaseTransaction,SalesTransaction,Vendor,VendorTransactions,Purchase,Sales
+from .models import PurchaseTransaction,SalesTransaction,Vendor,VendorTransactions,Purchase,Sales,PurchaseReturn
 from rest_framework.permissions import IsAuthenticated
 from allinventory.models import Product,Brand
 from django.utils.dateparse import parse_date
 from django.utils import timezone
-from datetime import date, datetime
+from datetime import date, datetime,time
 from django.utils.dateparse import parse_date
 from rest_framework.pagination import PageNumberPagination
+from django.utils.timezone import make_aware,localtime
 
 
 # Create your views here.
@@ -58,7 +59,7 @@ class PurchaseTransactionView(APIView):
                 date__range=(start_date, end_date)
             )
 
-        transactions = transactions.order_by('-date')
+        transactions = transactions.order_by('-id')
 
 
         paginator = PageNumberPagination()
@@ -240,7 +241,7 @@ class VendorTransactionView(APIView):
                 date__range=(start_date, end_date)
             )
 
-        vendor_transactions = vendor_transactions.order_by('-date')
+        vendor_transactions = vendor_transactions.order_by('-id')
 
         paginator = PageNumberPagination()
         paginator.page_size = 5  # Set the page size here
@@ -325,7 +326,7 @@ class StatsView(APIView):
         if pts:
             for pt in pts:
                 # #print(pt.total_amount)
-                dailyptamt += pt.total_amount
+                dailyptamt += pt.total_amount if pt.total_amount else dailyptamt
 
         stamt = 0
         dailystamt = 0
@@ -391,3 +392,142 @@ class SingleVendorBrandView(APIView):
         vendors = Vendor.objects.filter(enterprise = request.user.person.enterprise, brand=pk)
         serializer = VendorSerializer(vendors, many=True)
         return Response(serializer.data)
+
+
+class PurchaseReturnView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+
+    def get(self, request):
+        enterprise = request.user.person.enterprise
+        search = request.GET.get('search')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        # Base QuerySet
+        purchase_returns = PurchaseReturn.objects.filter(enterprise=enterprise)
+
+        # -----------------
+        # 1) Search Filter
+        # -----------------
+        if search:
+            name_filter = purchase_returns.filter(purchase_transaction__vendor__name__icontains=search)
+            # amount_filter = purchase_returns.filter(amount__icontains=search)
+            product_name = purchase_returns.filter(purchases__product__name__icontains=search)
+            
+            # union() will merge the two QuerySets without duplicates.
+            purchase_returns = name_filter.union(product_name)
+            if search.isdigit():
+                id = purchase_returns.filter(id__icontains=search)
+                purchase_returns = purchase_returns.union(id)
+
+        # ---------------------
+        # 2) Date Range Filter
+        # ---------------------
+        # Only attempt date range filter if both start and end date are provided
+        if start_date and end_date:
+            start_date_obj = parse_date(start_date)
+            end_date_obj = parse_date(end_date)
+            if start_date_obj and end_date_obj:
+                # Combine with min and max time to capture full day range
+                start_datetime = datetime.combine(start_date_obj, datetime.min.time())
+                end_datetime = datetime.combine(end_date_obj, datetime.max.time())
+
+                purchase_returns = purchase_returns.filter(
+                    date__range=(start_datetime, end_datetime)
+                )
+
+        # ---------------------------------
+        # 3) Sort and Paginate the Results
+        # ---------------------------------
+        purchase_returns = purchase_returns.order_by('-id')  # Sorting
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 5  # Set your desired page size
+        paginated_data = paginator.paginate_queryset(purchase_returns, request)
+
+        serializer = PurchaseReturnSerializer(paginated_data, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    
+    def post(self,request):
+        data = request.data 
+        user = request.user
+        enterprise = user.person.enterprise
+        data['enterprise'] = enterprise.id 
+        if "date" in data:
+            date_str = data["date"]
+            # Assuming the format is 'YYYY-MM-DD'
+            date_object = datetime.strptime(date_str, '%Y-%m-%d').date()
+            datetime_with_current_time = datetime.combine(date_object, timezone.now().time())
+            data["date"] = datetime_with_current_time.isoformat()
+        serializer = PurchaseReturnSerializer(data=data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self,request,pk):
+        purchase_return = PurchaseReturn.objects.filter(id=pk).first()
+        serializer = PurchaseReturnSerializer()
+        serializer.delete(purchase_return)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+
+class SalesReportView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request):
+        
+
+        search = request.GET.get('search')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        sales = Sales.objects.filter(sales_transaction__enterprise = request.user.person.enterprise)
+        if search:
+            first_date_of_month = timezone.now().replace(day=1)
+            today = timezone.now()
+            sales = sales.filter(product__brand__name__icontains = search)
+            sales = sales.filter(sales_transaction__date__date__range=(first_date_of_month,today))
+
+
+        if start_date and end_date:
+            start_date = parse_date(start_date)
+            end_date = parse_date(end_date)
+            start_date = make_aware(datetime.combine(start_date, time.min))
+            end_date = make_aware(datetime.combine(end_date, time.max))
+            sales = sales.filter(sales_transaction__date__range=(start_date, end_date))
+
+        
+        if not search and not start_date and not end_date:
+            sales = sales.filter(sales_transaction__date__date = timezone.now().date())
+
+        count = sales.count()
+
+        total_profit = 0
+        total_sales = 0
+        list = []
+        for sale in sales:
+            purchase = Purchase.objects.filter(product = sale.product).first()
+            print(purchase.unit_price)
+            profit = (sale.unit_price - purchase.unit_price) * sale.quantity
+            total_profit += profit
+            total_sales += sale.unit_price
+            local_dt = localtime(sale.sales_transaction.date)
+            list.append({
+                "date": local_dt.date(),
+                "brand": sale.product.brand.name,
+                "quantity": sale.quantity,
+                "product": sale.product.name,
+                "unit_price": sale.unit_price,
+                "profit": profit
+            })
+        
+        list.append({
+            "total_profit": total_profit,
+            "total_sales": total_sales,
+            "count": count
+        })
+        return Response(list)

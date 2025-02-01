@@ -30,7 +30,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import Sidebar from "@/components/sidebar";
+import Sidebar from "@/components/allsidebar";
 
 export default function EditAllVendorTransactionForm() {
   const api = useAxios();

@@ -12,5 +12,8 @@ urlpatterns = [
     path('stats/', views.StatsView.as_view(), name='stat'),
     path('vendorbrand/',views.VendorBrandsView.as_view(), name='vendorbrand'),
     path('vendorbrand/<int:pk>/',views.SingleVendorBrandView.as_view(), name = 'singlevendorbrand'),
+    path('purchase-return/',views.PurchaseReturnView.as_view(), name='purchasereturn'),
+    path('purchase-return/<int:pk>/',views.PurchaseReturnView.as_view(), name='purchasereturn'),
+    path('sales-report/',views.SalesReportView.as_view(), name='salesreport'),
 
 ]

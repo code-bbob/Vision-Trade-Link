@@ -50,6 +50,9 @@ import BarCh from "./components/barchart";
 import LineGraph from "./components/linegraph";
 import PurchaseReturns from "./pages/purchaseReturn";
 import SalesReport from "./pages/salesReport";
+import AllSalesReport from "./pages/allsalesreport";
+import AllPurchaseReturns from "./pages/allPurchaseReturn";
+import InvoicePage from "./pages/invoicePage";
 // import VendorTransactionForm from './pages/transaction-vendors';
 
 function App() {
@@ -77,13 +80,18 @@ function App() {
 
         <Route path="vendors" element={<AllVendorPage />} />
         <Route path="vendors/brand/:id" element={<AllVendorBrand />} />
+        
+        <Route path="invoice/:transactionId" element={<InvoicePage/>} />
+
 
         
         <Route path="vendor-transactions" element={<AllVendorTransactions />}/>
         <Route path="vendor-transactions/form" element={<AllVendorTransactionForm />} />
         <Route path="vendor-transactions/editform/:vendorTransactionId" element={<EditAllVendorTransactionForm />} />
 
-        
+        <Route path = "purchase-returns" element = {<AllPurchaseReturns/>}/>
+
+        <Route path = "sales-report" element = {<AllSalesReport/>}/>
         <Route path = "bar" element={<BarCh/>}/>
         <Route path = "line" element={<LineGraph/>}/>
 
@@ -108,7 +116,6 @@ function App() {
           <Route path="sales" element={<SalesTransactions />} />
           <Route path="sales/form" element={<SalesTransactionForm />} />
           <Route path="sales/editform/:salesId" element={<EditSalesTransactionForm />} />
-
           {/* Schemes Section */}
           <Route path="schemes" element={<SchemePageComponent />} />
           <Route path="schemes/brand/:id" element={<BrandSchemePage />} />

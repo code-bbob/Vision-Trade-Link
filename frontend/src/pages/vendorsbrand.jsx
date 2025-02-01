@@ -38,7 +38,7 @@ export default function VendorBrand() {
     }
 
     fetchBrandPhones()
-  }, [id])
+  }, [])
 
   useEffect(() => {
     const results = phones.filter(phone =>

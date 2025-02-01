@@ -1,6 +1,7 @@
 from django.db import models
 from allinventory.models import Brand
 from enterprise.models import Enterprise
+from django.db import transaction
 
 # Create your models here.
 
@@ -25,6 +26,8 @@ class PurchaseTransaction(models.Model):
     total_amount = models.FloatField(null=True,blank=True)
     date = models.DateTimeField()
     method = models.CharField(max_length=20,choices=(('cash','Cash'),('credit','Credit'),('cheque','Cheque')),default='credit')
+    cheque_number = models.CharField(max_length=10,null=True,blank=True)
+    cashout_date = models.DateField(null=True)
     def __str__(self):
         return self.vendor.name
     
@@ -44,6 +47,11 @@ class PurchaseTransaction(models.Model):
 
         # Call save again to update the quantity field
         super().save()
+
+class PurchaseReturn(models.Model):
+    date = models.DateField(auto_now_add=True)
+    enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='all_purchase_return')
+    purchase_transaction = models.ForeignKey(PurchaseTransaction, on_delete=models.CASCADE,related_name='purchase_return')
     
 class Purchase(models.Model):
     # vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
@@ -52,6 +60,15 @@ class Purchase(models.Model):
     unit_price = models.FloatField()
     total_price = models.FloatField(blank=True,null=True)
     purchase_transaction = models.ForeignKey(PurchaseTransaction, on_delete=models.CASCADE,related_name='purchase')
+    returned = models.BooleanField(default=False)
+    purchase_return = models.ForeignKey(
+        PurchaseReturn,
+        on_delete=models.SET_NULL,   # or CASCADE
+        null=True,
+        blank=True,
+        related_name='purchases'
+    )
+
     
     def __str__(self):
         return self.product.name
@@ -127,7 +144,22 @@ class VendorTransactions(models.Model):
     cashout_date = models.DateField(null=True)
     enterprise = models.ForeignKey('enterprise.Enterprise', on_delete=models.CASCADE,related_name='all_vendor_transactions')
     desc = models.CharField(max_length=50)
+    purchase_transaction = models.ForeignKey(PurchaseTransaction, on_delete=models.CASCADE,related_name="vendor_transaction",null=True,blank=True)
+
     
     def __str__(self):
         return f"Vendor Transaction {self.pk} of {self.vendor.name}"
+    
+    @transaction.atomic
+    def delete(self, *args, **kwargs):
+        #print("Delete method called for VendorTransaction")
+        #print(self.vendor.due)
+        self.vendor.due = self.vendor.due + self.amount
+        vendor = self.vendor.id
+        self.vendor.save() 
+        #print(self.vendor.due)#ya samma thik xa uta xaina
+        super().delete(*args, **kwargs)
+        vendor = Vendor.objects.get(id=vendor)
+        #print(vendor.due)
+
     

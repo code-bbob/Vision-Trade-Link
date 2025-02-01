@@ -51,6 +51,7 @@ export default function Sidebar() {
     { title: 'Inventory', icon: Container, path: '/inventory' },
     { title: 'Purchases', icon: ShoppingCart, path: '/purchases' },
     { title: 'Sales', icon: TrendingUp, path: '/sales' },
+    { title: 'SalesReport', icon: TrendingUp, path: '/sales-report' },
     { title: 'Vendors', icon: BookUser, path: '/vendors' },
     { title: 'VendorTransactions', icon: BookUser, path: '/vendor-transactions' },
     { title: 'Phone Only', icon: Smartphone, path: '/mobile' },
