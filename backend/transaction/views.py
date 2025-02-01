@@ -85,6 +85,9 @@ class PurchaseTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PurchaseTransactionSerializer
 
     def update(self, request, *args, **kwargs):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         
@@ -106,6 +109,9 @@ class PurchaseTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
 
 
     def destroy(self, request, *args, **kwargs):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         instance = self.get_object()
         purchase_data = instance.purchase.all()
         phones = []
@@ -143,6 +149,9 @@ class SalesTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = SalesTransactionSerializer
 
     def update(self, request, *args, **kwargs):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         
@@ -163,6 +172,9 @@ class SalesTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
         serializer.save()
 
     def destroy(self, request, *args, **kwargs):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         instance = self.get_object()
         scheme = None
         sales_data = instance.sales.all()
@@ -336,7 +348,9 @@ class SchemeView(APIView):
             return Response(serializer.data)
     
     def patch(self,request,pk):
-        
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         scheme = get_object_or_404(Scheme, pk=pk)
         
         # Pass `partial=True` to allow partial updates
@@ -402,6 +416,9 @@ class PriceProtectionView(APIView):
     
     
     def patch(self,request,pk):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         
         pps = get_object_or_404(PriceProtection, pk=pk)
         #print(pps)
@@ -607,6 +624,9 @@ class SchemeChangeView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = SchemeSerializer
 
     def update(self, request, *args, **kwargs):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         
@@ -632,6 +652,9 @@ class PriceProtectionChangeView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PriceProtectionSerializer
 
     def update(self, request, *args, **kwargs):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         
@@ -859,6 +882,9 @@ class VendorTransactionView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def patch(self,request,pk):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         data = request.data
         transaction = VendorTransaction.objects.filter(id=pk).first()
         #print(transaction)
@@ -870,6 +896,9 @@ class VendorTransactionView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
     def delete(self,request,pk):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         transaction = VendorTransaction.objects.filter(id=pk).first()
         if transaction:
             transaction.vendor.due = transaction.vendor.due + transaction.amount

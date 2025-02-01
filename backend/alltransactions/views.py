@@ -72,8 +72,9 @@ class PurchaseTransactionView(APIView):
     def patch(self,request,pk,format=None):
         data = request.data
         data['enterprise'] = request.user.person.enterprise.id
-        print(data)
-        print(pk)
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         try:
             purchase_transaction = PurchaseTransaction.objects.get(id=pk)
         except PurchaseTransaction.DoesNotExist:
@@ -87,6 +88,9 @@ class PurchaseTransactionView(APIView):
         return Response(serializer.errors)
     
     def delete(self,request,pk,format=None):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         purchase_transaction = PurchaseTransaction.objects.get(id=pk)
         purchases = purchase_transaction.purchase.all()
         for purchase in purchases:
@@ -163,6 +167,9 @@ class SalesTransactionView(APIView):
         def patch(self,request,pk,format=None):
             data = request.data
             data['enterprise'] = request.user.person.enterprise.id
+            role = request.user.person.role
+            if role != "Admin":
+                return Response("Unauthorized")
 
             try:
                 sales_transaction = SalesTransaction.objects.get(id=pk)
@@ -178,6 +185,11 @@ class SalesTransactionView(APIView):
         
         def delete(self,request,pk,format=None):
             sales_transaction = SalesTransaction.objects.get(id=pk)
+            role = request.user.person.role
+            print(role)
+            if role != "Admin":
+                print("HERERERERE")
+                return Response("Unauthorized")
             sales = sales_transaction.sales.all()
             for sale in sales:
                 product = sale.product
@@ -262,6 +274,9 @@ class VendorTransactionView(APIView):
     def patch(self,request,pk):
         data = request.data
         data["enterprise"] = request.user.person.enterprise.id
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         vendor_transaction = VendorTransactions.objects.get(id=pk)
         serializer = VendorTransactionSerialzier(vendor_transaction,data=data,partial=True)
         if serializer.is_valid():
@@ -270,6 +285,9 @@ class VendorTransactionView(APIView):
         return Response(serializer.errors)
     
     def delete(self,request,pk):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         vendor_transaction = VendorTransactions.objects.get(id=pk)
         amount = vendor_transaction.amount
         vendor = vendor_transaction.vendor
@@ -468,6 +486,9 @@ class PurchaseReturnView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self,request,pk):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         purchase_return = PurchaseReturn.objects.filter(id=pk).first()
         serializer = PurchaseReturnSerializer()
         serializer.delete(purchase_return)

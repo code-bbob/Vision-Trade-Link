@@ -44,6 +44,9 @@ class ProductView(APIView):
     
     def patch(self,request,pk,format=None):
         data = request.data
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         data['enterprise'] = request.user.person.enterprise.id
         
         try:
@@ -95,6 +98,9 @@ class BrandView(APIView):
     
     def patch(self,request,pk,format=None):
         data = request.data
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         data['enterprise'] = request.user.person.enterprise.id
         
         try:
@@ -109,6 +115,9 @@ class BrandView(APIView):
         return Response(serializer.errors)
     
     def delete(self,request,pk,format=None):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
         try:
             brand = Brand.objects.get(id=pk)
             brand.delete()
