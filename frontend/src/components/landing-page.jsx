@@ -135,14 +135,14 @@ export default function LandingPage() {
             value={currentStats.purchases}
             subValue={isMonthly ? currentStats.ptamt : currentStats.dailyptamt}
             icon={<ShoppingCart className="h-6 w-6 text-blue-400" />}
-            onClick={() => navigate("/purchases")}
+            onClick={() => navigate("/mobile/purchases")}
           />
           <StatCard
             title="Total Sales"
             value={currentStats.sales}
             subValue={isMonthly ? currentStats.stamt : currentStats.dailystamt}
             icon={<TrendingUp className="h-6 w-6 text-green-400" />}
-            onClick={() => navigate("/sales")}
+            onClick={() => navigate("/mobile/sales")}
           />
           <StatCard 
             title="Profit"
@@ -158,13 +158,13 @@ export default function LandingPage() {
             title="Current Stock"
             value={stats.stock}
             icon={<Smartphone className="h-6 w-6 text-purple-400" />}
-            onClick={() => navigate("/inventory")}
+            onClick={() => navigate("mobile/inventory")}
           />
           <StatCard
             title="Brands"
             value={stats.brands}
             icon={<Shield className="h-6 w-6 text-indigo-400" />}
-            onClick={() => navigate("/inventory")}
+            onClick={() => navigate("/mobie/inventory")}
           />
         </div>
 
