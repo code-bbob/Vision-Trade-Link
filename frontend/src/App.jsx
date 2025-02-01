@@ -50,7 +50,7 @@ import BarCh from "./components/barchart";
 import LineGraph from "./components/linegraph";
 import PurchaseReturns from "./pages/purchaseReturn";
 import SalesReport from "./pages/salesReport";
-import AllSalesReport from "./pages/allsalesreport";
+import AllSalesReport from "./pages/allSalesReport";
 import AllPurchaseReturns from "./pages/allPurchaseReturn";
 import InvoicePage from "./pages/invoicePage";
 // import VendorTransactionForm from './pages/transaction-vendors';
@@ -80,7 +80,7 @@ function App() {
 
         <Route path="vendors" element={<AllVendorPage />} />
         <Route path="vendors/brand/:id" element={<AllVendorBrand />} />
-        
+
         <Route path="invoice/:transactionId" element={<InvoicePage/>} />
 
 
