@@ -51,18 +51,21 @@ function AllSalesTransactionForm() {
   const [openProduct, setOpenProduct] = useState(Array(formData.sales.length).fill(false));
   const [openBrand, setOpenBrand] = useState(false);
   const [subLoading, setSubLoading] = useState(false);
+  const [nextBill,setNextBill] = useState('');
   const navigate = useNavigate();
 
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [productsResponse, brandsResponse] = await Promise.all([
+        const [productsResponse, brandsResponse, nextBill] = await Promise.all([
           api.get('allinventory/product/'),
-          api.get('allinventory/brand/')
+          api.get('allinventory/brand/'),
+          api.get('alltransaction/next-bill-no/'),
         ]);
         setProducts(productsResponse.data);
         setBrands(brandsResponse.data);
+        setNextBill(nextBill.data.bill_no);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -73,6 +76,16 @@ function AllSalesTransactionForm() {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (nextBill) {
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        bill_no: nextBill,
+      }));
+    }
+  }, [nextBill]);
+  
 
   const handleChange = (index, e) => {
     const { name, value } = e.target;
@@ -311,7 +324,7 @@ function AllSalesTransactionForm() {
                     id="bill_no"
                     name="bill_no"
                     placeholder="Enter bill number"
-                    value={formData.bill_no}
+                    value={nextBill}
                     onChange={(e) => setFormData({ ...formData, bill_no: e.target.value })}
                     className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
                     required

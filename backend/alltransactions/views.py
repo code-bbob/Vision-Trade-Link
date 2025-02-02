@@ -12,6 +12,7 @@ from datetime import date, datetime,time
 from django.utils.dateparse import parse_date
 from rest_framework.pagination import PageNumberPagination
 from django.utils.timezone import make_aware,localtime
+from django.db.models import Max
 
 
 # Create your views here.
@@ -552,3 +553,18 @@ class SalesReportView(APIView):
             "count": count
         })
         return Response(list)
+    
+
+  
+class NextBillNo(APIView):
+    def get(self,request):
+        max_bill_no = SalesTransaction.objects.filter(
+            enterprise=request.user.person.enterprise
+        ).aggregate(max_bill_no=Max('bill_no'))['max_bill_no']
+        
+        if max_bill_no is None:
+            next_bill_no = 1
+        else:
+            next_bill_no = max_bill_no + 1
+        
+        return Response({'bill_no':next_bill_no})

@@ -15,5 +15,6 @@ urlpatterns = [
     path('purchase-return/',views.PurchaseReturnView.as_view(), name='purchasereturn'),
     path('purchase-return/<int:pk>/',views.PurchaseReturnView.as_view(), name='purchasereturn'),
     path('sales-report/',views.SalesReportView.as_view(), name='salesreport'),
+    path('next-bill-no/',views.NextBillNo.as_view(), name='nextbillno'),
 
 ]
