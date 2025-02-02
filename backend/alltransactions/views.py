@@ -565,6 +565,6 @@ class NextBillNo(APIView):
         if max_bill_no is None:
             next_bill_no = 1
         else:
-            next_bill_no = max_bill_no + 1
+            next_bill_no = int(max_bill_no) + 1
         
         return Response({'bill_no':next_bill_no})

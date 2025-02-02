@@ -92,7 +92,7 @@ class SalesTransaction(models.Model):
     total_amount = models.FloatField(null=True,blank=True)
     date = models.DateTimeField()
     method = models.CharField(max_length=20,choices=(('cash','Cash'),('credit','Credit'),('cheque','Cheque')),default='credit')
-    bill_no = models.CharField(max_length=20)
+    bill_no = models.IntegerField()
     def __str__(self):
         return f"Sales Transaction {self.pk} of {self.enterprise.name}"
     
