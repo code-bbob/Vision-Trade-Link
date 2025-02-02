@@ -131,7 +131,7 @@ class BrandView(APIView):
 def generate_barcode(request,pk=None):
     if pk:
         uid = Product.objects.get(id=pk).uid
-        print(uid)
+        # print(uid)
 
     barcode = EAN13(uid, writer=SVGWriter())
     
@@ -139,5 +139,5 @@ def generate_barcode(request,pk=None):
     barcode.write(buffer)
     buffer.seek(0)
 
-    print("BARCODE GENERATED")
+    # print("BARCODE GENERATED")
     return FileResponse(buffer, content_type='image/svg+xml')

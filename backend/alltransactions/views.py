@@ -37,7 +37,7 @@ class PurchaseTransactionView(APIView):
         transactions = PurchaseTransaction.objects.filter(enterprise=enterprise)
 
         if pk:
-            print(pk)
+            #print(pk)
             purchase_transaction = PurchaseTransaction.objects.get(id=pk)
             serializer = PurchaseTransactionSerializer(purchase_transaction)
             return Response(serializer.data)
@@ -81,7 +81,7 @@ class PurchaseTransactionView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         serializer = PurchaseTransactionSerializer(purchase_transaction,data=data,partial=True)
-        print("asdmnb",serializer)
+        #print("asdmnb",serializer)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -101,7 +101,7 @@ class PurchaseTransactionView(APIView):
             brand = product.brand
             brand.count -= purchase.quantity
             brand.stock -= purchase.total_price
-            print(brand.stock)
+            #print(brand.stock)
             brand.save()
         amount = purchase_transaction.total_amount
         vendor = purchase_transaction.vendor
@@ -177,7 +177,7 @@ class SalesTransactionView(APIView):
                 return Response(status=status.HTTP_404_NOT_FOUND)
 
             serializer = SalesTransactionSerializer(sales_transaction,data=data,partial=True)
-            print("asdmnb",serializer)
+            #print("asdmnb",serializer)
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
@@ -186,9 +186,9 @@ class SalesTransactionView(APIView):
         def delete(self,request,pk,format=None):
             sales_transaction = SalesTransaction.objects.get(id=pk)
             role = request.user.person.role
-            print(role)
+            #print(role)
             if role != "Admin":
-                print("HERERERERE")
+                #print("HERERERERE")
                 return Response("Unauthorized")
             sales = sales_transaction.sales.all()
             for sale in sales:
@@ -313,16 +313,16 @@ class StatsView(APIView):
         start_date = parse_date(start_date) if isinstance(start_date, str) else start_date
         end_date = parse_date(end_date) if isinstance(end_date, str) else end_date
 
-        print(start_date,end_date)
+        #print(start_date,end_date)
 
         enterprise = request.user.person.enterprise
-        print("HERE")
+        #print("HERE")
     
         allstock = Product.objects.filter(brand__enterprise = enterprise).count()
         allbrands = Brand.objects.filter(enterprise = enterprise).count()
 
         monthlypurchases = Purchase.objects.filter(purchase_transaction__enterprise = enterprise,purchase_transaction__date__range=(start_date, end_date))
-        print(monthlypurchases)
+        #print(monthlypurchases)
         monthlysales = Sales.objects.filter(sales_transaction__enterprise = enterprise,sales_transaction__date__range=(start_date, end_date))
 
         dailypurchases = Purchase.objects.filter(purchase_transaction__enterprise = enterprise,purchase_transaction__date = today.date())
@@ -532,7 +532,7 @@ class SalesReportView(APIView):
         list = []
         for sale in sales:
             purchase = Purchase.objects.filter(product = sale.product).first()
-            print(purchase.unit_price)
+            #print(purchase.unit_price)
             profit = (sale.unit_price - purchase.unit_price) * sale.quantity
             total_profit += profit
             total_sales += sale.unit_price

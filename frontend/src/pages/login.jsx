@@ -37,7 +37,6 @@ const Login = () => {
         dispatch(login());
         navigate('/');
       }
-      console.log(data.token.access);
     } catch (err) {
       setError('Invalid email or password');
       setIsLoading(false)

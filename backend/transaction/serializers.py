@@ -44,12 +44,12 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
         vendor.save()
 
         if transaction.method == 'cash':
-            print("Here")
+            #print("Here")
             serializer = VendorTransactionSerializer
             data={'vendor': vendor, 'date': transaction.date, 'amount': transaction.total_amount, 'desc': 'Paid for purchase', 'method': 'cash', 'purchase_transaction': transaction,'enterprise':transaction.enterprise}
             serializer.create(self,validated_data=data)
         elif transaction.method == 'cheque':
-            print("There")
+            #print("There")
             serializer = VendorTransactionSerializer
             data={'vendor': vendor, 'date': transaction.date, 'amount': transaction.total_amount, 'desc': 'Paid for purchase', 'method': 'cheque', 'cheque_number': transaction.cheque_number, 'cashout_date': transaction.cashout_date, 'purchase_transaction': transaction,'enterprise':transaction.enterprise}
             serializer.create(self,validated_data=data)
@@ -67,7 +67,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
 
         instance.vendor = validated_data.get('vendor', instance.vendor)
         instance.date = validated_data.get('date', instance.date)
-        print(instance.date)
+        #print(instance.date)
         instance.enterprise = validated_data.get('enterprise', instance.enterprise)
         instance.total_amount = validated_data.get('total_amount', instance.total_amount)
         instance.bill_no = validated_data.get('bill_no', instance.bill_no)
@@ -75,7 +75,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
         instance.cheque_number = validated_data.get('cheque_number', instance.cheque_number)
         instance.cashout_date = validated_data.get('cashout_date', instance.cashout_date)
         instance.save()
-        print(instance.date)
+        #print(instance.date)
 
         new_vendor = instance.vendor
         new_brand = new_vendor.brand
@@ -89,7 +89,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
                 purchase_id = purchase_item.get('id')
                 
                 if purchase_id and purchase_id in existing_purchases:
-                    print("Same same $$$$$$$$$$$$$$$$$$$")
+                    #print("Same same $$$$$$$$$$$$$$$$$$$")
                     purchase_instance = existing_purchases[purchase_id]
 
                     old_imei = purchase_instance.imei_number
@@ -113,10 +113,10 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
                     purchase_instance.save()
                     del existing_purchases[purchase_id]
                 else:
-                    print("Creating new purchase instance")
+                    #print("Creating new purchase instance")
                     new_purchase = Purchase(purchase_transaction=instance, **purchase_item)
                     new_purchase.save()
-                    print("New purchase instance created")
+                    #print("New purchase instance created")
 
             for purchase in existing_purchases.values():
                 purchase.delete()
@@ -238,7 +238,7 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
         
     def update(self, instance, validated_data):
 
-        print(validated_data)
+        #print(validated_data)
         
 
         instance.date = validated_data.get('date', instance.date)
@@ -264,7 +264,7 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
             for sale_item in sales_data:
                 sale_id = sale_item.get('id')
                 if sale_id and sale_id in existing_sales:
-                    print("Same same $$$$$$$$$$$$$$$$$$$")
+                    #print("Same same $$$$$$$$$$$$$$$$$$$")
                     sales_instance = existing_sales[sale_id]
                     
                     old_imei = sales_instance.imei_number
@@ -277,35 +277,35 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
                         setattr(sales_instance, attr, value)
                     sales_instance.save()
                     sales_instance.phone.calculate_quantity()
-                    print(sales_instance)
+                    #print(sales_instance)
                     del existing_sales[sale_id]
                 else:
-                    print("Creating new purchase instance")
+                    #print("Creating new purchase instance")
                     new_sale = Sales(sales_transaction=instance, **sale_item)
                     new_sale.save()
                     new_sale.phone.calculate_quantity()
-                    print("New purchase instance created")
+                    #print("New purchase instance created")
 
             for sale in existing_sales.values():
-                print("Here")
+                #print("Here")
                 item = Item.objects.create(imei_number=sale.imei_number,phone=sale.phone)
                 sale.phone.quantity+=1
                 sale.phone.save()
-                print(item)
+                #print(item)
                 sale.delete()
 
         instance.total_amount = instance.calculate_total_amount()
         instance.save()
 
         sales = instance.sales.all()
-        print("here",sales)
+        #print("here",sales)
         for sale in sales:
             brand = sale.phone.brand
             purchase = Purchase.objects.filter(imei_number = sale.imei_number).first()
             brand.stock = (brand.stock - purchase.unit_price) if brand.stock is not None else 0
             brand.save()
             sale.checkit()
-            print("Done Checking")
+            #print("Done Checking")
         return instance
 
 
@@ -351,17 +351,17 @@ class SchemeSerializer(serializers.ModelSerializer):
         fields = ['id','from_date','to_date','phone','enterprise','subscheme','phone_name','receivable','sold','brand','brand_name','status']
 
     def create(self, validated_data):
-        print("YAHA SAMMA")
-        print(validated_data)
+        #print("YAHA SAMMA")
+        #print(validated_data)
         # Pop subschemes data from validated_data
         subschemes_data = validated_data.pop('subscheme')
-        print("YAHA SAMMA")
+        #print("YAHA SAMMA")
 
         # Create the Scheme instance
-        print(validated_data)
+        #print(validated_data)
         scheme = Scheme.objects.create(**validated_data)
-        print("Scheme created:", scheme)
-        print("YAHA asdsakdnkasj SAMMA")
+        #print("Scheme created:", scheme)
+        #print("YAHA asdsakdnkasj SAMMA")
 
         # Now iterate over the subschemes and create each one, setting the scheme
         for subscheme_data in subschemes_data:
@@ -371,7 +371,7 @@ class SchemeSerializer(serializers.ModelSerializer):
 
 
         sales = Sales.objects.filter(sales_transaction__enterprise = enterprise, sales_transaction__date__gte=scheme.from_date,sales_transaction__date__lte=scheme.to_date )
-        print(sales)
+        #print(sales)
         for sale in sales:
             sale.checkit()
         scheme.calculate_receivable()
@@ -413,10 +413,10 @@ class SchemeSerializer(serializers.ModelSerializer):
 
             sales = Sales.objects.filter(sales_transaction__enterprise = enterprise, sales_transaction__date__gte=instance.from_date,sales_transaction__date__lte=instance.to_date )
             other_sales = instance.sales.all()
-            print(other_sales)
-            print(sales)
+            #print(other_sales)
+            #print(sales)
             sales = sales.union(other_sales)
-            print(sales)
+            #print(sales)
             for sale in sales:
                 sale.checkit()
             instance.calculate_receivable()
@@ -449,7 +449,7 @@ class PriceProtectionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         pp = PriceProtection.objects.create(**validated_data)
         sales = Sales.objects.filter(sales_transaction__enterprise = pp.enterprise, sales_transaction__date__gte=pp.from_date,sales_transaction__date__lte=pp.to_date )
-        print(sales)
+        #print(sales)
         for sale in sales:
             sale.checkit()
         pp.calculate_receivable()
@@ -469,10 +469,10 @@ class PriceProtectionSerializer(serializers.ModelSerializer):
 
             sales = Sales.objects.filter(sales_transaction__enterprise = enterprise, sales_transaction__date__gte=instance.from_date,sales_transaction__date__lte=instance.to_date )
             other_sales = instance.sales.all()
-            print(other_sales)
-            print(sales)
+            #print(other_sales)
+            #print(sales)
             sales = sales.union(other_sales)
-            print(sales)
+            #print(sales)
             for sale in sales:
                 sale.checkit()
                 self.calculate_receivable(instance)
@@ -516,17 +516,17 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         vendor = validated_data['vendor']
         amount = validated_data['amount']
-        print("ARKO MA CHA")
-        print(vendor.due)
+        #print("ARKO MA CHA")
+        #print(vendor.due)
         vendor.due = (vendor.due - amount) if vendor.due is not None else 0
-        print(vendor.due)
+        #print(vendor.due)
         vendor.save()
 
         transaction = VendorTransaction.objects.create(**validated_data)
         return transaction
     
     def update(self, instance, validated_data):
-        print("HERE")
+        #print("HERE")
         old_vendor = instance.vendor
         old_amount = instance.amount
         
@@ -605,7 +605,7 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
 
         # We'll subtract the total of all returned purchases
         total_unit_price = 0
-        print(purchase_ids)
+        #print(purchase_ids)
 
         # Attach each purchase to this return
         for purchase in purchase_ids:

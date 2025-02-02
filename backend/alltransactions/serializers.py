@@ -221,7 +221,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
         fields = '__all__'
     
     def create(self, validated_data):
-        print(validated_data)
+        # print(validated_data)
         purchases = validated_data.pop('purchase')
         purchase_transaction = PurchaseTransaction.objects.create(**validated_data)
 
@@ -274,7 +274,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
         return purchase_transaction
     
     def update(self, instance, validated_data):
-        print(validated_data)
+        # print(validated_data)
         
         # Store old values
         old_vendor = instance.vendor
@@ -484,7 +484,7 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         
         sales = validated_data.pop('sales')
-        print(sales)
+        # print(sales)
         transaction = SalesTransaction.objects.create(**validated_data)
 
 
@@ -729,7 +729,7 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
 
         # We'll subtract the total of all returned purchases
         total_unit_price = 0
-        print(purchase_ids)
+        # print(purchase_ids)
 
         # Attach each purchase to this return
         for purchase in purchase_ids:

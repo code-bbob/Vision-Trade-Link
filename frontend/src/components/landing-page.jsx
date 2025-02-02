@@ -158,13 +158,13 @@ export default function LandingPage() {
             title="Current Stock"
             value={stats.stock}
             icon={<Smartphone className="h-6 w-6 text-purple-400" />}
-            onClick={() => navigate("mobile/inventory")}
+            onClick={() => navigate("/mobile/inventory")}
           />
           <StatCard
             title="Brands"
             value={stats.brands}
             icon={<Shield className="h-6 w-6 text-indigo-400" />}
-            onClick={() => navigate("/mobie/inventory")}
+            onClick={() => navigate("/mobile/inventory")}
           />
         </div>
 

@@ -32,7 +32,7 @@ class Product(models.Model):
     
 
     def generate_unique_uid(self):
-            print("Generating uid")
+            ###print("Generating uid")
             while True:
                 uid = ''.join([str(random.randint(0, 9)) for _ in range(12)])
                 if uid.startswith('0') or uid.startswith('1'):
