@@ -210,7 +210,7 @@ function BrandCard({ brand, onClick }) {
             Items in stock: {brand.count}
           </div>
           <div className="text-xs sm:text-sm text-blue-400 mt-1 group-hover:text-purple-200 transition-colors duration-300">
-          RS. {brand.stock}
+          RS. {brand.stock?.toFixed(2)}
           </div>
         </CardContent>
       </Card>
