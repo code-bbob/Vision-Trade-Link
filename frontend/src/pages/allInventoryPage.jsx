@@ -85,6 +85,8 @@ export function AllInventoryPageComponent() {
     </div>
   )
 
+  filteredBrands.sort((a, b) => a.name.localeCompare(b.name));
+
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
       <Sidebar />

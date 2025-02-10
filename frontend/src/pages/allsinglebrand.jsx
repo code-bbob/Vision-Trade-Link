@@ -100,6 +100,8 @@ export default function AllBrandProducts() {
     newWindow.document.close();
     newWindow.print();
   };
+  filteredPhones.sort((a, b) => a.name.localeCompare(b.name));
+
 
   if (loading) {
     return (

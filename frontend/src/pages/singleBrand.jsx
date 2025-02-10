@@ -50,6 +50,8 @@ export default function BrandPhones() {
     setSearchTerm(event.target.value)
   }
 
+  filteredPhones.sort((a, b) => a.name.localeCompare(b.name));
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
