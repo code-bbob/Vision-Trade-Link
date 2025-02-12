@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Smartphone, ArrowLeft, Search, Plus } from 'lucide-react'
+import { Smartphone, ArrowLeft, Search, Plus, Trash2 } from 'lucide-react'
 import useAxios from '../utils/useAxios'
 import Sidebar from '../components/allsidebar';
 import {
@@ -73,6 +73,17 @@ export function AllInventoryPageComponent() {
     }
   }
 
+  const handleBrandDelete = async (brandId) => {
+    try {
+      await api.delete(`allinventory/brand/${brandId}/`)
+      const updatedBrands = brands.filter((b) => b.id !== brandId)
+      setBrands(updatedBrands)
+      setFilteredBrands(updatedBrands)
+    } catch (error) {
+      console.error("Error deleting brand:", error)
+    }
+  }
+
   if (loading) return (
     <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
       Loading...
@@ -129,6 +140,11 @@ export function AllInventoryPageComponent() {
                 key={brand.id}
                 brand={brand}
                 onClick={() => navigate(`/brand/${brand.id}`)}
+                onDelete={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  handleBrandDelete(brand.id)
+                }}
               />
             ))}
           </div>
@@ -187,7 +203,7 @@ export function AllInventoryPageComponent() {
   )
 }
 
-function BrandCard({ brand, onClick }) {
+function BrandCard({ brand, onClick, onDelete }) {
   return (
     <motion.div
       whileHover={{ scale: 1.05 }}
@@ -195,7 +211,11 @@ function BrandCard({ brand, onClick }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation()
+        e.preventDefault()
+        onClick(e)
+      }}
       className="cursor-pointer"
     >
       <Card className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow duration-300 group relative overflow-hidden">
@@ -211,11 +231,30 @@ function BrandCard({ brand, onClick }) {
           <div className="text-xs sm:text-sm text-slate-400 group-hover:text-purple-200 transition-colors duration-300">
             Items in stock: {brand.count}
           </div>
-          <div className="text-xs sm:text-sm text-blue-400 mt-1 group-hover:text-purple-200 transition-colors duration-300">
-          RS. {brand.stock?.toFixed(2)}
+          <div className="flex justify-between">
+            <div className="text-xs sm:text-sm text-blue-400 mt-1 group-hover:text-purple-200 transition-colors duration-300">
+              RS. {brand.stock?.toFixed(2)}
+            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Trash2 size={16} className="text-red-500 hover:text-red-700" onClick={(e) => e.stopPropagation()} />
+              </DialogTrigger>
+              <DialogContent className="bg-slate-800 text-white">
+                <DialogHeader>
+                  <DialogTitle>Are you absolutely sure?</DialogTitle>
+                  <DialogDescription className="text-slate-300">
+                    This action cannot be undone. This will permanently delete your transaction and remove your data from our servers.
+                  </DialogDescription>
+                </DialogHeader>
+                <Button type="button" className="w-full bg-red-600 mt-6 hover:bg-red-700 text-white" onClick={onDelete}>
+                  Delete Transaction
+                </Button>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>
     </motion.div>
   )
 }
+  

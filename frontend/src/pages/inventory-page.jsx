@@ -1,15 +1,15 @@
-'use client';
+"use client"
 
-import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
+import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Smartphone, ArrowLeft, Search, Plus } from 'lucide-react'
-import useAxios from '../utils/useAxios'
-import Sidebar from '../components/sidebar';
+import { Smartphone, ArrowLeft, Search, Plus, Trash2 } from "lucide-react"
+import useAxios from "../utils/useAxios"
+import Sidebar from "../components/sidebar"
 import {
   Dialog,
   DialogContent,
@@ -25,22 +25,22 @@ export function InventoryPageComponent() {
   const navigate = useNavigate()
   const [brands, setBrands] = useState([])
   const [filteredBrands, setFilteredBrands] = useState([])
-  const [searchTerm, setSearchTerm] = useState('')
+  const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [newBrandName, setNewBrandName] = useState('')
+  const [newBrandName, setNewBrandName] = useState("")
 
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const response = await api.get('inventory/brand/')
+        const response = await api.get("inventory/brand/")
         setBrands(response.data)
         setFilteredBrands(response.data)
         setLoading(false)
       } catch (err) {
-        console.error('Error fetching brands:', err)
-        setError('Failed to load brands')
+        console.error("Error fetching brands:", err)
+        setError("Failed to load brands")
         setLoading(false)
       }
     }
@@ -49,9 +49,7 @@ export function InventoryPageComponent() {
   }, [])
 
   useEffect(() => {
-    const results = brands.filter(brand =>
-      brand.name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    const results = brands.filter((brand) => brand.name.toLowerCase().includes(searchTerm.toLowerCase()))
     setFilteredBrands(results)
   }, [searchTerm, brands])
 
@@ -59,39 +57,55 @@ export function InventoryPageComponent() {
     setSearchTerm(event.target.value)
   }
 
+  const handleBrandDelete = async (brandId) => {
+    try {
+      await api.delete(`inventory/brand/${brandId}/`)
+      // Update brands after deletion
+      const updatedBrands = brands.filter((b) => b.id !== brandId)
+      setBrands(updatedBrands)
+      setFilteredBrands(updatedBrands)
+    } catch (error) {
+      console.error("Error deleting brand:", error)
+    }
+  }
+
   const handleAddBrand = async (e) => {
     e.preventDefault()
     try {
-      const response = await api.post('inventory/brand/', { name: newBrandName })
-      console.log('New Brand Added:', response.data)
-      setBrands([...brands, response.data])
-      setFilteredBrands([...filteredBrands, response.data])
-      setNewBrandName('')
+      const response = await api.post("inventory/brand/", { name: newBrandName })
+      console.log("New Brand Added:", response.data)
+      const updatedBrands = [...brands, response.data]
+      setBrands(updatedBrands)
+      setFilteredBrands(updatedBrands)
+      setNewBrandName("")
       setIsDialogOpen(false)
     } catch (error) {
-      console.error('Error adding brand:', error)
+      console.error("Error adding brand:", error)
     }
   }
-  filteredBrands.sort((a, b) => a.name.localeCompare(b.name));
 
+  // Sort brands by name before rendering
+  filteredBrands.sort((a, b) => a.name.localeCompare(b.name))
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
-      Loading...
-    </div>
-  )
+  if (loading)
+    return (
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
+        Loading...
+      </div>
+    )
 
-  if (error) return (
-    <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-red-500">
-      {error}
-    </div>
-  )
+  if (error)
+    return (
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-red-500">
+        {error}
+      </div>
+    )
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
       <Sidebar />
       <div className="flex-1 lg:ml-64 overflow-auto relative p-8 lg:p-6">
-        <div className="max-w-6xl  mx-auto">
+        <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -113,9 +127,9 @@ export function InventoryPageComponent() {
               </div>
 
               <Button
-                onClick={() => navigate('/mobile/')}
+                onClick={() => navigate("/mobile/")}
                 variant="outline"
-                className="w-full sm:w-auto text-black  border-white hover:bg-gray-700 hover:text-white"
+                className="w-full sm:w-auto text-black border-white hover:bg-gray-700 hover:text-white"
               >
                 <ArrowLeft className="mr-2 h-4 w-3" />
                 Back to Dashboard
@@ -129,6 +143,12 @@ export function InventoryPageComponent() {
                 key={brand.id}
                 brand={brand}
                 onClick={() => navigate(`/mobile/brand/${brand.id}`)}
+                // Pass the delete handler as a prop.
+                onDelete={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  handleBrandDelete(brand.id)
+                }}
               />
             ))}
           </div>
@@ -187,7 +207,8 @@ export function InventoryPageComponent() {
   )
 }
 
-function BrandCard({ brand, onClick }) {
+// The BrandCard component now accepts an "onDelete" prop.
+function BrandCard({ brand, onClick, onDelete }) {
   return (
     <motion.div
       whileHover={{ scale: 1.05 }}
@@ -195,7 +216,11 @@ function BrandCard({ brand, onClick }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation()
+        e.preventDefault()
+        onClick(e)
+      }}
       className="cursor-pointer"
     >
       <Card className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow duration-300 group relative overflow-hidden">
@@ -211,11 +236,32 @@ function BrandCard({ brand, onClick }) {
           <div className="text-xs sm:text-sm text-slate-400 group-hover:text-purple-200 transition-colors duration-300">
             Items in stock: {brand.items}
           </div>
-          <div className="text-xs sm:text-sm text-blue-400 mt-1 group-hover:text-purple-200 transition-colors duration-300">
-          RS. {brand.stock?.toFixed(2)}
+          <div className="flex justify-between">
+            <div className="text-xs sm:text-sm text-blue-400 mt-1 group-hover:text-purple-200 transition-colors duration-300">
+              RS. {brand.stock?.toFixed(2)}
+            </div>
+            {/* Delete button calls the onDelete function passed as a prop */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Trash2 size={16} className="text-red-500 hover:text-red-700" onClick={(e) => e.stopPropagation()} />
+              </DialogTrigger>
+              <DialogContent className="bg-slate-800 text-white">
+                <DialogHeader>
+                  <DialogTitle>Are you absolutely sure?</DialogTitle>
+                  <DialogDescription className="text-slate-300">
+                    This action cannot be undone. This will permanently delete your transaction and remove your data
+                    from our servers.
+                  </DialogDescription>
+                </DialogHeader>
+                <Button type="button" className="w-full bg-red-600 mt-6 hover:bg-red-700 text-white" onClick={onDelete}>
+                  Delete Transaction
+                </Button>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>
     </motion.div>
   )
 }
+

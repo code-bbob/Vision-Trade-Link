@@ -39,6 +39,13 @@ class BrandView(APIView):
             serializer.save()
             return Response(serializer.data)
         
+    def delete(self,request,id):
+        if request.user.person.role != "Admin":
+            return Response("UNAUTHORIZED")
+        brand = Brand.objects.get(id=id)
+        brand.delete()
+        return Response("DELETED")
+        
 class PhoneView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -55,7 +62,14 @@ class PhoneView(APIView):
             #print("YAHA SAMMAAA")
             serializer.save()
             return Response(serializer.data)
-        
+    
+    def delete(self,request,id):
+        print(request.user.person.role)
+        if request.user.person.role != "Admin":
+            return Response("UNAUTHORIZED")
+        phone = Phone.objects.get(id=id)
+        phone.delete()
+        return Response("DELETED")
 
 class PhoneIMEIView(APIView):
 
