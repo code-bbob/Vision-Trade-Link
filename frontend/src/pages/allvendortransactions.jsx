@@ -34,7 +34,7 @@ export default function AllVendorTransactions() {
     setLoading(true)
     try {
       const response = await api.get(url)
-      console.log(response)
+      // console.log(response)
       setTransactions(response.data.results)
       setMetadata({
         next: response.data.next,
@@ -54,7 +54,7 @@ export default function AllVendorTransactions() {
     try {
       const response = await api.get("alltransaction/vendortransaction/")
       setTransactions(response.data.results)
-      console.log(response.data.results)
+      // console.log(response.data.results)
       setMetadata({
         next: response.data.next,
         previous: response.data.previous,
@@ -119,7 +119,7 @@ export default function AllVendorTransactions() {
   }
 
   useEffect(() => {
-    console.log('Transactions updated:', transactions)
+    // console.log('Transactions updated:', transactions)
   }, [transactions])
 
   if (loading) {
