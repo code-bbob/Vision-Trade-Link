@@ -152,14 +152,14 @@ class VendorTransactions(models.Model):
     
     @transaction.atomic
     def delete(self, *args, **kwargs):
-        #print("Delete method called for VendorTransaction")
-        #print(self.vendor.due)
+        print("Delete method called for VendorTransaction")
+        print(self.vendor.due)
         self.vendor.due = self.vendor.due + self.amount
-        vendor = self.vendor.id
+        print(self.vendor.due)
         self.vendor.save() 
-        #print(self.vendor.due)#ya samma thik xa uta xaina
+        print(self.vendor.due)#ya samma thik xa uta xaina
         super().delete(*args, **kwargs)
-        vendor = Vendor.objects.get(id=vendor)
+        # vendor = Vendor.objects.get(id=vendor)
         #print(vendor.due)
 
     

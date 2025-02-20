@@ -28,7 +28,7 @@ export default function AllVendorBrand() {
         const response = await api.get(`alltransaction/vendorbrand/${id}/`)
         setPhones(response.data)
         setFilteredPhones(response.data)
-        setBrandName(response.data[0].brand_name)
+        setBrandName(response?.data[0]?.brand_name)
         setLoading(false)
       } catch (err) {
         console.error('Error fetching brand phones:', err)
@@ -66,6 +66,7 @@ export default function AllVendorBrand() {
       </div>
     )
   }
+  filteredPhones.sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col md:flex-row">
@@ -134,7 +135,7 @@ export default function AllVendorBrand() {
             transition={{ duration: 0.5 }}
             className="text-center text-white mt-8"
           >
-            No phones found matching your search.
+            No products found matching your search.
           </motion.div>
         )}
       </div>

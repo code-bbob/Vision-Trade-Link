@@ -34,6 +34,7 @@ export default function AllVendorTransactions() {
     setLoading(true)
     try {
       const response = await api.get(url)
+      console.log(response)
       setTransactions(response.data.results)
       setMetadata({
         next: response.data.next,
@@ -71,6 +72,11 @@ export default function AllVendorTransactions() {
   useEffect(() => {
     fetchInitData()
   }, [])
+
+  const handlePurchaseClick = (e, id) => {
+    e.stopPropagation()
+    navigate(`/purchases/editform/${id}`)
+  }
 
   const handleSearch = async (e) => {
     e.preventDefault()
@@ -202,7 +208,7 @@ export default function AllVendorTransactions() {
                 <CardHeader className="border-b border-slate-700">
                   <CardTitle className="text-lg lg:text-xl font-medium text-white flex flex-col lg:flex-row justify-between items-start lg:items-center">
                     <div>
-                      <p className='text-sm'> {format(new Date(transaction.cashout_date), 'dd MMM yyyy')}</p>
+                      <p className='text-sm'> {transaction.cashout_date}</p>
                       <p className='text-sm text-gray-400'>Cheque No: {transaction.cheque_number || 'N/A'}</p>
                     </div>
                     <span className="mt-2 lg:mt-0">{transaction.vendor_name}</span>
@@ -212,7 +218,10 @@ export default function AllVendorTransactions() {
                 <CardContent className="pt-4">
                   <div className="mb-4 last:mb-0 p-3 lg:p-4 bg-slate-800 rounded-lg hover:bg-slate-750 transition-colors duration-300">
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-2">
-                        <span className='text-white'>{transaction.desc}</span>
+                        <span className='text-white'>{transaction.desc} </span>
+                        <p className="text-blue-500 hover:text-blue-800" onClick={(e)=>{handlePurchaseClick(e, transaction.purchase_transaction)}}>
+                      Purchase Transaction: {transaction.purchase_transaction}
+                    </p>
                       <span className="text-purple-400 text-sm">Method: {transaction.method}</span>
                     </div>
                   </div>

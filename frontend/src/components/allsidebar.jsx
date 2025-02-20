@@ -50,6 +50,7 @@ export default function Sidebar() {
   const menuItems = [
     { title: 'Inventory', icon: Container, path: '/inventory' },
     { title: 'Purchases', icon: ShoppingCart, path: '/purchases' },
+    { title: 'PurchaseReturn', icon: ShoppingCart, path: '/purchase-returns' },
     { title: 'Sales', icon: TrendingUp, path: '/sales' },
     { title: 'SalesReport', icon: TrendingUp, path: '/sales-report' },
     { title: 'Vendors', icon: BookUser, path: '/vendors' },

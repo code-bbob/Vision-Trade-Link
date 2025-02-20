@@ -415,7 +415,11 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
             if old_method != new_method or old_vendor != new_vendor:
                 old_vt = VendorTransactions.objects.filter(purchase_transaction=instance).first()
                 if old_vt:
+                    print("before due",old_vendor.due)
                     old_vt.delete()
+                    old_vendor.refresh_from_db()
+                    new_vendor.refresh_from_db()
+                    print("after delete due is ",old_vendor.due)
 
                 # Create new vendor transaction if new_method is cash or cheque
                 if new_method == 'cash':
@@ -428,6 +432,8 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
                         'purchase_transaction': instance,
                         'enterprise': instance.enterprise
                     })
+                    print("New method is cash")
+                    print("after_due is ",new_vendor.due)
                 elif new_method == 'cheque':
                     VendorTransactionSerialzier().create({
                         'vendor': new_vendor,
@@ -440,6 +446,8 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
                         'purchase_transaction': instance,
                         'enterprise': instance.enterprise
                     })
+                    print("New method is cheque")
+                    print("after_due is ",new_vendor.due)
 
             else:
                 # Same method, same vendor => update existing vendor transaction amount if total changed
@@ -737,7 +745,7 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
             purchase.purchase_return = purchase_return
             purchase.returned = True
             purchase.save()
-            total_unit_price += purchase.unit_price
+            total_unit_price += purchase.unit_price * purchase.quantity
             product = purchase.product
             product.count = (product.count - purchase.quantity) if product.count is not None else purchase.quantity
             product.save()
@@ -758,7 +766,7 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
         for purchase in purchase_ids:
             purchase.returned = False
             purchase.save()
-            total_unit_price += purchase.unit_price
+            total_unit_price += purchase.unit_price * purchase.quantity
             purchase.product.quantity = (purchase.product.count + purchase.quantity) if purchase.product.count is not None else purchase.quantity
             purchase.product.save()
             

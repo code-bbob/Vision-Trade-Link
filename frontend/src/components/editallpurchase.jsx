@@ -337,19 +337,19 @@ function EditAllPurchaseTransactionForm() {
       formData.bill_no !== originalPurchaseData.bill_no?.toString() ||
       formData.purchase.length !== originalPurchaseData.purchase.length ||
       formData.method !== originalPurchaseData.method ||
-      formData.cheque_number !== originalPurchaseData.cheque_number 
-      // formData.cashout_date !== originalPurchaseData.cashout_date 
-      // formData.purchase.some((purchase, index) => {
-      //   const originalPurchase = originalPurchaseData.purchase[index];
-      //   return (
-      //     purchase.product !== originalPurchase.product.toString() ||
-      //     purchase.imei_number !== originalPurchase.imei_number ||
-      //     purchase.unit_price !== originalPurchase.unit_price.toString() ||
-      //       purchase.quantity !== originalPurchase.quantity.toString() ||
-      //       purchase.total_price !== originalPurchase.total_price.toString()
+      formData.cheque_number !== originalPurchaseData.cheque_number ||
+      formData.cashout_date !== originalPurchaseData.cashout_date ||
+      formData.purchase.some((purchase, index) => {
+        const originalPurchase = originalPurchaseData.purchase[index];
+        return (
+          purchase.product !== originalPurchase.product.toString() ||
+          purchase.imei_number !== originalPurchase.imei_number ||
+          purchase.unit_price !== originalPurchase.unit_price.toString() ||
+            purchase.quantity !== originalPurchase.quantity.toString() ||
+            purchase.total_price !== originalPurchase.total_price.toString()
 
-      //   );
-      // })
+        );
+      })
     );
   };
 
