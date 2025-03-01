@@ -362,16 +362,23 @@ class StatsView(APIView):
                 dailystamt = (st.total_amount + dailystamt) if st.total_amount else dailystamt
 
         daily_profit = 0
-        # for sale in dailysales:
+        for sale in dailysales:
+            product = sale.product
+            daily_profit += sale.unit_price - product.unit_price
         #     purchase = Purchase.objects.filter(imei_number = sale.imei_number).first()
         #     if purchase:
         #         daily_profit += sale.unit_price - purchase.unit_price
+
+        daily_profit = dailystamt-dailyptamt
         
         monthly_profit = 0
+        
         # for sale in monthlysales:
         #     purchase = Purchase.objects.filter(imei_number = sale.imei_number).first()
         #     if purchase:
         #         monthly_profit += sale.unit_price - purchase.unit_price
+
+        monthly_profit = stamt - ptamt
         
         stat = { 
             "enterprise" : enterprise.name,

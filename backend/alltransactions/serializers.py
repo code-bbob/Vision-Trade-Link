@@ -500,7 +500,7 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
             saleobj = Sales.objects.create(sales_transaction=transaction, **sale)
             product = saleobj.product
             product.count = (product.count - saleobj.quantity) if product.stock is not None else saleobj.quantity
-            product.stock = product.stock - saleobj.quantity*product.unit_price
+            product.stock = (product.stock - saleobj.quantity*product.unit_price) if product.stock is not None else saleobj.quantity*product.unit_price
             brand = product.brand
             brand.count = (brand.count - saleobj.quantity) if brand.stock is not None else saleobj.quantity
             brand.stock = brand.stock - saleobj.quantity*product.unit_price

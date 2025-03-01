@@ -21,6 +21,7 @@ const SalesReport = () => {
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
+  const [searchPhone, setSearchPhone] = useState("")
   const api = useAxios()
   const navigate = useNavigate()
 
@@ -48,6 +49,7 @@ const SalesReport = () => {
   const handleSearch = async (e) => {
     e.preventDefault()
     const params = { search: searchTerm }
+    if (searchPhone) params.phone = searchPhone
     if (startDate) params.start_date = startDate
     if (endDate) params.end_date = endDate
     fetchSalesData(params)
@@ -92,6 +94,15 @@ const SalesReport = () => {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  const handleSearchPhone = async (e) => {
+    e.preventDefault()
+    const params = { phone: searchPhone }
+  if (searchTerm) params.search = searchTerm
+    if (startDate) params.start_date = startDate
+    if (endDate) params.end_date = endDate
+    fetchSalesData(params)
   }
   
   const handleDownloadPDF = () => {
@@ -171,6 +182,19 @@ const SalesReport = () => {
                   placeholder="Search brand..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-full lg:w-64 bg-slate-700 text-white border-gray-600 focus:border-purple-500 focus:ring-purple-500"
+                />
+              </div>
+            </form>
+
+            <form onSubmit={handleSearchPhone} className="w-full lg:w-auto">
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search phone..."
+                  value={searchPhone}
+                  onChange={(e) => setSearchPhone(e.target.value)}
                   className="pl-10 w-full lg:w-64 bg-slate-700 text-white border-gray-600 focus:border-purple-500 focus:ring-purple-500"
                 />
               </div>

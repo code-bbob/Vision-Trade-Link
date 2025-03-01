@@ -95,7 +95,7 @@ export default function BarCh() {
   };
 
   return (
-    <div className="flex h-full flex-col md:flex-row bg-gradient-to-br from-slate-900 to-slate-800">
+    <div className="flex flex-col h-screen w-screen md:flex-row bg-gradient-to-br from-slate-900 to-slate-800">
       <Sidebar className="w-full md:w-64 md:min-h-screen" />
       <div className="lg:ml-64 flex flex-col items-center w-full justify-center p-4 md:p-6">
         <form
