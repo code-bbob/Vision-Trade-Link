@@ -59,6 +59,7 @@ const SalesReport = () => {
     e.preventDefault()
     const params = { start_date: startDate, end_date: endDate }
     if (searchTerm) params.search = searchTerm
+    if (searchPhone) params.phone = searchPhone
     fetchSalesData(params)
   }
 
