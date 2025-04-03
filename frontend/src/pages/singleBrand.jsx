@@ -78,7 +78,10 @@ export default function BrandPhones() {
     }
   }
 
-  filteredPhones.sort((a, b) => a.name.localeCompare(b.name))
+  // Sort phones by name first
+  filteredPhones.sort((a, b) => a.name.localeCompare(b.name));
+  // Then sort by quantity so that lowest quantities appear at the top
+  filteredPhones.sort((a, b) => b.quantity - a.quantity);
 
   if (loading) {
     return (

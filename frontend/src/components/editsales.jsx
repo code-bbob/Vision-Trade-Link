@@ -80,9 +80,9 @@ export default function EditSalesTransactionForm() {
             unit_price: s.unit_price.toString()
           }))
         });
+        setLoading(false);
         setOpenPhone(new Array(salesResponse.data.sales.length).fill(false));
         setOpenIMEI(new Array(salesResponse.data.sales.length).fill(false));
-        setLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
         setError('Failed to fetch data');
