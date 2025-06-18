@@ -5,29 +5,34 @@ import random
 
 class Brand(models.Model):
     name = models.CharField(max_length=20)
-    stock = models.FloatField(null=True,blank=True)
-    count = models.IntegerField(null=True,blank=True)
+    stock = models.FloatField(null=True,blank=True,default=0)
+    count = models.IntegerField(null=True,blank=True,default=0)
     enterprise = models.ForeignKey('enterprise.Enterprise', on_delete=models.CASCADE,related_name='all_brand')
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE,related_name='all_brand')
     
     def __str__(self):
         return self.name
 
 class Product(models.Model):
     name = models.CharField(max_length=30)
-    uid = models.CharField(max_length = 12,blank=True,unique=True) 
+    uid = models.CharField(max_length = 12,blank=True) 
     # quantity = models.IntegerField(null=True,blank=True)
-    unit_price = models.FloatField(null=True,blank=True)
+    cost_price = models.FloatField(null=True,blank=True)
+    selling_price = models.FloatField(null=True,blank=True)
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
-    stock = models.IntegerField(null=True,blank=True)
-    count = models.IntegerField(null=True,blank=True)
+    stock = models.IntegerField(null=True,blank=True,default=0)
+    count = models.IntegerField(null=True,blank=True,default=0)
+    # vendor = models.ForeignKey('alltransactions.Vendor', on_delete=models.CASCADE,related_name='all_product')
     enterprise = models.ForeignKey('enterprise.Enterprise', on_delete=models.CASCADE,related_name='all_product')
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE,related_name='all_product')
     def __str__(self):
         return self.name    
     
     def save(self,*args, **kwargs):
 
         if self.pk is None:
-            self.uid = self.generate_unique_uid()
+            if self.uid is None or self.uid == '':
+                self.uid = self.generate_unique_uid()
         super().save(*args, **kwargs)
     
 

@@ -23,6 +23,8 @@ class Enterprise(models.Model):
 class Person(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,primary_key=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
+    branch = models.ForeignKey('Branch', on_delete=models.CASCADE, null=True, blank=True)
+
     ROLE_CHOICES = [
         ('Admin', 'Admin'),
         ('Staff', 'Staff'),
@@ -33,4 +35,10 @@ class Person(models.Model):
         return f"{self.user.name} - {self.role} at {self.enterprise.name}"
     
 
-      
+
+
+class Branch(models.Model):
+    name = models.CharField(max_length=20)
+    enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='branch')
+    def __str__(self):
+        return self.name

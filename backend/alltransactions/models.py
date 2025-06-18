@@ -1,30 +1,26 @@
 from django.db import models
 from allinventory.models import Brand
-from enterprise.models import Enterprise
+from enterprise.models import Enterprise,Branch
 from django.db import transaction
-
-# Create your models here.
-
 
 class Vendor(models.Model):
     name = models.CharField(max_length=20)
     phone_number = models.CharField(max_length=10,null=True,blank=True)
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True, blank=True)
     due = models.FloatField(null=True,blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='all_vendor')
 
     def __str__(self):
         return self.name
-    
-
-
 
 class PurchaseTransaction(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='all_purchase_transaction')
+    branch = models.ForeignKey(Branch,related_name='purchase_transaction',on_delete=models.CASCADE)
     bill_no = models.CharField(max_length=20)
     total_amount = models.FloatField(null=True,blank=True)
-    date = models.DateTimeField()
+    date = models.DateField()
     method = models.CharField(max_length=20,choices=(('cash','Cash'),('credit','Credit'),('cheque','Cheque')),default='credit')
     cheque_number = models.CharField(max_length=10,null=True,blank=True)
     cashout_date = models.DateField(null=True)
@@ -51,6 +47,7 @@ class PurchaseTransaction(models.Model):
 class PurchaseReturn(models.Model):
     date = models.DateField(auto_now_add=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='all_purchase_return')
+    branch = models.ForeignKey(Branch,related_name='purchase_return',on_delete=models.CASCADE)
     purchase_transaction = models.ForeignKey(PurchaseTransaction, on_delete=models.CASCADE,related_name='purchase_return')
     
 class Purchase(models.Model):
@@ -84,21 +81,24 @@ class Purchase(models.Model):
         # Call save again to update the quantity field
         super().save()
 
-
 class SalesTransaction(models.Model):
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='all_sales_transaction')
-    name = models.CharField(max_length=20)
-    phone_number = models.CharField(max_length=10)
+    name = models.CharField(max_length=20,null=True,blank=True)
+    phone_number = models.CharField(max_length=10,null=True,blank=True)
     total_amount = models.FloatField(null=True,blank=True)
-    date = models.DateTimeField()
-    method = models.CharField(max_length=20,choices=(('cash','Cash'),('credit','Credit'),('cheque','Cheque')),default='credit')
+    date = models.DateField()
     bill_no = models.IntegerField()
+    branch = models.ForeignKey(Branch,related_name='sales_transaction',on_delete=models.CASCADE)
+    discount = models.FloatField(null=True,blank=True)
+    subtotal = models.FloatField(null=True,blank=True)
+    method = models.CharField(max_length=20,choices=(('cash','cash'),('online','online'),('card','card')),default='cash')
     def __str__(self):
         return f"Sales Transaction {self.pk} of {self.enterprise.name}"
     
     def calculate_total_amount(self):
         total = sum(sales.total_price for sales in self.sales.all())
-        self.total_amount = total
+        self.total_amount = total - self.discount   
+
         self.save()
         return self.total_amount
     
@@ -106,12 +106,19 @@ class SalesTransaction(models.Model):
         if self.pk is None:
             super().save(*args, **kwargs)
         
-        # Now the instance is saved, we can safely filter related Items
-        #print("Calculating quantity......................")
-        self.total_amount = Sales.objects.filter(sales_transaction=self).aggregate(models.Sum('total_price'))['total_price__sum']
+        # # Now the instance is saved, we can safely filter related Items
+        # #print("Calculating quantity......................")
+        # self.total_amount = Sales.objects.filter(sales_transaction=self).aggregate(models.Sum('total_price'))['total_price__sum']
 
-        # Call save again to update the quantity field
+        # # Call save again to update the quantity field
         super().save()
+
+
+class SalesReturn(models.Model):
+    date = models.DateField(auto_now_add=True)
+    enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='sales_return')
+    branch = models.ForeignKey(Branch,related_name='sales_return',on_delete=models.CASCADE)
+    sales_transaction = models.ForeignKey(SalesTransaction, on_delete=models.CASCADE,related_name='sales_return')
     
 class Sales(models.Model):
     product = models.ForeignKey('allinventory.Product', on_delete=models.CASCADE)
@@ -119,6 +126,14 @@ class Sales(models.Model):
     unit_price = models.FloatField()
     total_price = models.FloatField(null=True,blank=True)
     sales_transaction = models.ForeignKey(SalesTransaction, on_delete=models.CASCADE,related_name='sales')
+    returned = models.BooleanField(default=False)
+    sales_return = models.ForeignKey(
+        SalesReturn,
+        on_delete=models.SET_NULL,   # or CASCADE
+        null=True,
+        blank=True,
+        related_name='sales'
+    )
     
     def __str__(self):
         return self.product.name
@@ -136,7 +151,7 @@ class Sales(models.Model):
 
 class VendorTransactions(models.Model):
 
-    date = models.DateTimeField()
+    date = models.DateField()
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE,related_name='allvendors')
     amount = models.FloatField(null=True,blank=True)
     method = models.CharField(max_length=20,choices=(('cash','Cash'),('credit','Credit'),('cheque','Cheque')),default='cash')
@@ -144,8 +159,10 @@ class VendorTransactions(models.Model):
     cashout_date = models.DateField(null=True)
     enterprise = models.ForeignKey('enterprise.Enterprise', on_delete=models.CASCADE,related_name='all_vendor_transactions')
     desc = models.CharField(max_length=50)
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, null=True, blank=True)
     purchase_transaction = models.ForeignKey(PurchaseTransaction, on_delete=models.CASCADE,related_name="vendor_transaction",null=True,blank=True)
-
+    base = models.BooleanField(default=False)
+    type = models.CharField(max_length=20,choices=(('base','base'),('return','return'),('payment','payment')),default='base')
     
     def __str__(self):
         return f"Vendor Transaction {self.pk} of {self.vendor.name}"
@@ -159,7 +176,46 @@ class VendorTransactions(models.Model):
         self.vendor.save() 
         print(self.vendor.due)#ya samma thik xa uta xaina
         super().delete(*args, **kwargs)
-        # vendor = Vendor.objects.get(id=vendor)
-        #print(vendor.due)
 
+
+
+class Staff(models.Model):
+    name = models.CharField(max_length=20)
+    phone_number = models.CharField(max_length=10,null=True,blank=True)
+    due = models.FloatField(null=True,blank=True)
+    enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='staff')
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+    
+
+
+class StaffTransactions(models.Model):
+
+    date = models.DateField()
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE,related_name='staff_transaction')
+    amount = models.FloatField(null=True,blank=True)
+    enterprise = models.ForeignKey('enterprise.Enterprise', on_delete=models.CASCADE,related_name='all_staff_transactions')
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, null=True, blank=True)
+    desc = models.CharField(max_length=50)
+    
+    def __str__(self):
+        return f"Staff Transaction {self.pk} of {self.staff.name}"
+    
+    @transaction.atomic
+    def delete(self, *args, **kwargs):
+        self.staff.due = self.staff.due + self.amount
+        self.staff.save() 
+        super().delete(*args, **kwargs)
+
+
+class Customer(models.Model):
+    name = models.CharField(max_length=20)
+    phone_number = models.CharField(primary_key=True,max_length=10,blank=True)
+    total_spent = models.FloatField(null=True,blank=True)
+    enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='customers')
+
+    def __str__(self):
+        return self.name
     

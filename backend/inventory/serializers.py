@@ -16,7 +16,7 @@ class BrandSerializer(serializers.ModelSerializer):
         items = Item.objects.filter(phone__brand = obj)
         amount = 0
         for item in items:
-            amount = (amount + item.phone.unit_price) if item.phone.unit_price else amount
+            amount = (amount + item.phone.selling_price) if item.phone.selling_price else amount
         return amount
 
 

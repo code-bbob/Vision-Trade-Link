@@ -1,4 +1,4 @@
-from rest_framework.serializers import ModelSerializer
+from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from .models import Brand, Product
 
 class BrandSerializer(ModelSerializer):
@@ -7,7 +7,11 @@ class BrandSerializer(ModelSerializer):
         fields = '__all__'
     
 class ProductSerializer(ModelSerializer):
+    brandName = SerializerMethodField()
     class Meta:
         model = Product
         fields = '__all__'
+    def get_brandName(self,obj):
+        return obj.brand.name
+
 

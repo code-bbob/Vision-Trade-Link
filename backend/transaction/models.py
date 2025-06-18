@@ -10,6 +10,7 @@ class Vendor(models.Model):
     due = models.FloatField(null=True, blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
     cashback = models.FloatField(null=True,blank=True)
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='vendor_branch',null=True,blank=True)
 
     def __str__(self):
         return self.name
@@ -28,6 +29,7 @@ class PurchaseTransaction(models.Model):
     method = models.CharField(max_length=10,choices=[('cash','Cash'),('cheque','Cheque'),('credit','Credit')],default='credit')
     cheque_number = models.CharField(max_length=10,null=True,blank=True)
     cashout_date = models.DateField(null=True)
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='purchase_transaction_branch',null=True,blank=True)
 
     def calculate_total_amount(self):
         total = sum(purchase.unit_price for purchase in self.purchase.all())
@@ -50,6 +52,7 @@ class PurchaseReturn(models.Model):
     date = models.DateField(auto_now_add=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
     purchase_transaction = models.ForeignKey(PurchaseTransaction, on_delete=models.CASCADE,related_name='purchase_return')
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='purchase_return_branch',null=True,blank=True)
     # phone = models.ForeignKey(Phone, on_delete=models.CASCADE)
     # imei_number = models.CharField(max_length=15)
     # purchase = models.ForeignKey(Purchase,related_name='purchase_return', on_delete=models.CASCADE,blank=True)
@@ -115,6 +118,7 @@ class SalesTransaction(models.Model):
     total_amount = models.FloatField(null=True, blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
     bill_no = models.CharField(max_length=10,null = True)
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='sales_transaction_branch',null=True,blank=True)
 
     def calculate_total_amount(self):
         #print("Ya samma ayo")
@@ -268,6 +272,7 @@ class Scheme(models.Model):
     receivable = models.IntegerField(null = True)
     brand = models.ForeignKey(Brand, related_name="scheme_brand", on_delete=models.CASCADE)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='scheme_branch',null=True,blank=True)
 
     def calculate_receivable(self):
         sales = self.sales.all()
@@ -352,6 +357,7 @@ class PriceProtection(models.Model):
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE, related_name='pp_brand')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
     receivable = models.FloatField(null=True)
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='price_protection_branch',null=True,blank=True)
         
 
      

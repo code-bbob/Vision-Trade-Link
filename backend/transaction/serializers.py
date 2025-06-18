@@ -193,7 +193,7 @@ class VendorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Vendor
-        fields = ['id','name', 'brand', 'brand_name', 'due', 'enterprise', 'enterprise_name']
+        fields = ['id','name', 'brand', 'brand_name', 'due', 'enterprise', 'enterprise_name','branch']
     
     def get_brand_name(self, obj):
         return obj.brand.name
@@ -217,7 +217,7 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SalesTransaction
-        fields = ['id','date', 'total_amount', 'sales','enterprise','name','phone_number','bill_no']
+        fields = ['id','date', 'total_amount', 'sales','enterprise','name','phone_number','bill_no','branch']
 
     def create(self, validated_data):
         sales_data = validated_data.pop('sales')
@@ -348,7 +348,7 @@ class SchemeSerializer(serializers.ModelSerializer):
     brand_name = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = Scheme
-        fields = ['id','from_date','to_date','phone','enterprise','subscheme','phone_name','receivable','sold','brand','brand_name','status']
+        fields = ['id','from_date','to_date','phone','enterprise','subscheme','phone_name','receivable','sold','brand','brand_name','status','branch']
 
     def create(self, validated_data):
         #print("YAHA SAMMA")
@@ -584,6 +584,7 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
             'id',
             'date',
             'enterprise',
+            'branch',
             'purchase_transaction',
             'purchase_transaction_id',  # for write
             'purchases',       # for read
@@ -619,6 +620,11 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
             item.delete()
             phone.calculate_quantity()
 
+        #update brand stock if needed
+        if phone.brand:
+            phone.brand.stock -= phone.selling_price
+            phone.brand.save()
+
         # Update vendor dues if needed
         if vendor.due is None:
             vendor.due = 0
@@ -638,7 +644,10 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
             total_unit_price += purchase.unit_price
             item = Item.objects.create(imei_number=purchase.imei_number,phone=purchase.phone)
             purchase.phone.calculate_quantity()
-            
+            print(purchase.phone.brand.stock)
+            purchase.phone.brand.stock += purchase.phone.selling_price
+            purchase.phone.brand.save()
+            print(purchase.phone.brand.stock)
         vendor.due += total_unit_price
         vendor.save()
         instance.delete()

@@ -9,6 +9,8 @@ from barcode import EAN13
 from barcode.writer import SVGWriter
 import io
 from django.http import FileResponse
+from enterprise.models import Branch
+
 
 
 # Create your views here.
@@ -16,18 +18,20 @@ from django.http import FileResponse
 class BrandView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self,request,*args, **kwargs):
+    def get(self,request,branch=None,*args, **kwargs):
         id = request.GET.get("id")
         if id:
             brand = Brand.objects.get(id=id)
             phones = Phone.objects.filter(brand = brand)
-            #print(phones)
             if phones:
                 serializer = PhoneSerializer(phones,many=True)
                 return Response(serializer.data)
             else:
-                return Response("NONE")
+                return Response([])
+        brands=Brand.objects.all()
         brands = Brand.objects.filter(enterprise = request.user.person.enterprise)
+        if branch:
+            brands = brands.filter(branch=branch)
         serializer = BrandSerializer(brands,many=True)
         return Response(serializer.data)
 
@@ -49,14 +53,17 @@ class BrandView(APIView):
 class PhoneView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self,request,*args, **kwargs):
+    def get(self,request,branch=None,*args, **kwargs):
+        phones=Phone.objects.all()
         phones = Phone.objects.filter(brand__enterprise = request.user.person.enterprise)
+        if branch:
+            phones = phones.filter(branch=branch)
         serializer = PhoneSerializer(phones,many=True)
         return Response(serializer.data)
 
     def post(self,request,*args, **kwargs):
         data = request.data
-        # data["enterprise"] = request.user.person.enterprise.id
+        data["enterprise"] = request.user.person.enterprise.id
         serializer = PhoneSerializer(data=data)
         if serializer.is_valid(raise_exception = True):
             #print("YAHA SAMMAAA")
@@ -75,12 +82,17 @@ class PhoneIMEIView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self,request,id):
+    def get(self,request,id,branch=None):
         user = request.user
         phone = Phone.objects.filter(id = id).first()
+        if branch:
+            phone = phone.filter(branch=branch).first()
         #print(phone)
         items = Item.objects.filter(phone=phone)
+        if branch:
+            items = items.filter(branch=branch)
         imei_list = []
+
         for item in items:
             imei_list.append(item.imei_number)
             
@@ -96,3 +108,33 @@ def generate_barcode(request):
 
     print("BARCODE GENERATED")
     return FileResponse(buffer, content_type='image/svg+xml')
+
+
+
+class MergeBrandView(APIView):
+    def post(self,request,selfbranch,mergebranch,format=None):
+        
+        branch = Branch.objects.get(id=mergebranch)
+        print(branch.name)
+        # return Response("Merged")
+
+        for brand in Brand.objects.filter(branch=branch):
+            if brand.name in Brand.objects.filter(branch_id=selfbranch).values_list('name',flat=True):
+                continue
+            Brand.objects.create(name=brand.name,enterprise=brand.enterprise,branch_id=selfbranch)
+        return Response("Merged")
+
+class MergeProductBrandView(APIView):
+    def post(self,request,selfbranch,mergebranch,brand,format=None):
+        print("MERGING PRODUCTS")
+        brand = Brand.objects.get(id=brand)
+        phones = Phone.objects.filter(branch_id=mergebranch,brand__name__iexact=brand.name)
+        print("THERESASDSAD ",phones)
+        for phone in Phone.objects.filter(branch_id=mergebranch,brand__name__iexact=brand.name):
+            if Phone.objects.filter(branch_id=selfbranch, brand=brand, name__iexact=phone.name).exists():
+                print("HERE")
+                continue
+            p = Phone.objects.create(name=phone.name,enterprise=phone.enterprise,branch_id=selfbranch,cost_price=phone.cost_price,selling_price=phone.selling_price,brand_id=brand.id)
+            print("CREATED",p)
+            
+        return Response("Merged")

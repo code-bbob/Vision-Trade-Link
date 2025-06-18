@@ -9,16 +9,20 @@ class Brand(models.Model):
     name = models.CharField(max_length=20)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE, related_name="brand")
     stock = models.FloatField(null=True,blank=True)
-    
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='inventory_brand')
     def __str__(self):
         return self.name
 
 class Phone(models.Model):
     name = models.CharField(max_length=30)
     quantity = models.IntegerField(null=True)
-    unit_price = models.FloatField(null=True,blank=True)
+    # unit_price = models.FloatField(null=True,blank=True)
     # total_price = models.FloatField(null=True)
+    cost_price = models.FloatField(null=True,blank=True)
+    selling_price = models.FloatField(null=True,blank=True)
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
+    branch = models.ForeignKey('enterprise.Branch',on_delete=models.CASCADE, related_name='inventory_phone')
+    enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE, related_name='inventory_phone')
 
     def __str__(self):
         return self.name    
@@ -45,7 +49,6 @@ class Phone(models.Model):
 class Item(models.Model):
     imei_number = models.CharField(max_length=15,validators=[MinLengthValidator(15)])
     phone = models.ForeignKey(Phone, related_name="item",on_delete=models.CASCADE)
-
     def __str__(self):
         return self.phone.name
 

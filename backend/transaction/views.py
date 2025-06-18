@@ -22,14 +22,15 @@ from django.utils.timezone import make_aware,localtime
 class PurchaseTransactionView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request, branch=None):
         user = request.user
         enterprise = user.person.enterprise
         search = request.GET.get('search')
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
         transactions = PurchaseTransaction.objects.filter(enterprise=enterprise)
-        
+        if branch:
+            transactions = transactions.filter(branch=branch)
         if search:
             phone_transactions = transactions.filter(purchase__phone__name__icontains = search)
             vendor_trasactions = transactions.filter(vendor__name__icontains = search)
@@ -64,6 +65,7 @@ class PurchaseTransactionView(APIView):
     def post(self, request, *args, **kwargs):
         data = request.data
         data["enterprise"] = request.user.person.enterprise.id
+        print(data)
         
         # Only process the date if it's provided, otherwise, it will take the default value from the model.
         if "date" in data:
@@ -231,7 +233,7 @@ class PurchaseView(APIView):
 class SalesTransactionView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request,branch=None):
         user = request.user
         enterprise = user.person.enterprise
         user = request.user
@@ -241,6 +243,8 @@ class SalesTransactionView(APIView):
         end_date = request.GET.get('end_date')
 
         transactions = SalesTransaction.objects.filter(enterprise=enterprise)
+        if branch:
+            transactions = transactions.filter(branch=branch)
 
         if search:
             phone_transactions = transactions.filter(sales__phone__name__icontains = search)
@@ -304,10 +308,16 @@ class SalesView(APIView):
 class VendorView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request, branch=None):
         user = request.user
         enterprise = user.person.enterprise
         vendors = Vendor.objects.filter(enterprise=enterprise)
+        print("########################",vendors)
+        for vendor in vendors:
+            print(vendor.branch)
+        if branch:
+            vendors = vendors.filter(branch=branch)
+        print("******************",vendors)
         serializer = VendorSerializer(vendors, many=True)
         return Response(serializer.data)
     
@@ -544,12 +554,12 @@ class StatsView(APIView):
 class SchemeBrandView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request, branch=None):
         user = request.user
         enterprise = user.person.enterprise
 
         # Get all brands with schemes under the user's enterprise
-        brands_with_schemes = Brand.objects.filter(enterprise=enterprise, scheme_brand__isnull=False).distinct()
+        brands_with_schemes = Brand.objects.filter(enterprise=enterprise, branch=branch, scheme_brand__isnull=False).distinct()
 
         active_result = []
         expired_result = []
@@ -677,12 +687,13 @@ class PriceProtectionChangeView(generics.RetrieveUpdateDestroyAPIView):
 class PPBrandView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request,branch=None):
         user = request.user
         enterprise = user.person.enterprise
 
         # Get all brands with schemes under the user's enterprise
         brands_with_pp = Brand.objects.filter(enterprise=enterprise, pp_brand__isnull=False).distinct()
+        brands_with_pp = brands_with_pp.filter(branch=branch) if branch else brands_with_pp
 
         active_result = []
         expired_result = []
@@ -799,7 +810,7 @@ class VendorBrandsView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request,branch=None):
         # id = request.GET.get("id")
         # if id:
         #     brand = Brand.objects.get(id=id)
@@ -811,6 +822,8 @@ class VendorBrandsView(APIView):
         #     else:
         #         return Response("NONE")
         brands = Brand.objects.filter(enterprise = request.user.person.enterprise)
+        if branch:
+            brands = brands.filter(branch=branch)
         serializer = VendorBrandSerializer(brands,many=True)
 
 
@@ -1059,7 +1072,7 @@ class PurchaseReturnView(APIView):
     permission_classes = [IsAuthenticated]
 
 
-    def get(self, request):
+    def get(self, request, branch=None):
         enterprise = request.user.person.enterprise
         search = request.GET.get('search')
         start_date = request.GET.get('start_date')
@@ -1067,7 +1080,12 @@ class PurchaseReturnView(APIView):
 
         # Base QuerySet
         purchase_returns = PurchaseReturn.objects.filter(enterprise=enterprise)
-
+        print("returns",purchase_returns)
+        for p in purchase_returns:
+            print(p.branch)
+        if branch:
+            purchase_returns = purchase_returns.filter(branch=branch)
+        print("branch returns",purchase_returns)
         # -----------------
         # 1) Search Filter
         # -----------------
@@ -1139,7 +1157,7 @@ class SalesReportView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self,request):
+    def get(self,request,branch=None):
         
 
         search = request.GET.get('search')
@@ -1148,6 +1166,8 @@ class SalesReportView(APIView):
         phone = request.GET.get('phone')
 
         sales = Sales.objects.filter(sales_transaction__enterprise = request.user.person.enterprise)
+        if branch:
+            sales = sales.filter(sales_transaction__branch = branch)
         if search:
             first_date_of_month = timezone.now().replace(day=1)
             today = timezone.now()

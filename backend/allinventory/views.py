@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from .models import Product,Brand
+from enterprise.models import Branch
 from .serializers import ProductSerializer,BrandSerializer
 from rest_framework.decorators import api_view
 from barcode import EAN13
@@ -15,7 +16,7 @@ from rest_framework.permissions import IsAuthenticated
 
 class ProductView(APIView):
     permission_classes = [IsAuthenticated]
-    def get(self, request, pk=None):
+    def get(self, request, pk=None,branch=None):
         if pk:
             try:
                 product = Product.objects.get(pk=pk)
@@ -24,6 +25,11 @@ class ProductView(APIView):
             except Product.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)
         search = request.GET.get('search')
+
+        if branch:
+            products = Product.objects.filter(enterprise=request.user.person.enterprise,branch=branch)
+            serializer = ProductSerializer(products, many=True)
+            return Response(serializer.data)
         if search:
             products = Product.objects.filter(enterprise=request.user.person.enterprise,name__icontains=search)
             serializer = ProductSerializer(products, many=True)
@@ -57,6 +63,12 @@ class ProductView(APIView):
         serializer = ProductSerializer(product,data=data,partial=True)
         if serializer.is_valid():
             serializer.save()
+            old_stock = product.stock if product.stock else 0
+            product.stock = product.count * product.selling_price if product.count else 0
+            if old_stock != product.stock:
+                product.brand.stock = product.brand.stock - old_stock + product.stock
+                product.brand.save()
+                product.save()
             return Response(serializer.data)
         return Response(serializer.errors)
     
@@ -68,28 +80,32 @@ class ProductView(APIView):
 class BrandView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request,pk=None, format=None):
+    def get(self, request,pk=None,branch=None,format=None):
         if pk:
             brand = Brand.objects.get(id=pk)
             products = Product.objects.filter(brand = brand)
-            #print(phones)
             if products:
                 serializer = ProductSerializer(products,many=True)
                 return Response(serializer.data)
             else:
-                return Response("NONE")
-        search = request.GET.get('search')
-        if search:
-            brands = Brand.objects.filter(enterprise=request.user.person.enterprise,name__icontains=search)
-            serializer = BrandSerializer(brands, many=True)
+                return Response([])
+        if branch:
+            brands = Brand.objects.filter(branch=branch)
+            serializer = BrandSerializer(brands,many=True)
             return Response(serializer.data)
+        
+        # search = request.GET.get('search')
+        # if search:
+        #     brands = Brand.objects.filter(enterprise=request.user.person.enterprise,branch=request.user.person.branch,name__icontains=search)
+        #     serializer = BrandSerializer(brands, many=True)
+        #     return Response(serializer.data)
         brands = Brand.objects.filter(enterprise=request.user.person.enterprise)
         serializer = BrandSerializer(brands, many=True)
         return Response(serializer.data)
     
     def post(self, request, format=None):
         data = request.data
-        data['enterprise'] = request.user.person.enterprise.id
+        data['enterprise'] = request.user.person.enterprise.id  
         serializer = BrandSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -141,3 +157,33 @@ def generate_barcode(request,pk=None):
 
     # print("BARCODE GENERATED")
     return FileResponse(buffer, content_type='image/svg+xml')
+
+
+class MergeBrandView(APIView):
+    def post(self,request,selfbranch,mergebranch,format=None):
+        
+        branch = Branch.objects.get(id=mergebranch)
+        print(branch.name)
+        # return Response("Merged")
+
+        for brand in Brand.objects.filter(branch=branch):
+            if brand.name in Brand.objects.filter(branch_id=selfbranch).values_list('name',flat=True):
+                continue
+            Brand.objects.create(name=brand.name,enterprise=brand.enterprise,branch_id=selfbranch)
+        return Response("Merged")
+
+class MergeProductBrandView(APIView):
+    def post(self,request,selfbranch,mergebranch,brand,format=None):
+        print("MERGING PRODUCTS")
+        brand = Brand.objects.get(id=brand)
+        products = Product.objects.filter(branch_id=mergebranch,brand__name__iexact=brand.name)
+        print("THERESASDSAD ",products)
+        for product in Product.objects.filter(branch_id=mergebranch,brand__name__iexact=brand.name):
+            print(product)
+            if Product.objects.filter(branch_id=selfbranch, brand=brand, name__iexact=product.name).exists():
+                print("HERE")
+                continue
+            p = Product.objects.create(name=product.name,enterprise=product.enterprise,branch_id=selfbranch,cost_price=product.cost_price,selling_price=product.selling_price,brand_id=brand.id,uid = product.uid)
+            print("CREATED",p)
+            
+        return Response("Merged")

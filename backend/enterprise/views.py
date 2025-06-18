@@ -4,47 +4,80 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils.dateparse import parse_date
 from datetime import datetime, date
-# from .serializers import AdminProfitSerializer,TechnicianProfitSerializer,OutsideRepairSerializer,PersonSerializer
-# from .models import Person,Outside
+from .serializers import BranchSerializer
+from .models import Branch
+from alltransactions.models import Staff
+from alltransactions.serializers import StaffSerializer
 
-            # 
-# class PersonView(APIView):
-#     persmission_classes = [IsAuthenticated]
+class BranchView(APIView):
+    permission_classes = [IsAuthenticated]
 
-#     def get(self,request):
-#         user= request.user
-#         enterprise = user.person.enterprise
-#         persons = Person.objects.filter(enterprise=enterprise)
-#         serializer = PersonSerializer(persons,many=True)
-#         return Response(serializer.data)
-    
-#     def post(self,request):
-#         user = request.user
-#         data = request.data
-#         status = check_status(user)
-#         if status == "Admin":
-#             enterprise = user.person.enterprise.id
-#             data["enterprise"] = enterprise
-#             serializer = PersonSerializer(data=data)
-#             if serializer.is_valid(raise_exception=True):
-#                 serializer.save()
-#                 return Response(serializer.data)
-#         else:
-#             return Response("UNAUTHORIZED")
+    def get(self, request,id=None):
+        user = request.user
+        enterprise = user.person.enterprise
+        if id:
+            branch = enterprise.branch.get(id=id)
+            serializer = BranchSerializer(branch)
+            return Response(serializer.data)
+        if user.person.role == 'Admin':
+            if user.person.branch:
+                branch = user.person.branch
+                serializer = BranchSerializer(branch)
+                return Response([serializer.data])
+            branches = enterprise.branch.all()
+            serializer = BranchSerializer(branches, many=True)
+            return Response(serializer.data)
+        else:
+            branch = user.person.branch
+            print(branch)
+            serializer = BranchSerializer(branch)
+            print(serializer.data)
+            return Response([serializer.data])
+
+class BranchStaffView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request,id):
+        user = request.user
+        enterprise = user.person.enterprise
+        if user.person.role == 'Admin':
+            staff = Staff.objects.filter(branch=id)
+            serializer = StaffSerializer(staff, many=True)
+            return Response(serializer.data)
+        else:
+            return Response("You are not authorized to view this page")
         
-#     def patch(self,request):
-#         user = request.user
-#         data = request.data
-#         id = data.get('id',None)
-#         if id:
-#             if check_status(user)=="Admin":
-#                 person = Person.objects.get(user = id,enterprise = user.person.enterprise)
-#                 if person:
-#                     serializer = PersonSerializer(person,data=data,partial=True)
-#                     if serializer.is_valid(raise_exception=True):
-#                         serializer.save()
-#                         return Response(serializer.data)
-#             else:
-#                 return Response("NOT AUTHORIZED")
-#         else:
-#             return Response("NO SUCH TECHNICIAN")
+    def post(self, request,id):
+        user = request.user
+        enterprise = user.person.enterprise
+        if user.person.role == 'Admin':
+            data = request.data
+            data['branch'] = id
+            data['enterprise'] = request.user.person.enterprise.id
+            serializer = StaffSerializer(data=data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors)
+        else:
+            return Response("You are not authorized to view this page")
+
+
+class UserBranchView(APIView):
+
+    def get(self,request):
+        role = request.user.person.role
+        branch = request.user.person.branch
+        if branch:
+            branch_serializer = BranchSerializer(branch)
+            return Response(branch_serializer.data)
+        return Response(None)
+    
+
+class RoleView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        role = user.person.role
+        return Response(role)
