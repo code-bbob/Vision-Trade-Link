@@ -12,7 +12,10 @@ urlpatterns = [
 
     path('vendor/',VendorView.as_view(), name='vendor'),
     path('vendor/branch/<int:branch>/',VendorView.as_view(), name='vendorbranch'),
+    
     path('vendortransaction/',VendorTransactionView.as_view(), name='vendortransaction'),
+    path('vendortransaction/branch/<int:branch>/',VendorTransactionView.as_view(), name='vendortransaction'),
+
     path('vendortransaction/<int:pk>/',VendorTransactionView.as_view(), name='vendortransaction'),
 
      

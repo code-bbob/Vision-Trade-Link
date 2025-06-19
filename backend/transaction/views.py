@@ -841,12 +841,14 @@ class SingleVendorBrandView(APIView):
 class VendorTransactionView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self,request):
+    def get(self,request,branch=None):
         enterprise = request.user.person.enterprise
         search = request.GET.get('search')
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
         transactions = VendorTransaction.objects.filter(enterprise=enterprise)
+        if branch:
+            transactions = transactions.filter(branch=branch)
         #print(transactions)
         
         if search:

@@ -387,7 +387,8 @@ class VendorTransaction(models.Model):
     method = models.CharField(max_length=10,choices=[('cash','Cash'),('cheque','Cheque')],default='cheque')
     desc = models.CharField(max_length=50,null=True)
     purchase_transaction = models.ForeignKey(PurchaseTransaction, on_delete=models.CASCADE,related_name="vendor_transaction",null=True,blank=True)
-
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='vendor_transaction_branch',null=True,blank=True)
+    
     @transaction.atomic
     def delete(self, *args, **kwargs):
         #print("Delete method called for VendorTransaction")
