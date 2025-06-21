@@ -18,7 +18,7 @@ from .serializers import VendorTransactionSerializer
 from django.db.models import Sum
 from django.db.models.functions import ExtractWeekDay
 from django.utils.timezone import make_aware,localtime
-
+from django.db import transaction
 class PurchaseTransactionView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -110,40 +110,36 @@ class PurchaseTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
         serializer.save()
 
 
-    def destroy(self, request, *args, **kwargs):
-        role = request.user.person.role
-        if role != "Admin":
-            return Response("Unauthorized")
-        instance = self.get_object()
-        purchase_data = instance.purchase.all()
-        phones = []
-        for purchase in purchase_data:
-            imei = purchase.imei_number
-            item = Item.objects.filter(imei_number = imei, phone = purchase.phone).first()
-            phones.append(purchase.phone) if purchase.phone not in phones else None
-            if item:
-                item.delete()
-        vendor = instance.vendor
-        method= instance.method
-        if method == "credit":
-            vendor.due = vendor.due - instance.total_amount
-            vendor.save()
-
-        brand = vendor.brand
-        brand.stock = brand.stock - instance.total_amount
-        brand.save()
-        self.perform_destroy(instance)
-        for phone in phones:
-            phone.calculate_quantity()
-            # Item.objects.filter(imei_number = new_imei).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    def perform_destroy(self, instance):
-        # Any custom logic you want before or after deletion can be added here
-        # e.g. logging, sending notifications, updating related records, etc.
-        instance.delete()
-        
-
+    def delete(self,request,pk,format=None):
+        with transaction.atomic():
+            role = request.user.person.role
+            if role != "Admin":
+                return Response("Unauthorized")
+            purchase_transaction = PurchaseTransaction.objects.get(id=pk)
+            purchases = purchase_transaction.purchase.all()
+            returned_amount = 0
+            for purchase in purchases:
+                if not purchase.returned:
+                    product = purchase.phone
+                    product.count -= 1
+                    product.stock -= product.selling_price
+                    product.save()
+                    brand = product.brand
+                    brand.count -= 1
+                    brand.stock -= product.selling_price
+                    brand.save()
+                else:
+                    returned_amount += purchase.unit_price
+            amount = purchase_transaction.total_amount - returned_amount
+            vendor = purchase_transaction.vendor
+            if purchase_transaction.method == "credit":
+                if vendor.due is None:
+                    vendor.due = 0  
+                vendor.due -= amount 
+                vendor.save()
+            purchase_transaction.delete()
+            return Response("Deleted")
+ 
     
 
 class SalesTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
@@ -331,6 +327,14 @@ class VendorView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request, id):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
+        vendor = get_object_or_404(Vendor, id=id)
+        vendor.delete()
+        return Response("Vendor deleted successfully", status=status.HTTP_204_NO_CONTENT)
 
 class SchemeView(APIView):
     permission_classes = [IsAuthenticated]
@@ -915,9 +919,7 @@ class VendorTransactionView(APIView):
         if role != "Admin":
             return Response("Unauthorized")
         transaction = VendorTransaction.objects.filter(id=pk).first()
-        if transaction:
-            transaction.vendor.due = transaction.vendor.due + transaction.amount
-            transaction.vendor.save()   
+        if transaction:  
             transaction.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(status=status.HTTP_404_NOT_FOUND)

@@ -4,6 +4,7 @@ from inventory.models import Brand
 from django.db import transaction
 from .models import VendorTransaction
 from django.utils.timezone import localtime
+from transaction.models import VendorTransaction
 
 
 class PurchaseSerializer(serializers.ModelSerializer):
@@ -28,32 +29,70 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
         # fields = ['id','date', 'vendor', 'vendor_name', 'total_amount', 'purchase', 'enterprise','bill_no','method']
         fields = '__all__'
 
+    @transaction.atomic
     def create(self, validated_data):
         
         purchase_data = validated_data.pop('purchase')
-        transaction = PurchaseTransaction.objects.create(**validated_data)
-        for data in purchase_data:
-            Purchase.objects.create(purchase_transaction=transaction, **data)
+        purchase_transaction = PurchaseTransaction.objects.create(**validated_data)
+        for purchase in purchase_data:
+            purchaseobj = Purchase.objects.create(purchase_transaction=purchase_transaction, **purchase)
+            phone = purchaseobj.phone
+            phone.count = (phone.count + 1) if phone.count is not None else 1
+            phone.stock = (phone.stock + phone.selling_price) if phone.stock is not None else phone.selling_price
+            brand = phone.brand
+            brand.count = (brand.count + 1) if brand.count is not None else 1
+            brand.stock = (brand.stock + phone.selling_price) if brand.stock is not None else phone.selling_price
+            phone.save()
+            brand.save() 
 
-        amount = transaction.calculate_total_amount()
-        vendor = transaction.vendor
-        brand = vendor.brand
-        vendor.due = (vendor.due + amount) if vendor.due is not None else amount
-        brand.stock = (brand.stock + amount) if brand.stock is not None else amount
-        brand.save()
-        vendor.save()
+        amount = purchase_transaction.calculate_total_amount()
+        vendor = purchase_transaction.vendor
+        VendorTransactionSerializer().create({
+            'vendor': vendor,
+            'date': purchase_transaction.date,
+            'amount': -amount,
+            'desc': f'Purchase made for transaction {purchase_transaction.bill_no}',
+            'method': purchase_transaction.method,
+            'purchase_transaction': purchase_transaction,
+            'enterprise': purchase_transaction.enterprise,
+            'branch': purchase_transaction.branch,
+            'type': 'base'
+        })
 
-        if transaction.method == 'cash':
-            #print("Here")
-            serializer = VendorTransactionSerializer
-            data={'vendor': vendor, 'date': transaction.date, 'amount': transaction.total_amount, 'desc': 'Paid for purchase', 'method': 'cash', 'purchase_transaction': transaction,'enterprise':transaction.enterprise}
-            serializer.create(self,validated_data=data)
-        elif transaction.method == 'cheque':
-            #print("There")
-            serializer = VendorTransactionSerializer
-            data={'vendor': vendor, 'date': transaction.date, 'amount': transaction.total_amount, 'desc': 'Paid for purchase', 'method': 'cheque', 'cheque_number': transaction.cheque_number, 'cashout_date': transaction.cashout_date, 'purchase_transaction': transaction,'enterprise':transaction.enterprise}
-            serializer.create(self,validated_data=data)
-        return transaction
+        # Handle payment method -> create VendorTransactions if needed
+        method = purchase_transaction.method
+        if method == 'cash':
+            print("HERERERE")
+            vt = VendorTransactionSerializer().create({
+                'vendor': vendor,
+                'branch': purchase_transaction.branch,
+                'date': purchase_transaction.date,
+                'amount': purchase_transaction.total_amount,
+                'desc': 'Paid for purchase',
+                'method': 'cash',
+                'purchase_transaction': purchase_transaction,
+                'enterprise': purchase_transaction.enterprise,
+                'type':'payment'
+
+            })
+            print(vt)
+        elif method == 'cheque':
+            VendorTransactionSerializer().create({
+                'vendor': vendor,
+                'branch': purchase_transaction.branch,
+                'date': purchase_transaction.date,
+                'amount': purchase_transaction.total_amount,
+                'desc': 'Paid for purchase',
+                'method': 'cheque',
+                'cheque_number': purchase_transaction.cheque_number,
+                'cashout_date': purchase_transaction.cashout_date,
+                'purchase_transaction': purchase_transaction,
+                'enterprise': purchase_transaction.enterprise,
+                'type':'payment'
+            })
+
+        return purchase_transaction
+
     
     def update(self, instance, validated_data):
   
@@ -187,6 +226,157 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
         representation['date'] = localtime(instance.date).strftime('%Y-%m-%d')
         return representation
 
+# class PurchaseTransactionSerializer(serializers.ModelSerializer):
+#     purchase = PurchaseSerializer(many=True)
+#     vendor_name = serializers.SerializerMethodField(read_only=True)
+#     date = serializers.DateTimeField()
+
+#     class Meta:
+#         model = PurchaseTransaction
+#         fields = '__all__'
+
+#     @transaction.atomic
+#     def create(self, validated_data):
+#         purchases_data = validated_data.pop('purchase')
+#         transaction = PurchaseTransaction.objects.create(**validated_data)
+
+#         # 1) Create all Purchase items (with your IMEI logic)
+#         for data in purchases_data:
+#             Purchase.objects.create(purchase_transaction=transaction, **data)
+#             # (you could also call .checkit() on any Sales here if needed)
+
+#         # 2) Post a “base” VendorTransaction of -amount (increases vendor.due)
+#         total = transaction.calculate_total_amount()
+#         base_tx = {
+#             'vendor': transaction.vendor,
+#             'branch': transaction.branch,
+#             'enterprise': transaction.enterprise,
+#             'date':    transaction.date,
+#             'amount': -total,
+#             'desc':   f'Purchase made for transaction {transaction.bill_no}',
+#             'method': transaction.method,
+#             'purchase_transaction': transaction,
+#             'type':   'base',
+#         }
+#         VendorTransactionSerializer().create(validated_data=base_tx)
+
+#         # 3) If paid immediately (cash/cheque), post a matching “payment” TX
+#         if transaction.method == 'cash' or transaction.method == 'cheque':
+#             pay_tx = {
+#                 'vendor': transaction.vendor,
+#                 'branch': transaction.branch,
+#                 'enterprise': transaction.enterprise,
+#                 'date':    transaction.date,
+#                 'amount':  total,
+#                 'desc':    'Paid for purchase',
+#                 'method':  transaction.method,
+#                 'purchase_transaction': transaction,
+#                 'type':    'payment',
+#             }
+#             if transaction.method == 'cheque':
+#                 pay_tx.update({
+#                     'cheque_number': transaction.cheque_number,
+#                     'cashout_date':  transaction.cashout_date,
+#                 })
+#             VendorTransactionSerializer().create(validated_data=pay_tx)
+
+#         return transaction
+
+#     @transaction.atomic
+#     def update(self, instance, validated_data):
+#         # --- 0) capture old state ---
+#         old_vendor = instance.vendor
+#         old_method = instance.method
+#         old_total  = instance.total_amount or 0
+
+#         # --- 1) update simple fields ---
+#         for fld in ('vendor','date','enterprise','bill_no','method','cheque_number','cashout_date'):
+#             setattr(instance, fld, validated_data.get(fld, getattr(instance, fld)))
+#         instance.save()
+
+#         # --- 2) update nested purchases + your IMEI logic ---
+#         purchases_data = validated_data.pop('purchase', None)
+#         if purchases_data is not None:
+#             existing = {p.id: p for p in instance.purchase.all()}
+#             for itm in purchases_data:
+#                 pid = itm.get('id')
+#                 if pid and pid in existing:
+#                     p = existing.pop(pid)
+#                     # handle IMEI or phone changes here...
+#                     for k,v in itm.items():
+#                         setattr(p, k, v)
+#                     p.save()
+#                 else:
+#                     Purchase.objects.create(purchase_transaction=instance, **itm)
+#             # delete any removed purchases
+#             for p in existing.values():
+#                 p.delete()
+
+#         # --- 3) recalc total & save ---
+#         instance.total_amount = instance.calculate_total_amount()
+#         instance.save()
+#         new_total  = instance.total_amount
+#         new_vendor = instance.vendor
+#         new_method = instance.method
+
+#         # --- 4) base transaction: update vendor or amount if changed ---
+#         base_vt = VendorTransaction.objects.filter(
+#             purchase_transaction=instance, type='base'
+#         ).first()
+
+#         if base_vt:
+#             # vendor changed?
+#             if old_vendor != new_vendor:
+#                 base_vt.vendor = new_vendor
+#             # amount changed?
+#             if new_total != old_total:
+#                 base_vt.amount = -new_total
+#             base_vt.save()
+
+#         # --- 5) payment transaction: handle method/vendor/amount changes ---
+#         pay_vt = VendorTransaction.objects.filter(
+#             purchase_transaction=instance, type='payment'
+#         ).first()
+
+#         # if method or vendor switched, delete old payment, then re-create if needed
+#         if old_method != new_method or old_vendor != new_vendor:
+#             if pay_vt:
+#                 pay_vt.delete()
+#             if new_method in ('cash','cheque'):
+#                 pay_tx = {
+#                     'vendor': new_vendor,
+#                     'branch': instance.branch,
+#                     'enterprise': instance.enterprise,
+#                     'date':    instance.date,
+#                     'amount':  new_total,
+#                     'desc':    'Paid for purchase',
+#                     'method':  new_method,
+#                     'purchase_transaction': instance,
+#                     'type':    'payment',
+#                 }
+#                 if new_method == 'cheque':
+#                     pay_tx.update({
+#                         'cheque_number': instance.cheque_number,
+#                         'cashout_date':  instance.cashout_date,
+#                     })
+#                 VendorTransactionSerializer().create(validated_data=pay_tx)
+
+#         # same vendor+method, just update amount if credit !=
+#         elif new_method != 'credit' and new_total != old_total and pay_vt:
+#             pay_vt.amount = new_total
+#             pay_vt.save()
+
+#         return instance
+
+#     def to_representation(self, instance):
+#         data = super().to_representation(instance)
+#         data['date'] = localtime(instance.date).strftime('%Y-%m-%d')
+#         return data
+
+#     def get_vendor_name(self, obj):
+#         return obj.vendor.name
+
+  
 class VendorSerializer(serializers.ModelSerializer):
     brand_name = serializers.SerializerMethodField(read_only=True)
     enterprise_name = serializers.SerializerMethodField(read_only=True)
@@ -516,17 +706,16 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         vendor = validated_data['vendor']
         amount = validated_data['amount']
-        #print("ARKO MA CHA")
-        #print(vendor.due)
-        vendor.due = (vendor.due - amount) if vendor.due is not None else 0
-        #print(vendor.due)
+        print(vendor.due)
+        vendor.due = (vendor.due - amount) if vendor.due is not None else -amount
+        print(vendor.due)
         vendor.save()
 
         transaction = VendorTransaction.objects.create(**validated_data)
         return transaction
     
     def update(self, instance, validated_data):
-        #print("HERE")
+
         old_vendor = instance.vendor
         old_amount = instance.amount
         
@@ -615,25 +804,42 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
             purchase.returned = True
             purchase.save()
             total_unit_price += purchase.unit_price
+            product = purchase.phone
+            product.count = (product.count - 1) if product.count is not None else -1
+            product.stock = (product.stock -  product.selling_price) if product.stock is not None else - product.selling_price
+            brand = product.brand
+            brand.count = (brand.count - 1) if brand.count is not None else -1
+            brand.stock = (brand.stock - product.selling_price) if brand.stock is not None else - product.selling_price
+            brand.save()
+            product.save()
             item = Item.objects.filter(imei_number=purchase.imei_number).first()
             phone = item.phone
             item.delete()
             phone.calculate_quantity()
 
-        #update brand stock if needed
-        if phone.brand:
-            phone.brand.stock -= phone.selling_price
-            phone.brand.save()
 
         # Update vendor dues if needed
         if vendor.due is None:
             vendor.due = 0
-        vendor.due -= total_unit_price
-        vendor.save()
+
+        VendorTransactionSerializer().create({
+            'vendor': vendor,
+            'date': purchase_return.date,
+            'amount': total_unit_price,
+            'desc': f'Purchase return for transaction {purchase_return.purchase_transaction.bill_no}',
+            'method': purchase_return.purchase_transaction.method,
+            'purchase_transaction': purchase_return.purchase_transaction,
+            'enterprise': purchase_return.enterprise,
+            'branch': purchase_return.branch,
+            'type':'return'
+        })
+        vendor.refresh_from_db()
+        print(vendor.due)
 
         return purchase_return
+    
 
-
+    @transaction.atomic
     def delete(self, instance):
         purchase_ids = instance.purchases.all()
         vendor = instance.purchase_transaction.vendor
@@ -644,13 +850,17 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
             total_unit_price += purchase.unit_price
             item = Item.objects.create(imei_number=purchase.imei_number,phone=purchase.phone)
             purchase.phone.calculate_quantity()
-            print(purchase.phone.brand.stock)
-            purchase.phone.brand.stock += purchase.phone.selling_price
+            purchase.phone.stock = (purchase.phone.stock + purchase.phone.selling_price) if purchase.phone.stock is not None else purchase.phone.selling_price
+            purchase.phone.brand.count = (purchase.phone.brand.count + 1) if purchase.phone.brand.count is not None else 1
+            purchase.phone.brand.stock = (purchase.phone.brand.stock + purchase.phone.selling_price) if purchase.phone.brand.stock is not None else purchase.phone.selling_price
             purchase.phone.brand.save()
-            print(purchase.phone.brand.stock)
-        vendor.due += total_unit_price
-        vendor.save()
+            purchase.phone.save()
+            
+        vt = VendorTransaction.objects.filter(purchase_transaction=instance.purchase_transaction,type="return").first()
+        print(vt)   
+        vt.delete()
         instance.delete()
         return instance
+    
 
 

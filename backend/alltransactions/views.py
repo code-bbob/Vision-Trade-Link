@@ -227,6 +227,7 @@ class VendorView(APIView):
         if id:
             vendors = Vendor.objects.get(id=id)
         vendors = Vendor.objects.filter(enterprise = request.user.person.enterprise)
+        print(vendors)
         if branch:
             vendors = Vendor.objects.filter(branch = branch)
         serializer = VendorSerializer(vendors,many=True)
@@ -314,11 +315,7 @@ class VendorTransactionView(APIView):
         if role != "Admin":
             return Response("Unauthorized")
         vendor_transaction = VendorTransactions.objects.get(id=pk)
-        amount = vendor_transaction.amount
-        vendor = vendor_transaction.vendor
         vendor_transaction.delete()
-        vendor.due += amount
-        vendor.save()
         return Response("Deleted")
     
 class StatsView(APIView):

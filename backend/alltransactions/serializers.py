@@ -621,11 +621,11 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
             purchase.save()
             total_unit_price += purchase.unit_price * purchase.quantity
             product = purchase.product
-            product.count = (product.count - purchase.quantity) if product.count is not None else purchase.quantity
-            product.stock = (product.stock - purchase.quantity * product.selling_price) if product.stock is not None else purchase.quantity * product.selling_price
+            product.count = (product.count - purchase.quantity) if product.count is not None else - purchase.quantity
+            product.stock = (product.stock - purchase.quantity * product.selling_price) if product.stock is not None else - purchase.quantity * product.selling_price
             brand = product.brand
-            brand.count = (brand.count - purchase.quantity) if brand.count is not None else purchase.quantity
-            brand.stock = (brand.stock - purchase.quantity * product.selling_price) if brand.stock is not None else purchase.quantity * product.selling_price
+            brand.count = (brand.count - purchase.quantity) if brand.count is not None else - purchase.quantity
+            brand.stock = (brand.stock - purchase.quantity * product.selling_price) if brand.stock is not None else - purchase.quantity * product.selling_price
             brand.save()
             product.save()
 

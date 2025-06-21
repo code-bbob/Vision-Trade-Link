@@ -9,13 +9,15 @@ class Brand(models.Model):
     name = models.CharField(max_length=20)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE, related_name="brand")
     stock = models.FloatField(null=True,blank=True)
+    count = models.IntegerField(null=True,blank=True)
     branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='inventory_brand')
     def __str__(self):
         return self.name
 
 class Phone(models.Model):
     name = models.CharField(max_length=30)
-    quantity = models.IntegerField(null=True)
+    count = models.IntegerField(null=True)
+    stock = models.FloatField(null=True,blank=True)
     # unit_price = models.FloatField(null=True,blank=True)
     # total_price = models.FloatField(null=True)
     cost_price = models.FloatField(null=True,blank=True)
@@ -43,7 +45,7 @@ class Phone(models.Model):
     def calculate_quantity(self):
         #print("Calculating quantity......................")
         quantity = Item.objects.filter(phone=self).count()
-        self.quantity = quantity
+        self.count = quantity
         self.save()
 
 class Item(models.Model):

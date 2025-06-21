@@ -4,7 +4,7 @@ import random
 # Create your models here.
 
 class Brand(models.Model):
-    name = models.CharField(max_length=20)
+    name = models.CharField(max_length=255)
     stock = models.FloatField(null=True,blank=True,default=0)
     count = models.IntegerField(null=True,blank=True,default=0)
     enterprise = models.ForeignKey('enterprise.Enterprise', on_delete=models.CASCADE,related_name='all_brand')
@@ -14,7 +14,7 @@ class Brand(models.Model):
         return self.name
 
 class Product(models.Model):
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=255)
     uid = models.CharField(max_length = 12,blank=True) 
     # quantity = models.IntegerField(null=True,blank=True)
     cost_price = models.FloatField(null=True,blank=True)

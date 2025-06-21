@@ -5,7 +5,7 @@ from django.core.validators import MinLengthValidator
 from django.db import transaction
 
 class Vendor(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=255)
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
     due = models.FloatField(null=True, blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
@@ -25,9 +25,9 @@ class PurchaseTransaction(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
     total_amount = models.FloatField(null=True, blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
-    bill_no = models.CharField(max_length=10,null=True)
+    bill_no = models.CharField(max_length=255,null=True)
     method = models.CharField(max_length=10,choices=[('cash','Cash'),('cheque','Cheque'),('credit','Credit')],default='credit')
-    cheque_number = models.CharField(max_length=10,null=True,blank=True)
+    cheque_number = models.CharField(max_length=255,null=True,blank=True)
     cashout_date = models.DateField(null=True)
     branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='purchase_transaction_branch',null=True,blank=True)
 
@@ -80,20 +80,13 @@ class Purchase(models.Model):
         return f" {self.phone} @ {self.unit_price}"
     
     def save(self, *args, **kwargs):
-        #print("ATLEAST HERE")
         if self.pk is None:  # Only update stock for new purchases
-            # print("HI I AM HERE")
-            #print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
             if isinstance(self.phone, int):
                 phone = Phone.objects.get(id=self.phone)
             else:
                 phone = self.phone
-            #print("in self.phone before section",phone.quantity)
-
-            phone.quantity = (phone.quantity + 1) if phone.quantity is not None else 1
-            #print("in self.phone section",phone.quantity)
+            
             item = Item.objects.create(imei_number = self.imei_number,phone=self.phone)
-            #print(item)
             phone.save()
 
         super().save(*args, **kwargs)
@@ -104,20 +97,17 @@ class Purchase(models.Model):
         if item:
             #print("Deleting related item")
             item.delete()
-            phone = Phone.objects.filter(id = self.phone.id).first()
-            phone.quantity -= 1
-            phone.save()
         super().delete(*args, **kwargs)
 
 
 class SalesTransaction(models.Model):
     date = models.DateTimeField()
     # vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=255,null=True,blank=True)
     phone_number = models.CharField(max_length=10,null=True)
     total_amount = models.FloatField(null=True, blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
-    bill_no = models.CharField(max_length=10,null = True)
+    bill_no = models.CharField(max_length=255,null = True)
     branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='sales_transaction_branch',null=True,blank=True)
 
     def calculate_total_amount(self):
@@ -385,21 +375,21 @@ class VendorTransaction(models.Model):
     cheque_number = models.CharField(max_length=10,null=True,blank=True)
     cashout_date = models.DateField(null=True)
     method = models.CharField(max_length=10,choices=[('cash','Cash'),('cheque','Cheque')],default='cheque')
-    desc = models.CharField(max_length=50,null=True)
+    desc = models.CharField(max_length=255,null=True)
     purchase_transaction = models.ForeignKey(PurchaseTransaction, on_delete=models.CASCADE,related_name="vendor_transaction",null=True,blank=True)
     branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='vendor_transaction_branch',null=True,blank=True)
+    base = models.BooleanField(default=False)
+    type = models.CharField(max_length=20,choices=(('base','base'),('return','return'),('payment','payment')),default='base')
     
     @transaction.atomic
     def delete(self, *args, **kwargs):
-        #print("Delete method called for VendorTransaction")
-        #print(self.vendor.due)
+
         self.vendor.due = self.vendor.due + self.amount
         vendor = self.vendor.id
         self.vendor.save() 
-        #print(self.vendor.due)#ya samma thik xa uta xaina
         super().delete(*args, **kwargs)
         vendor = Vendor.objects.get(id=vendor)
-        #print(vendor.due)
+
 
 
 

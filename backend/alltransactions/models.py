@@ -4,7 +4,7 @@ from enterprise.models import Enterprise,Branch
 from django.db import transaction
 
 class Vendor(models.Model):
-    name = models.CharField(max_length=20)
+    name = models.CharField(max_length=255)
     phone_number = models.CharField(max_length=10,null=True,blank=True)
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True, blank=True)
@@ -83,7 +83,7 @@ class Purchase(models.Model):
 
 class SalesTransaction(models.Model):
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='all_sales_transaction')
-    name = models.CharField(max_length=20,null=True,blank=True)
+    name = models.CharField(max_length=255,null=True,blank=True)
     phone_number = models.CharField(max_length=10,null=True,blank=True)
     total_amount = models.FloatField(null=True,blank=True)
     date = models.DateField()
@@ -155,7 +155,7 @@ class VendorTransactions(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE,related_name='allvendors')
     amount = models.FloatField(null=True,blank=True)
     method = models.CharField(max_length=20,choices=(('cash','Cash'),('credit','Credit'),('cheque','Cheque')),default='cash')
-    cheque_number = models.CharField(max_length=10,null=True,blank=True)
+    cheque_number = models.CharField(max_length=255,null=True,blank=True)
     cashout_date = models.DateField(null=True)
     enterprise = models.ForeignKey('enterprise.Enterprise', on_delete=models.CASCADE,related_name='all_vendor_transactions')
     desc = models.CharField(max_length=50)
@@ -169,18 +169,14 @@ class VendorTransactions(models.Model):
     
     @transaction.atomic
     def delete(self, *args, **kwargs):
-        print("Delete method called for VendorTransaction")
-        print(self.vendor.due)
-        self.vendor.due = self.vendor.due + self.amount
-        print(self.vendor.due)
+        self.vendor.due = self.vendor.due + self.amount if self.vendor.due is not None else self.amount
         self.vendor.save() 
-        print(self.vendor.due)#ya samma thik xa uta xaina
         super().delete(*args, **kwargs)
 
 
 
 class Staff(models.Model):
-    name = models.CharField(max_length=20)
+    name = models.CharField(max_length=255)
     phone_number = models.CharField(max_length=10,null=True,blank=True)
     due = models.FloatField(null=True,blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='staff')
@@ -198,7 +194,7 @@ class StaffTransactions(models.Model):
     amount = models.FloatField(null=True,blank=True)
     enterprise = models.ForeignKey('enterprise.Enterprise', on_delete=models.CASCADE,related_name='all_staff_transactions')
     branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, null=True, blank=True)
-    desc = models.CharField(max_length=50)
+    desc = models.CharField(max_length=255)
     
     def __str__(self):
         return f"Staff Transaction {self.pk} of {self.staff.name}"
@@ -211,7 +207,7 @@ class StaffTransactions(models.Model):
 
 
 class Customer(models.Model):
-    name = models.CharField(max_length=20)
+    name = models.CharField(max_length=255)
     phone_number = models.CharField(primary_key=True,max_length=10,blank=True)
     total_spent = models.FloatField(null=True,blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='customers')
