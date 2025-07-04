@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from rest_framework.response import Response
-from .serializers import PurchaseTransactionSerializer,PurchaseReturnSerializer,SalesTransactionSerializer,SalesReturnSerializer,VendorSerializer,VendorTransactionSerialzier,VendorBrandSerializer,StaffTransactionSerializer,StaffSerializer
+from .serializers import PurchaseTransactionSerializer,PurchaseReturnSerializer,SalesTransactionSerializer,SalesReturnSerializer,VendorSerializer,VendorTransactionSerializer,VendorBrandSerializer,StaffTransactionSerializer,StaffSerializer
 from rest_framework.views import APIView
 from rest_framework import status
 from .models import PurchaseTransaction,SalesTransaction,Vendor,VendorTransactions,SalesReturn,Purchase,Sales,PurchaseReturn,StaffTransactions,Staff
@@ -15,6 +15,9 @@ from django.utils.timezone import make_aware,localtime
 from django.db.models import Max,Q
 from .models import Customer
 from django.db import transaction
+from .models import Debtor, DebtorTransaction
+from .serializers import DebtorSerializer, DebtorTransactionSerializer
+
 
 # Create your views here.
 
@@ -193,14 +196,12 @@ class SalesTransactionView(APIView):
                 return Response(serializer.data)
             return Response(serializer.errors)
         
+        @transaction.atomic
         def delete(self,request,pk,format=None):
             sales_transaction = SalesTransaction.objects.get(id=pk)
             role = request.user.person.role
             modify_stock = request.GET.get('flag')
-            print(modify_stock)
-            #print(role)
             if role != "Admin":
-                #print("HERERERERE")
                 return Response("Unauthorized")
             if modify_stock == 'false':
                 sales_transaction.delete()
@@ -209,12 +210,13 @@ class SalesTransactionView(APIView):
             for sale in sales:
                 product = sale.product
                 product.count += sale.quantity
-                product.stock += sale.total_price
+                product.stock += sale.product.selling_price * sale.quantity
                 product.save()
                 brand = product.brand
                 brand.count += sale.quantity
-                brand.stock += sale.total_price
+                brand.stock += sale.product.selling_price * sale.quantity
                 brand.save()
+            DebtorTransaction.objects.filter(all_sales_transaction=sales_transaction).first().delete()
             sales_transaction.delete()
             return Response("Deleted")
         
@@ -250,7 +252,7 @@ class VendorTransactionView(APIView):
             return Response("Unauthorized")
         if pk:
             vendor_transactions = VendorTransactions.objects.get(id=pk)
-            serializer = VendorTransactionSerialzier(vendor_transactions)
+            serializer = VendorTransactionSerializer(vendor_transactions)
             return Response(serializer.data)
         query = request.GET.get('search')
         start_date = request.GET.get('start_date')
@@ -279,7 +281,7 @@ class VendorTransactionView(APIView):
         paginator.page_size = 5  # Set the page size here
         paginated_transactions = paginator.paginate_queryset(vendor_transactions, request)
 
-        serializer = VendorTransactionSerialzier(paginated_transactions, many=True)
+        serializer = VendorTransactionSerializer(paginated_transactions, many=True)
         return paginator.get_paginated_response(serializer.data)
     
     def post(self,request,*args, **kwargs):
@@ -288,7 +290,7 @@ class VendorTransactionView(APIView):
             return Response("Unauthorized")
         data = request.data
         data["enterprise"] = request.user.person.enterprise.id
-        serializer = VendorTransactionSerialzier(data=data)
+        serializer = VendorTransactionSerializer(data=data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -304,7 +306,7 @@ class VendorTransactionView(APIView):
         if role != "Admin":
             return Response("Unauthorized")
         vendor_transaction = VendorTransactions.objects.get(id=pk)
-        serializer = VendorTransactionSerialzier(vendor_transaction,data=data,partial=True)
+        serializer = VendorTransactionSerializer(vendor_transaction,data=data,partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -786,4 +788,115 @@ class SalesReturnView(APIView):
         serializer = SalesReturnSerializer()
         serializer.delete(purchase_return)
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+
+class DebtorsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, branchId=None):
+        enterprise = request.user.person.enterprise
+        debtors = Debtor.objects.filter(enterprise=enterprise)
+        
+        if branchId:
+            debtors = debtors.filter(branch=branchId)
+
+        serializer = DebtorSerializer(debtors, many=True)
+        return Response(serializer.data)
+    
+    def post(self, request):
+        data = request.data
+        data['enterprise'] = request.user.person.enterprise.id
+        serializer = DebtorSerializer(data=data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
+        debtor = Debtor.objects.filter(id=pk).first()
+        if not debtor:
+            return Response("Debtor not found", status=status.HTTP_404_NOT_FOUND)
+        debtor.delete()
+        return Response("Deleted", status=status.HTTP_204_NO_CONTENT)
+    
+class DebtorTransactionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, debtor_pk=None, pk=None, branch=None):
+        enterprise = request.user.person.enterprise
+        debtor_transactions = DebtorTransaction.objects.filter(enterprise=enterprise)
+        
+        query = request.GET.get('search')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        if branch:
+            debtor_transactions = debtor_transactions.filter(branch=branch)
+
+        if pk:
+            debtor_transactions = DebtorTransaction.objects.filter(id=pk, enterprise=enterprise).first()
+            serializer = DebtorTransactionSerializer(debtor_transactions)
+            return Response(serializer.data)
+        
+        if debtor_pk:
+            debtor_transactions = debtor_transactions.filter(debtor=debtor_pk)
+
+        if query:
+            debtor_transactions = debtor_transactions.filter(
+                Q(debtor__name__icontains=query) | Q(debtor__branch__name__icontains=query)
+            )
+
+        if start_date and end_date:
+            start_date = parse_date(start_date)
+            end_date = parse_date(end_date)
+
+        if start_date and end_date:
+
+            debtor_transactions = debtor_transactions.filter(
+                date__range=(start_date, end_date)
+            )
+
+        debtor_transactions = debtor_transactions.order_by('-id')
+
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 5  # Set your desired page size
+        paginated_data = paginator.paginate_queryset(debtor_transactions, request)
+
+        serializer = DebtorTransactionSerializer(paginated_data, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    
+    def post(self, request):
+        data = request.data
+        data['enterprise'] = request.user.person.enterprise.id
+        serializer = DebtorTransactionSerializer(data=data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def patch(self, request, pk):
+        data = request.data
+        data['enterprise'] = request.user.person.enterprise.id
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
+        debtor_transaction = DebtorTransaction.objects.get(id=pk)
+        serializer = DebtorTransactionSerializer(debtor_transaction, data=data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors)
+    
+    def delete(self, request, pk):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
+        debtor_transaction = DebtorTransaction.objects.filter(id=pk).first()
+        if not debtor_transaction:
+            return Response("Debtor Transaction not found", status=status.HTTP_404_NOT_FOUND)
+        debtor_transaction.delete()
+        return Response("Deleted", status=status.HTTP_204_NO_CONTENT)
     

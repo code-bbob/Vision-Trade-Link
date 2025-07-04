@@ -17,14 +17,17 @@ import { Check, ChevronsUpDown, ArrowLeft } from "lucide-react"
 import { cn } from "../lib/utils"
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './sidebar';
+import { useParams } from 'react-router-dom';
 
 function PriceProtectionForm() {
+  const {branchId} = useParams();
   const api = useAxios()
   const [formData, setFormData] = useState({
     from_date: '',
     to_date: '',
     price_drop: '',
-    phone: '' 
+    phone: '' ,
+    branch:branchId
   });
   const [phones, setPhones] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -43,8 +46,8 @@ function PriceProtectionForm() {
     const fetchData = async () => {
       try {
         const [phonesResponse, brandsResponse] = await Promise.all([
-          api.get('inventory/phone/'),
-          api.get('inventory/brand/')
+          api.get(`inventory/phone/branch/${branchId}/`),
+          api.get(`inventory/brand/branch/${branchId}/`)
         ]);
         setPhones(phonesResponse.data);
         setBrands(brandsResponse.data);

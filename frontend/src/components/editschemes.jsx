@@ -35,7 +35,7 @@ import Sidebar from '@/components/sidebar';
 export default function EditSchemeForm() {
   const api = useAxios()
   const navigate = useNavigate()
-  const { schemeId } = useParams()
+  const { branchId, schemeId } = useParams()
 
   const [originalSchemeData, setOriginalSchemeData] = useState(null);
   const [formData, setFormData] = useState({
@@ -60,8 +60,8 @@ export default function EditSchemeForm() {
     const fetchData = async () => {
       try {
         const [phonesResponse, brandsResponse, schemeResponse] = await Promise.all([
-          api.get('inventory/phone/'),
-          api.get('inventory/brand/'),
+          api.get(`inventory/phone/branch/${branchId}/`),
+          api.get(`inventory/brand/branch/${branchId}/`),
           api.get(`transaction/scheme/${schemeId}/`)
         ]);
         setPhones(phonesResponse.data);

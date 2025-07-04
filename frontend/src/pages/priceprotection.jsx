@@ -11,8 +11,10 @@ import { Switch } from "@/components/ui/switch"
 import { Smartphone, ArrowLeft, Search, Plus } from 'lucide-react'
 import useAxios from '@/utils/useAxios'
 import Sidebar from '@/components/sidebar'
+import { useParams } from 'react-router-dom'
 
 export default function PPPageComponent() {
+  const {branchId} = useParams()
   const api = useAxios()
   const navigate = useNavigate()
   const [activePps, setActivePps] = useState([])
@@ -28,7 +30,7 @@ export default function PPPageComponent() {
   useEffect(() => {
     const fetchPps = async () => {
       try {
-        const response = await api.get('transaction/ppbrands/')
+        const response = await api.get('transaction/ppbrands/branch/' + branchId + '/')
         setActivePps(response.data.active_pps)
         setExpiredPps(response.data.expired_pps)
         setFilteredPps(response.data.active_pps)
@@ -55,20 +57,6 @@ export default function PPPageComponent() {
     setSearchTerm(event.target.value)
   }
 
-  const handleAddScheme = async (e) => {
-    e.preventDefault()
-    try {
-      const response = await api.post('transaction/ppbrands/', { brand: newPpBrand })
-      console.log('New Scheme Added:', response.data)
-      setActivePps([...activePps, response.data])
-      setFilteredPps([...filteredPps, response.data])
-      setNewPpBrand('')
-      setIsDialogOpen(false)
-    } catch (error) {
-      console.error('Error adding pp:', error)
-    }
-  }
-
   const handleToggleExpired = () => {
     setShowExpired(!showExpired)
   }
@@ -88,7 +76,7 @@ export default function PPPageComponent() {
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
       <Sidebar className="hidden lg:block w-64 flex-shrink-0" />
-      <div className="flex-grow pt-14 p-6 lg:p-6 lg:ml-64 overflow-auto">
+      <div className="flex-grow p-6 lg:p-6 lg:ml-64 overflow-auto">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -137,7 +125,7 @@ export default function PPPageComponent() {
               <PpCard
                 key={pp.id}
                 pp={pp}
-                onClick={() => navigate(`/mobile/price-protection/brand/${pp.id}`)}
+                onClick={() => navigate(`/mobile/price-protection/branch/${branchId}/brand/${pp.id}`)}
               />
             ))}
           </div>
@@ -156,7 +144,7 @@ export default function PPPageComponent() {
 
         <Button
           className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-          onClick={() => navigate('/mobile/price-protection/new')}
+          onClick={() => navigate(`/mobile/price-protection/branch/${branchId}/new`)}
         >
           <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
         </Button>
@@ -190,7 +178,7 @@ function PpCard({ pp, onClick }) {
             Count: {pp.count}
           </div>
           <div className="text-sm text-slate-400 group-hover:text-purple-200 transition-colors duration-300 mt-1">
-            Total Receivables: ${pp.total_receivables}
+            Total Receivables: RS. {pp.total_receivables}
           </div>
         </CardContent>
       </Card>

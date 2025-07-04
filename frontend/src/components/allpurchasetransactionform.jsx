@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import useAxios from "@/utils/useAxios";
 import { Button } from "@/components/ui/button";
+import { useParams } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -36,15 +37,24 @@ import {
 } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "@/components/allsidebar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import NewProductDialog from "@/components/newProductDialog"; // Adjust the path as needed
 
 function AllPurchaseTransactionForm() {
+  const { branchId } = useParams();
   const api = useAxios();
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
-    purchase: [{ product: "", unit_price: "", quantity:"",total_price:"" }],
+    purchase: [{ product: "", unit_price: "", quantity:"", total_price:"" }],
+    branch: branchId,
     vendor: "",
-    method: "cash",
+    method: "credit",
     cheque_number: null,
     cashout_date: null,
   });
@@ -57,8 +67,8 @@ function AllPurchaseTransactionForm() {
   const [showNewProductDialog, setShowNewProductDialog] = useState(false);
   const [showNewVendorDialog, setShowNewVendorDialog] = useState(false);
   const [showNewBrandDialog, setShowNewBrandDialog] = useState(false);
-  const [newProductData, setNewProductData] = useState({ name: "", brand: "", unit_price:"" });
-  const [newVendorData, setNewVendorData] = useState({ name: "", brand: "" });
+  const [newProductData, setNewProductData] = useState({ name: "", brand: "", cost_price:"",selling_price:"" });
+  const [newVendorData, setNewVendorData] = useState({ name: "", brand: "",due:0 ,branch:branchId});
   const [newBrandName, setNewBrandName] = useState("");
   const [openProduct, setOpenProduct] = useState(
     Array(formData.purchase.length).fill(false)
@@ -66,22 +76,26 @@ function AllPurchaseTransactionForm() {
   const [openVendor, setOpenVendor] = useState(false);
   const [openBrand, setOpenBrand] = useState(false);
   const [subLoading, setSubLoading] = useState(false);
-  const [before, setBefore] = useState();
-  const [vat, setVat] = useState();
+  const [branch, setBranch] = useState([]);
+  const [userBranch, setUserBranch] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [productsResponse, vendorsResponse, brandsResponse] =
+        const [productsResponse, vendorsResponse, brandsResponse, branchResponse, userBranchResponse] =
           await Promise.all([
-            api.get("allinventory/product/"),
-            api.get("alltransaction/vendor/"),
-            api.get("allinventory/brand/"),
+            api.get("allinventory/product/branch/" + branchId + "/"),
+            api.get("alltransaction/vendor/branch/" + branchId + "/"),
+            api.get("allinventory/brand/branch/" + branchId + "/"),
+            api.get("enterprise/branch/" + branchId + "/"),
+            api.get("enterprise/getbranch/"),
           ]);
         setProducts(productsResponse.data);
         setVendors(vendorsResponse.data);
         setBrands(brandsResponse.data);
+        setBranch(branchResponse.data);
+        setUserBranch(userBranchResponse.data);
         setLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -93,11 +107,83 @@ function AllPurchaseTransactionForm() {
     fetchData();
   }, []);
 
+  
+    // Keydown handling for product scanning
+    const [currentWord, setCurrentWord] = useState('');
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        const scannedCode = currentWord.slice(0, -1);
+        console.log("Word is:", scannedCode);
+        const matchingProduct = products.find(product => product.uid === scannedCode);
+        console.log("Matching product:", matchingProduct);
+  
+        if (matchingProduct) {
+          const productIdStr = matchingProduct.id.toString();
+          
+          // First, check if a sale already exists for this product
+          const existingPurchaseIndex = formData.purchase.findIndex(purchase => purchase.product === productIdStr);
+          
+          if (existingPurchaseIndex !== -1) {
+            // Increase quantity for the existing sale
+            const updatedPurchase = [...formData.purchase];
+            const existingPurchase = updatedPurchase[existingPurchaseIndex];
+            const currentQuantity = parseInt(existingPurchase.quantity, 10) || 0;
+            const newQuantity = currentQuantity + 1;
+            existingPurchase.quantity = newQuantity;
+            existingPurchase.total_price = newQuantity * matchingProduct.cost_price;
+            setFormData((prevFormData) => ({
+              ...prevFormData,
+              purchase: updatedPurchase
+            }));
+          } else {
+            // No existing sale for this product; check for an empty sale entry first
+            const emptyPurchaseIndex = formData.purchase.findIndex(purchase => !purchase.product);
+            if (emptyPurchaseIndex !== -1) {
+              const updatedPurchase = [...formData.purchase];
+              updatedPurchase[emptyPurchaseIndex] = {
+                product: productIdStr,
+                unit_price: matchingProduct.cost_price,
+                quantity: 1,
+                total_price: matchingProduct.cost_price
+              };
+              setFormData((prevFormData) => ({
+                ...prevFormData,
+                purchase: updatedPurchase
+              }));
+            } else {
+              // Neither an existing sale nor an empty sale found, so add a new sale entry
+              const newPurchase = {
+                product: productIdStr,
+                unit_price: matchingProduct.cost_price,
+                quantity: 1,
+                total_price: matchingProduct.cost_price
+              };
+              setFormData((prevFormData) => ({
+                ...prevFormData,
+                purchase: [...prevFormData.purchase, newPurchase]
+              }));
+            }
+          }
+        } else {
+          console.log("Product not found");
+        }
+        setCurrentWord('');
+      } else {
+        setCurrentWord((prev) => prev + e.key);
+      }
+    };
+  
+    useEffect(() => {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }, [currentWord, products]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
-
 
   const handleMethodChange = (value) => {
     setFormData({ ...formData, method: value });
@@ -230,7 +316,7 @@ function AllPurchaseTransactionForm() {
       const response = await api.post("allinventory/product/", newProductData);
       console.log("New Product Added:", response.data);
       setProducts((prevProducts) => [...prevProducts, response.data]);
-      setNewProductData({ name: "", brand: "" });
+      setNewProductData({ name: "", brand: "", cost_price:"", selling_price:"" });
       setShowNewProductDialog(false);
       setFilteredProducts((prevFilteredProducts) => [
         ...prevFilteredProducts,
@@ -254,6 +340,11 @@ function AllPurchaseTransactionForm() {
       }));
       setNewVendorData({ name: "", brand: "" });
       setShowNewVendorDialog(false);
+      const filteredProducts = products.filter(
+          (product) => product.brand === response.data.brand
+        );
+        setFilteredProducts(filteredProducts);
+    
     } catch (error) {
       console.error("Error adding vendor:", error);
       setError("Failed to add new vendor. Please try again.");
@@ -265,6 +356,7 @@ function AllPurchaseTransactionForm() {
     try {
       const response = await api.post("allinventory/brand/", {
         name: newBrandName,
+        branch: branchId,
       });
       console.log("New Brand Added:", response.data);
       setBrands((prevBrands) => [...prevBrands, response.data]);
@@ -272,7 +364,7 @@ function AllPurchaseTransactionForm() {
       setShowNewBrandDialog(false);
       setNewProductData((prevData) => ({
         ...prevData,
-        brand: response.data.id.toString(),
+        brand: response.data?.id?.toString(),
       }));
       setNewVendorData((prevData) => ({
         ...prevData,
@@ -288,8 +380,7 @@ function AllPurchaseTransactionForm() {
     e.target.blur();
   };
 
-
-  const calculateTotal = (price,quantity) => {
+  const calculateTotal = (price, quantity) => {
     return (price * quantity).toFixed(2);
   };
 
@@ -314,7 +405,7 @@ function AllPurchaseTransactionForm() {
             {error && <p className="text-red-400 mb-4">{error}</p>}
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <div className="flex flex-col">
+                <div className="flex flex-col">
                   <Label
                     htmlFor="date"
                     className="text-sm font-medium text-white mb-2"
@@ -333,7 +424,6 @@ function AllPurchaseTransactionForm() {
                 </div>
 
                 <div className="flex flex-col">
-                  
                   <Label
                     htmlFor="bill_no"
                     className="text-sm font-medium text-white mb-2"
@@ -355,6 +445,44 @@ function AllPurchaseTransactionForm() {
                 </div>
               </div>
 
+              {/* Branch Select */}
+              {/* <div className="flex flex-col">
+                <Label
+                  htmlFor="branch"
+                  className="text-sm font-medium text-white mb-2"
+                >
+                  Branch
+                </Label>
+                <Select
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, branch: value })
+                  }
+                  value={formData.branch}
+                >
+                  <SelectTrigger className="w-full bg-slate-700 border-slate-600 text-white">
+                    <SelectValue placeholder="Select branch" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    {userBranch && Object.keys(userBranch).length > 0 ? (
+                      <SelectItem
+                        value={userBranch.id.toString()}
+                        className="text-white"
+                      >
+                        {userBranch.name}
+                      </SelectItem>
+                    ) : (
+                        <SelectItem
+                          value={branch?.id?.toString()}
+                          className="text-white"
+                        >
+                          {branch?.name}
+                        </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div> */}
+
+              {/* Vendor Select */}
               <div className="flex flex-col">
                 <Label
                   htmlFor="vendor"
@@ -552,59 +680,54 @@ function AllPurchaseTransactionForm() {
                     </div>
         
                     <div className="flex flex-col">
-    <Label htmlFor={`price-${index}`} className="text-sm font-medium text-white mb-2">
-      Unit Price 
-    </Label>
-    <Input
-      type="number"
-      id={`unit_price-${index}`}
-      name="unit_price"
-      onWheel={handleWheel}
-      value={purchase.unit_price}
-      onChange={(e) => handlePurchaseChange(index, e)}
-      className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
-      placeholder="Enter unit price"
-      required
-    />
-  </div>
-
-  
-  <div className="flex flex-col">
-    <Label htmlFor={`quantity-${index}`} className="text-sm font-medium text-white mb-2">
-      Quantity
-    </Label>
-    <Input
-      type="number"
-      id={`quantity-${index}`}
-      name="quantity"
-      onWheel={handleWheel}
-      value={purchase.quantity}
-      onChange={(e) => handlePurchaseChange(index, e)}
-      className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
-      placeholder="Enter unit price"
-      required
-    />
-  </div>
-  
-
-  <div className="flex flex-col">
-    <Label htmlFor={`total-${index}`} className="text-sm font-medium text-white mb-2">
-      Total Price 
-    </Label>
-    <Input
-      type="number"
-      id={`total-${index}`}
-      name="total_price"
-      value={calculateTotal(purchase.unit_price,purchase.quantity)}
-      onChange={(e) => handlePurchaseChange(index, e)}
-      className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
-    />
-  </div>
-
-  
+                      <Label htmlFor={`price-${index}`} className="text-sm font-medium text-white mb-2">
+                        Unit Price 
+                      </Label>
+                      <Input
+                        type="number"
+                        id={`unit_price-${index}`}
+                        name="unit_price"
+                        onWheel={handleWheel}
+                        value={purchase.unit_price}
+                        onChange={(e) => handlePurchaseChange(index, e)}
+                        className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
+                        placeholder="Enter unit price"
+                        required
+                      />
+                    </div>
+        
+                    <div className="flex flex-col">
+                      <Label htmlFor={`quantity-${index}`} className="text-sm font-medium text-white mb-2">
+                        Quantity
+                      </Label>
+                      <Input
+                        type="number"
+                        id={`quantity-${index}`}
+                        name="quantity"
+                        onWheel={handleWheel}
+                        value={purchase.quantity}
+                        onChange={(e) => handlePurchaseChange(index, e)}
+                        className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
+                        placeholder="Enter unit price"
+                        required
+                      />
+                    </div>
+        
+                    <div className="flex flex-col">
+                      <Label htmlFor={`total-${index}`} className="text-sm font-medium text-white mb-2">
+                        Total Price 
+                      </Label>
+                      <Input
+                        type="number"
+                        id={`total-${index}`}
+                        name="total_price"
+                        value={calculateTotal(purchase.unit_price, purchase.quantity)}
+                        onChange={(e) => handlePurchaseChange(index, e)}
+                        className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
                   </div>
-                  
-
+        
                   {index > 0 && (
                     <Button
                       type="button"
@@ -619,55 +742,55 @@ function AllPurchaseTransactionForm() {
                   )}
                 </div>
               ))}
-<div className="flex flex-col">
-          <Label htmlFor="method" className="text-sm font-medium text-white mb-2">
-            Payment Method
-          </Label>
-          <Select onValueChange={handleMethodChange} value={formData.method}>
-            <SelectTrigger className="w-full bg-slate-700 border-slate-600 text-white">
-              <SelectValue placeholder="Select payment method" />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
-              <SelectItem value="cash" className="text-white">Cash</SelectItem>
-              <SelectItem value="cheque" className="text-white">Cheque</SelectItem>
-              <SelectItem value="credit" className="text-white">Credit</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {formData.method === "cheque" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex flex-col">
-              <Label htmlFor="cheque_number" className="text-sm font-medium text-white mb-2">
-                Cheque Number
-              </Label>
-              <Input
-                type="text"
-                id="cheque_number"
-                name="cheque_number"
-                value={formData.cheque_number}
-                onChange={handleChange}
-                className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
-                required
-              />
-            </div>
-            <div className="flex flex-col">
-              <Label htmlFor="cashout_date" className="text-sm font-medium text-white mb-2">
-                Cheque Date
-              </Label>
-              <Input
-                type="date"
-                id="cashout_date"
-                name="cashout_date"
-                value={formData.cashout_date}
-                onChange={handleChange}
-                className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
-                required
-              />
-            </div>
-          </div>
-        )}
-
+              <div className="flex flex-col">
+                <Label htmlFor="method" className="text-sm font-medium text-white mb-2">
+                  Payment Method
+                </Label>
+                <Select onValueChange={handleMethodChange} value={formData.method}>
+                  <SelectTrigger className="w-full bg-slate-700 border-slate-600 text-white">
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="cash" className="text-white">Cash</SelectItem>
+                    <SelectItem value="cheque" className="text-white">Cheque</SelectItem>
+                    <SelectItem value="credit" className="text-white">Credit</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+        
+              {formData.method === "cheque" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex flex-col">
+                    <Label htmlFor="cheque_number" className="text-sm font-medium text-white mb-2">
+                      Cheque Number
+                    </Label>
+                    <Input
+                      type="text"
+                      id="cheque_number"
+                      name="cheque_number"
+                      value={formData.cheque_number}
+                      onChange={handleChange}
+                      className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <Label htmlFor="cashout_date" className="text-sm font-medium text-white mb-2">
+                      Cheque Date
+                    </Label>
+                    <Input
+                      type="date"
+                      id="cashout_date"
+                      name="cashout_date"
+                      value={formData.cashout_date}
+                      onChange={handleChange}
+                      className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+        
               <Button
                 type="button"
                 onClick={handleAddPurchase}
@@ -676,7 +799,7 @@ function AllPurchaseTransactionForm() {
                 <PlusCircle className="w-4 h-4 mr-2" />
                 Add Another Purchase
               </Button>
-
+        
               <Button
                 type="submit"
                 disabled={subLoading}
@@ -685,136 +808,24 @@ function AllPurchaseTransactionForm() {
                 Submit Purchase Transaction
               </Button>
             </form>
-
-            <Dialog
+        
+            {/* New Product Dialog */}
+            <NewProductDialog
               open={showNewProductDialog}
-              onOpenChange={setShowNewProductDialog}
-            >
-              <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
-                <DialogHeader>
-                  <DialogTitle>Add New Product</DialogTitle>
-                  <DialogDescription className="text-slate-300">
-                    Enter the details of the new product you want to add.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label
-                      htmlFor="newProductName"
-                      className="text-right text-white"
-                    >
-                      Name
-                    </Label>
-                    <Input
-                      id="newProductName"
-                      name="name"
-                      value={newProductData.name}
-                      onChange={handleNewProductChange}
-                      className="col-span-3 bg-slate-700 border-slate-600 text-white"
-                      placeholder="Enter product name"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label
-                      htmlFor="newProductUnitPrice"
-                      className="text-right text-white"
-                    >
-                      Unit Price
-                    </Label>
-                    <Input
-                      id="newProductUnitPrice"
-                      name="unit_price"
-                      value={newProductData.unit_price}
-                      onChange={handleNewProductChange}
-                      className="col-span-3 bg-slate-700 border-slate-600 text-white"
-                      placeholder="Enter product name"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label
-                      htmlFor="newProductBrand"
-                      className="text-right text-white"
-                    >
-                      Brand
-                    </Label>
-                    <div className="col-span-3">
-                      <Popover open={openBrand} onOpenChange={setOpenBrand}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={openBrand}
-                            className="w-full justify-between bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-                          >
-                            {newProductData.brand
-                              ? brands.find(
-                                  (brand) =>
-                                    brand.id.toString() === newProductData.brand
-                                )?.name
-                              : "Select a brand..."}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-full p-0 bg-slate-700 border-slate-600">
-                          <Command className="bg-slate-700 border-slate-600">
-                            <CommandInput
-                              placeholder="Search brand..."
-                              className="bg-slate-700 text-white"
-                            />
-                            <CommandList>
-                              <CommandEmpty>No brand found.</CommandEmpty>
-                              <CommandGroup>
-                                {brands.map((brand) => (
-                                  <CommandItem
-                                    key={brand.id}
-                                    onSelect={() =>
-                                      handleNewProductBrandChange(
-                                        brand.id.toString()
-                                      )
-                                    }
-                                    className="text-white hover:bg-slate-600"
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        newProductData.brand ===
-                                          brand.id.toString()
-                                          ? "opacity-100"
-                                          : "opacity-0"
-                                      )}
-                                    />
-                                    {brand.name}
-                                  </CommandItem>
-                                ))}
-                                <CommandItem
-                                  onSelect={() =>
-                                    handleNewProductBrandChange("new")
-                                  }
-                                  className="text-white hover:bg-slate-600"
-                                >
-                                  <PlusCircle className="mr-2 h-4 w-4" />
-                                  Add a new brand
-                                </CommandItem>
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    onClick={handleAddProduct}
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    Add Product
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
+              setOpen={setShowNewProductDialog}
+              newProductData={newProductData}
+              handleNewProductChange={handleNewProductChange}
+              handleNewProductBrandChange={handleNewProductBrandChange}
+              handleAddProduct={handleAddProduct}
+              brands={brands}
+              openBrand={openBrand}
+              setOpenBrand={setOpenBrand}
+              branches={branch}
+              userBranch={userBranch}
+              selectedBranch={formData.branch}
+            />
+        
+            {/* New Vendor and New Brand dialogs remain unchanged */}
             <Dialog
               open={showNewVendorDialog}
               onOpenChange={setShowNewVendorDialog}
@@ -841,6 +852,23 @@ function AllPurchaseTransactionForm() {
                       onChange={handleNewVendorChange}
                       className="col-span-3 bg-slate-700 border-slate-600 text-white"
                       placeholder="Enter vendor name"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label
+                      htmlFor="newVendorName"
+                      className="text-right text-white"
+                    >
+                      Due
+                    </Label>
+                    <Input
+                      id="newVendorDue"
+                      name="due"
+                      type = "number"
+                      value={newVendorData.due}
+                      onChange={handleNewVendorChange}
+                      className="col-span-3 bg-slate-700 border-slate-600 text-white"
+                      placeholder="Enter vendor due"
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -927,7 +955,7 @@ function AllPurchaseTransactionForm() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-
+        
             <Dialog
               open={showNewBrandDialog}
               onOpenChange={setShowNewBrandDialog}

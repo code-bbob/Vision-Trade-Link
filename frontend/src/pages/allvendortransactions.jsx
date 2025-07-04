@@ -11,8 +11,9 @@ import useAxios from '@/utils/useAxios'
 import { format, set } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '@/components/allsidebar'
-
+import { useParams } from 'react-router-dom';
 export default function AllVendorTransactions() {
+  const { branchId } = useParams()
   const api = useAxios()
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -52,7 +53,7 @@ export default function AllVendorTransactions() {
 
   const fetchInitData = async () => {
     try {
-      const response = await api.get("alltransaction/vendortransaction/")
+      const response = await api.get(`alltransaction/vendortransaction/branch/${branchId}/`)
       setTransactions(response.data.results)
       // console.log(response.data.results)
       setMetadata({
@@ -82,7 +83,7 @@ export default function AllVendorTransactions() {
     e.preventDefault()
     setLoading(true)
     try {
-      const response = await api.get(`alltransaction/vendortransaction/?search=${localSearchTerm}`)
+      const response = await api.get(`alltransaction/vendortransaction/branch/${branchId}/?search=${localSearchTerm}`)
       setTransactions(response.data.results)
       setMetadata({
         next: response.data.next,
@@ -102,7 +103,7 @@ export default function AllVendorTransactions() {
     e.preventDefault()
     setLoading(true)
     try {
-      const response = await api.get(`alltransaction/vendortransaction/?start_date=${startDate}&end_date=${endDate}`)
+      const response = await api.get(`alltransaction/vendortransaction/branch/${branchId}/?start_date=${startDate}&end_date=${endDate}`)
       setTransactions(response.data.results)
       setMetadata({
         next: response.data.next,
@@ -150,7 +151,7 @@ export default function AllVendorTransactions() {
         >
           <h1 className="text-3xl lg:text-4xl font-bold text-white mb-4 lg:mb-0">Vendor Transactions</h1>
           <Button
-            onClick={() => navigate('/mobile/')}
+            onClick={() => navigate('/')}
             variant="outline"
             className="w-full lg:w-auto px-5 text-black border-white hover:bg-gray-700 hover:text-white"
           >
@@ -256,7 +257,7 @@ export default function AllVendorTransactions() {
       </div>
       <Button
         className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={() => navigate('/vendor-transactions/form/')}
+        onClick={() => navigate(`/vendor-transactions/branch/${branchId}/form/`)}
       >
         <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
       </Button>

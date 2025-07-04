@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import PurchaseTransaction, Vendor, Purchase, Scheme,PriceProtection, PurchaseReturn
-from .serializers import PurchaseTransactionSerializer, VendorSerializer,SalesTransactionSerializer,SalesSerializer,Sales,SalesTransaction,SchemeSerializer,PurchaseSerializer,PurchaseTransactionSerializer, PriceProtectionSerializer, VendorBrandSerializer,PurchaseReturnSerializer
+from .serializers import EMIDebtorTransactionSerializer, PurchaseTransactionSerializer, VendorSerializer,SalesTransactionSerializer,SalesSerializer,Sales,SalesTransaction,SchemeSerializer,PurchaseSerializer,PurchaseTransactionSerializer, PriceProtectionSerializer, VendorBrandSerializer,PurchaseReturnSerializer,EMIDebtorSerializer
 from inventory.serializers import BrandSerializer
 from rest_framework.permissions import IsAuthenticated
 from inventory.models import Item,Brand,Phone
@@ -13,12 +13,14 @@ from django.shortcuts import get_object_or_404
 from django.db import models
 from rest_framework import generics
 from django.utils import timezone
-from .models import VendorTransaction
+from .models import VendorTransaction,EMIDebtorTransaction,EMIDebtor
 from .serializers import VendorTransactionSerializer
 from django.db.models import Sum
 from django.db.models.functions import ExtractWeekDay
 from django.utils.timezone import make_aware,localtime
 from django.db import transaction
+from alltransactions.models import DebtorTransaction, Debtor
+from django.db.models import Q
 class PurchaseTransactionView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -67,14 +69,6 @@ class PurchaseTransactionView(APIView):
         data["enterprise"] = request.user.person.enterprise.id
         print(data)
         
-        # Only process the date if it's provided, otherwise, it will take the default value from the model.
-        if "date" in data:
-            date_str = data["date"]
-            # Assuming the format is 'YYYY-MM-DD'
-            date_object = datetime.strptime(date_str, '%Y-%m-%d').date()
-            datetime_with_current_time = datetime.combine(date_object, timezone.now().time())
-            data["date"] = datetime_with_current_time.isoformat()
-        
         serializer = PurchaseTransactionSerializer(data=data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
@@ -121,24 +115,23 @@ class PurchaseTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
             for purchase in purchases:
                 if not purchase.returned:
                     product = purchase.phone
-                    product.count -= 1
-                    product.stock -= product.selling_price
+                    product.count = product.count - 1 if product.count is not None else -1
+                    product.stock = product.stock - product.selling_price if product.stock is not None else -product.selling_price
                     product.save()
                     brand = product.brand
-                    brand.count -= 1
-                    brand.stock -= product.selling_price
+                    brand.count = brand.count - 1 if brand.count is not None else -1
+                    brand.stock = brand.stock - purchase.phone.selling_price if brand.stock is not None else -purchase.phone.selling_price
                     brand.save()
                 else:
                     returned_amount += purchase.unit_price
             amount = purchase_transaction.total_amount - returned_amount
             vendor = purchase_transaction.vendor
-            if purchase_transaction.method == "credit":
-                if vendor.due is None:
-                    vendor.due = 0  
-                vendor.due -= amount 
-                vendor.save()
-            purchase_transaction.delete()
-            return Response("Deleted")
+            vts = VendorTransaction.objects.filter(purchase_transaction=purchase_transaction)
+            if vts:
+                for vt in vts:
+                    vt.delete()
+            purchase_transaction.delete()   
+            return Response("Deleted")  
  
     
 
@@ -229,7 +222,7 @@ class PurchaseView(APIView):
 class SalesTransactionView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request,branch=None):
+    def get(self, request,pk=None, branch=None):
         user = request.user
         enterprise = user.person.enterprise
         user = request.user
@@ -237,6 +230,11 @@ class SalesTransactionView(APIView):
         search = request.GET.get('search')
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
+
+        if pk:
+            sales_transaction = get_object_or_404(SalesTransaction, pk=pk)
+            serializer = SalesTransactionSerializer(sales_transaction)
+            return Response(serializer.data)
 
         transactions = SalesTransaction.objects.filter(enterprise=enterprise)
         if branch:
@@ -276,19 +274,61 @@ class SalesTransactionView(APIView):
         data = request.data
         data["enterprise"] = request.user.person.enterprise.id
         
-        # Only process the date if it's provided, otherwise, it will take the default value from the model.
-        if "date" in data:
-            date_str = data["date"]
-            # Assuming the format is 'YYYY-MM-DD'
-            date_object = datetime.strptime(date_str, '%Y-%m-%d').date()
-            datetime_with_current_time = datetime.combine(date_object, timezone.now().time())
-            data["date"] = datetime_with_current_time.isoformat()
-        
         serializer = SalesTransactionSerializer(data=data)
         if serializer.is_valid(raise_exception=True):
+            print("VALDI")
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def patch(self, request, pk):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
+        sales_transaction = get_object_or_404(SalesTransaction, pk=pk)
+        serializer = SalesTransactionSerializer(sales_transaction, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @transaction.atomic
+    def delete(self, request, pk):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
+        sales_transaction = SalesTransaction.objects.get(id=pk)
+        sales_data = sales_transaction.sales.all()
+        for sale in sales_data:
+            
+            schemes = Scheme.objects.filter(sales__id=sale.id)
+            if schemes:
+                for scheme in schemes:
+                    scheme.sales.remove(sale)
+                    scheme.calculate_receivable()
+            
+            pps = PriceProtection.objects.filter(sales__id=sale.id)
+            if pps:
+                for pp in pps:
+                    pp.sales.remove(sale)
+                    pp.calculate_receivable()
+
+            imei = sale.imei_number
+
+            item = Item.objects.create(imei_number = imei, phone = sale.phone)
+
+            sale.phone.count = sale.phone.count + 1 if sale.phone.count is not None else 1
+            sale.phone.stock = sale.phone.stock + sale.phone.selling_price if sale.phone.stock is not None else sale.phone.selling_price
+            sale.phone.save()
+
+            brand = sale.phone.brand
+            brand.count = brand.count + 1 if brand.count is not None else 1
+            brand.stock = brand.stock + sale.phone.selling_price if brand.stock is not None else sale.phone.selling_price
+            brand.save()
+
+        DebtorTransaction.objects.filter(sales_transaction=sales_transaction).first().delete()
+        sales_transaction.delete()
+        return Response("Sales transaction deleted successfully", status=status.HTTP_204_NO_CONTENT)
 
 
 class SalesView(APIView):
@@ -339,26 +379,27 @@ class VendorView(APIView):
 class SchemeView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request,*args, **kwargs):
+    def get(self, request,pk=None, branch=None, *args, **kwargs):
         schemes = Scheme.objects.filter(enterprise = request.user.person.enterprise)
+        if pk:
+            schemes = schemes.filter(pk=pk).first()
+            serializer = SchemeSerializer(schemes)
+            return Response(serializer.data)
+        
+        if branch:
+            schemes = schemes.filter(branch=branch)
         serializer = SchemeSerializer(schemes,many=True)
         return Response(serializer.data)
     
     def post(self,request,*args,**kwargs):
         data = request.data 
         data["enterprise"]= request.user.person.enterprise.id 
-        #print(data)
         id = data["phone"]
         brand = Phone.objects.get(id=id).brand
         data["brand"] = brand.id
-        #print("HERE IS DATA",data)
         serializer = SchemeSerializer(data=data)
-        #print("HERE")
-        #print(data)
         if serializer.is_valid(raise_exception=True):
-            #print("NOT HERE")
             serializer.save()
-            #print("XAINA")
             return Response(serializer.data)
     
     def patch(self,request,pk):
@@ -375,6 +416,14 @@ class SchemeView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
+        scheme = get_object_or_404(Scheme, pk=pk)
+        scheme.delete()
+        return Response("Scheme deleted successfully", status=status.HTTP_204_NO_CONTENT)
 
 class SchemePhoneView(APIView):
     permission_classes = [IsAuthenticated]
@@ -463,95 +512,119 @@ class PriceProtectionView(APIView):
 class StatsView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self,request):
+    def get(self, request):
+        # Get raw query params
+        start_date_str = request.GET.get('start_date')
+        end_date_str   = request.GET.get('end_date')
 
-        start_date = request.GET.get('start_date')
-        end_date = request.GET.get('end_date')
-
-        if not start_date or not end_date:
-            today = timezone.now()
-            start_date = today.replace(day=1)  # First day of the current month
+        # If either is missing, default to first of this month through today
+        if not start_date_str or not end_date_str:
+            today = timezone.now().date()                   # <— now a date
+            start_date = today.replace(day=1)               # <— first day of month
             end_date = today
-        
-        start_date = parse_date(start_date) if isinstance(start_date, str) else start_date
-        end_date = parse_date(end_date) if isinstance(end_date, str) else end_date
-
-        #print(start_date,end_date)
+        else:
+            # parse_date returns a date object
+            start_date = parse_date(start_date_str)
+            end_date   = parse_date(end_date_str)
 
         enterprise = request.user.person.enterprise
-    
-        allstock = Item.objects.filter(phone__brand__enterprise = enterprise).count()
-        allbrands = Brand.objects.filter(enterprise = enterprise).count()
 
-        monthlypurchases = Purchase.objects.filter(purchase_transaction__enterprise = enterprise,purchase_transaction__date__date__range=(start_date, end_date))
-        #print(monthlypurchases)
-        monthlysales = Sales.objects.filter(sales_transaction__enterprise = enterprise,sales_transaction__date__date__range=(start_date, end_date))
+        allstock  = Item.objects.filter(
+            phone__brand__enterprise=enterprise
+        ).count()
+        allbrands = Brand.objects.filter(
+            enterprise=enterprise
+        ).count()
 
-        dailypurchases = Purchase.objects.filter(purchase_transaction__enterprise = enterprise,purchase_transaction__date__date = today.date())
-        dailysales = Sales.objects.filter(sales_transaction__enterprise = enterprise,sales_transaction__date__date = today.date())
+        # NOW we filter directly on the DateField, not __date
+        monthlypurchases = Purchase.objects.filter(
+            purchase_transaction__enterprise=enterprise,
+            purchase_transaction__date__range=(start_date, end_date)
+        )
+        monthlysales = Sales.objects.filter(
+            sales_transaction__enterprise=enterprise,
+            sales_transaction__date__range=(start_date, end_date)
+        )
 
+        # For daily, compare the DateField to today
+        today = timezone.now().date()
+        dailypurchases = Purchase.objects.filter(
+            purchase_transaction__enterprise=enterprise,
+            purchase_transaction__date=today
+        )
+        dailysales = Sales.objects.filter(
+            sales_transaction__enterprise=enterprise,
+            sales_transaction__date=today
+        )
 
-
-
+        # Sum up transaction amounts over the same date ranges
         ptamt = 0
+        for pt in PurchaseTransaction.objects.filter(
+            enterprise=enterprise,
+            date__range=(start_date, end_date)
+        ):
+            if pt.total_amount:
+                ptamt += pt.total_amount
+
         dailyptamt = 0
-
-        pts = PurchaseTransaction.objects.filter(enterprise = enterprise,date__date__range=(start_date, end_date))
-        if pts:
-            for pt in pts:
-                # #print(pt.total_amount)
-                ptamt = (pt.total_amount+ptamt) if pt.total_amount else ptamt
-
-        pts = PurchaseTransaction.objects.filter(enterprise = enterprise,date__date = today.date())
-        if pts:
-            for pt in pts:
-                # #print(pt.total_amount)
+        for pt in PurchaseTransaction.objects.filter(
+            enterprise=enterprise,
+            date=today
+        ):
+            if pt.total_amount:
                 dailyptamt += pt.total_amount
 
         stamt = 0
-        dailystamt = 0
-       
+        for st in SalesTransaction.objects.filter(
+            enterprise=enterprise,
+            date__range=(start_date, end_date)
+        ):
+            if st.total_amount:
+                stamt += st.total_amount
 
-        sts = SalesTransaction.objects.filter(enterprise = enterprise,date__date__range=(start_date, end_date))
-        if sts:
-            for st in sts:
-                stamt += st.total_amount    
-        
-        sts = SalesTransaction.objects.filter(enterprise=enterprise,date__date = today.date())
-        if sts:
-            for st in sts:
+        dailystamt = 0
+        for st in SalesTransaction.objects.filter(
+            enterprise=enterprise,
+            date=today
+        ):
+            if st.total_amount:
                 dailystamt += st.total_amount
 
+        # Profit calculations unchanged
         daily_profit = 0
         for sale in dailysales:
-            purchase = Purchase.objects.filter(imei_number = sale.imei_number).first()
+            purchase = Purchase.objects.filter(
+                imei_number=sale.imei_number
+            ).first()
             if purchase:
                 daily_profit += sale.unit_price - purchase.unit_price
-        
+
         monthly_profit = 0
         for sale in monthlysales:
-            purchase = Purchase.objects.filter(imei_number = sale.imei_number).first()
+            purchase = Purchase.objects.filter(
+                imei_number=sale.imei_number
+            ).first()
             if purchase:
                 monthly_profit += sale.unit_price - purchase.unit_price
-        
-        stat = { 
-            "enterprise" : enterprise.name,
-            "daily":{
-                "purchases" : dailypurchases.count(),
-                "dailyptamt":dailyptamt,
+
+        stat = {
+            "enterprise": enterprise.name,
+            "daily": {
+                "purchases": dailypurchases.count(),
+                "dailyptamt": dailyptamt,
                 "sales": dailysales.count(),
-                "dailystamt":dailystamt,
-                "profit": round(daily_profit,2)
+                "dailystamt": dailystamt,
+                "profit": round(daily_profit, 2)
             },
-            "monthly":{
-                "purchases" : monthlypurchases.count(),
-                "ptamt":ptamt,
-                "stamt":stamt,
+            "monthly": {
+                "purchases": monthlypurchases.count(),
+                "ptamt": ptamt,
+                "stamt": stamt,
                 "sales": monthlysales.count(),
-                "profit": round(monthly_profit,2)
+                "profit": round(monthly_profit, 2)
             },
             "stock": allstock,
-            "brands" : allbrands
+            "brands": allbrands
         }
         return Response(stat)
     
@@ -626,39 +699,40 @@ class SingleScheme(APIView):
             for sale in sales:
                 list.append(sale.imei_number)
         dict = {
-            "phone":scheme.phone.name,
+            "phone":scheme.phone.id,
+            "phone_name":scheme.phone.name,
             "list":list,
             "receivables":scheme.receivable,
             "status":scheme.status
         }
         return Response(dict)
 
-class SchemeChangeView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Scheme.objects.all()
-    serializer_class = SchemeSerializer
+# class SchemeChangeView(generics.RetrieveUpdateDestroyAPIView):
+#     queryset = Scheme.objects.all()
+#     serializer_class = SchemeSerializer
 
-    def update(self, request, *args, **kwargs):
-        role = request.user.person.role
-        if role != "Admin":
-            return Response("Unauthorized")
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
+#     def update(self, request, *args, **kwargs):
+#         role = request.user.person.role
+#         if role != "Admin":
+#             return Response("Unauthorized")
+#         partial = kwargs.pop('partial', False)
+#         instance = self.get_object()
         
-        # Ensure that we're using partial update
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
+#         # Ensure that we're using partial update
+#         serializer = self.get_serializer(instance, data=request.data, partial=True)
+#         serializer.is_valid(raise_exception=True)
         
-        self.perform_update(serializer)
+#         self.perform_update(serializer)
 
-        if getattr(instance, '_prefetched_objects_cache', None):
-            # If 'prefetch_related' has been applied to a queryset, we need to
-            # forcibly invalidate the prefetch cache on the instance.
-            instance._prefetched_objects_cache = {}
+#         if getattr(instance, '_prefetched_objects_cache', None):
+#             # If 'prefetch_related' has been applied to a queryset, we need to
+#             # forcibly invalidate the prefetch cache on the instance.
+#             instance._prefetched_objects_cache = {}
 
-        return Response(serializer.data)
+#         return Response(serializer.data)
 
-    def perform_update(self, serializer):
-        serializer.save()
+#     def perform_update(self, serializer):
+#         serializer.save()
 
 
 class PriceProtectionChangeView(generics.RetrieveUpdateDestroyAPIView):
@@ -853,8 +927,7 @@ class VendorTransactionView(APIView):
         transactions = VendorTransaction.objects.filter(enterprise=enterprise)
         if branch:
             transactions = transactions.filter(branch=branch)
-        #print(transactions)
-        
+
         if search:
             name = transactions.filter(vendor__name__icontains = search)
             amount = transactions.filter(amount__icontains = search)
@@ -862,18 +935,14 @@ class VendorTransactionView(APIView):
         
         if start_date and end_date:
             start_date = parse_date(start_date)
-            end_date = parse_date(end_date)
-
-        if start_date and end_date:
-            start_date = datetime.combine(start_date, datetime.min.time())
-            end_date = datetime.combine(end_date, datetime.max.time())
-            
+            end_date = parse_date(end_date) 
             transactions = VendorTransaction.objects.filter(
-                date__range=(start_date, end_date)
-            )
+                    date__range=(start_date, end_date)
+                )
 
         transactions = transactions.order_by('-date')
 
+        print(transactions)
 
         paginator = PageNumberPagination()
         paginator.page_size = 5  # Set the page size here
@@ -887,12 +956,6 @@ class VendorTransactionView(APIView):
         user = request.user
         enterprise = user.person.enterprise
         data["enterprise"] = enterprise.id
-        if "date" in data:
-                    date_str = data["date"]
-                    # Assuming the format is 'YYYY-MM-DD'
-                    date_object = datetime.strptime(date_str, '%Y-%m-%d').date()
-                    datetime_with_current_time = datetime.combine(date_object, timezone.now().time())
-                    data["date"] = datetime_with_current_time.isoformat()
         
         serializer = VendorTransactionSerializer(data=data)
         if serializer.is_valid(raise_exception = True):
@@ -1218,3 +1281,116 @@ class SalesReportView(APIView):
             "count": count
         })
         return Response(list)
+    
+
+
+class EMIDebtorsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, branchId=None):
+        enterprise = request.user.person.enterprise
+        debtors = EMIDebtor.objects.filter(enterprise=enterprise)
+        
+        if branchId:
+            debtors = debtors.filter(branch=branchId)
+
+        serializer = EMIDebtorSerializer(debtors, many=True)
+        return Response(serializer.data)
+    
+    def post(self, request):
+        data = request.data
+        data['enterprise'] = request.user.person.enterprise.id
+        serializer = EMIDebtorSerializer(data=data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
+        debtor = EMIDebtor.objects.filter(id=pk).first()
+        if not debtor:
+            return Response("Debtor not found", status=status.HTTP_404_NOT_FOUND)
+        debtor.delete()
+        return Response("Deleted", status=status.HTTP_204_NO_CONTENT)
+    
+class EMIDebtorTransactionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, debtor_pk=None, pk=None, branch=None):
+        enterprise = request.user.person.enterprise
+        debtor_transactions = EMIDebtorTransaction.objects.filter(enterprise=enterprise)
+
+        query = request.GET.get('search')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        if branch:
+            debtor_transactions = debtor_transactions.filter(branch=branch)
+
+        if pk:
+            debtor_transactions = EMIDebtorTransaction.objects.filter(id=pk, enterprise=enterprise).first()
+            serializer = EMIDebtorTransactionSerializer(debtor_transactions)
+            return Response(serializer.data)
+        
+        if debtor_pk:
+            debtor_transactions = debtor_transactions.filter(debtor=debtor_pk)
+
+        if query:
+            debtor_transactions = debtor_transactions.filter(
+                Q(debtor__name__icontains=query) | Q(debtor__branch__name__icontains=query)
+            )
+
+        if start_date and end_date:
+            start_date = parse_date(start_date)
+            end_date = parse_date(end_date)
+
+        if start_date and end_date:
+
+            debtor_transactions = debtor_transactions.filter(
+                date__range=(start_date, end_date)
+            )
+
+        debtor_transactions = debtor_transactions.order_by('-id')
+
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 5  # Set your desired page size
+        paginated_data = paginator.paginate_queryset(debtor_transactions, request)
+
+        serializer = EMIDebtorTransactionSerializer(paginated_data, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    
+    def post(self, request):
+        data = request.data
+        data['enterprise'] = request.user.person.enterprise.id
+        serializer = EMIDebtorTransactionSerializer(data=data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def patch(self, request, pk):
+        data = request.data
+        data['enterprise'] = request.user.person.enterprise.id
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
+        debtor_transaction = EMIDebtorTransaction.objects.get(id=pk)
+        serializer = EMIDebtorTransactionSerializer(debtor_transaction, data=data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors)
+    
+    def delete(self, request, pk):
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
+        debtor_transaction = EMIDebtorTransaction.objects.filter(id=pk).first()
+        if not debtor_transaction:
+            return Response("Debtor Transaction not found", status=status.HTTP_404_NOT_FOUND)
+        debtor_transaction.delete()
+        return Response("Deleted", status=status.HTTP_204_NO_CONTENT)
+    

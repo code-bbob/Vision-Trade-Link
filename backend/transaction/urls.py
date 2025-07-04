@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import PurchaseTransactionView,VendorView,SalesTransactionView,SchemeView,PriceProtectionView,StatsView,SchemeBrandView,SchemePhoneView,SingleScheme,PPBrandView,PPPhoneView,SinglePP,VendorBrandsView,SingleVendorBrandView,PurchaseTransactionChangeView,SalesTransactionChangeView,SchemeChangeView,PriceProtectionChangeView,VendorTransactionView,BarChartView,LineGraphView,PurchaseReturnView,SalesReportView
+from . import views
+from .views import PurchaseTransactionView,VendorView,SalesTransactionView,SchemeView,PriceProtectionView,StatsView,SchemeBrandView,SchemePhoneView,SingleScheme,PPBrandView,PPPhoneView,SinglePP,VendorBrandsView,SingleVendorBrandView,PurchaseTransactionChangeView,SalesTransactionChangeView,PriceProtectionChangeView,VendorTransactionView,BarChartView,LineGraphView,PurchaseReturnView,SalesReportView
 
 urlpatterns = [
     path('purchasetransaction/', PurchaseTransactionView.as_view(), name='purchasetransaction-create'),
@@ -8,7 +9,7 @@ urlpatterns = [
 
     path('salestransaction/', SalesTransactionView.as_view(), name='salestransaction-create'),
     path('salestransaction/branch/<int:branch>/', SalesTransactionView.as_view(), name='salestransaction-branch'),
-    path('salestransaction/<int:pk>/', SalesTransactionChangeView.as_view(), name='salestransaction-create'),
+    path('salestransaction/<int:pk>/', SalesTransactionView.as_view(), name='salestransaction-create'),
 
     path('vendor/',VendorView.as_view(), name='vendor'),
     path('vendor/branch/<int:branch>/',VendorView.as_view(), name='vendorbranch'),
@@ -22,7 +23,7 @@ urlpatterns = [
      
     path('scheme/',SchemeView.as_view(), name='scheme'),
     path('scheme/branch/<int:branch>/', SchemeView.as_view(), name='schemebranch'),
-    path('scheme/<int:pk>/', SchemeChangeView.as_view(), name='schemechange'),
+    path('scheme/<int:pk>/', SchemeView.as_view(), name='schemechange'),
 
     path('scheme/brand/<int:id>/', SchemePhoneView.as_view(),name='schemephone'),
 
@@ -55,6 +56,13 @@ urlpatterns = [
 
     path('sales-report/',SalesReportView.as_view(),name='sales_report'),
     path('sales-report/branch/<int:branch>/', SalesReportView.as_view(), name='sales_report_branch'),
+
+    path('emidebtors/branch/<int:branchId>/', views.EMIDebtorsView.as_view(), name='debtors_branch'),
+    path('emidebtors/<int:pk>/', views.EMIDebtorsView.as_view(), name='debtor_detail'),
+    path('emidebtors/', views.EMIDebtorsView.as_view(), name='debtors'),
+
+    path('emidebtortransaction/branch/<int:branch>/', views.EMIDebtorTransactionView.as_view(), name='debtortransaction'),
+    path('emidebtortransaction/<int:pk>/', views.EMIDebtorTransactionView.as_view(), name='debtortransaction'),
 
 
 

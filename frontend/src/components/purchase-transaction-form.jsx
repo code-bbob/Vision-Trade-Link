@@ -34,12 +34,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Sidebar from "@/components/sidebar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function PurchaseTransactionForm() {
   const api = useAxios();
+  const {branchId} = useParams()
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
     purchase: [{ phone: "", imei_number: "", unit_price: "", bill_no: "" }],
@@ -47,6 +48,7 @@ function PurchaseTransactionForm() {
     method: "credit",
     cheque_number: null,
     cashout_date: null,
+    branch: branchId
   });
   const [phones, setPhones] = useState([]);
   const [filteredPhones, setFilteredPhones] = useState([]);
@@ -57,8 +59,8 @@ function PurchaseTransactionForm() {
   const [showNewPhoneDialog, setShowNewPhoneDialog] = useState(false);
   const [showNewVendorDialog, setShowNewVendorDialog] = useState(false);
   const [showNewBrandDialog, setShowNewBrandDialog] = useState(false);
-  const [newPhoneData, setNewPhoneData] = useState({ name: "", brand: "" });
-  const [newVendorData, setNewVendorData] = useState({ name: "", brand: "" });
+  const [newPhoneData, setNewPhoneData] = useState({ name: "", brand: "", branch: branchId });
+  const [newVendorData, setNewVendorData] = useState({ name: "", brand: "", due: 0, branch: branchId });
   const [newBrandName, setNewBrandName] = useState("");
   const [openPhone, setOpenPhone] = useState(
     Array(formData.purchase.length).fill(false)
@@ -75,9 +77,9 @@ function PurchaseTransactionForm() {
       try {
         const [phonesResponse, vendorsResponse, brandsResponse] =
           await Promise.all([
-            api.get("inventory/phone/"),
-            api.get("transaction/vendor/"),
-            api.get("inventory/brand/"),
+            api.get("inventory/phone/branch/" + branchId + "/"),
+            api.get("transaction/vendor/branch/" + branchId + "/"),
+            api.get("inventory/brand/branch/" + branchId + "/"),
           ]);
         setPhones(phonesResponse.data);
         setVendors(vendorsResponse.data);
@@ -115,6 +117,10 @@ function PurchaseTransactionForm() {
     newPurchase[index] = { ...newPurchase[index], [name]: value };
     setFormData({ ...formData, purchase: newPurchase });
   };
+
+  useEffect (() => {
+    console.log(branchId);
+  },[branchId]);
 
   const handlePhoneChange = (index, value) => {
     if (value === "new") {
@@ -215,7 +221,7 @@ function PurchaseTransactionForm() {
         submissionData
       );
       console.log("Response:", response.data);
-      navigate("/mobile/purchases");
+      navigate("/mobile/purchases/branch/" + branchId);
     } catch (error) {
       console.error("Error posting data:", error);
       setError("Failed to submit purchase transaction. Please try again.");
@@ -254,6 +260,10 @@ function PurchaseTransactionForm() {
       }));
       setNewVendorData({ name: "", brand: "" });
       setShowNewVendorDialog(false);
+      const filteredPhones = phones.filter(
+          (phone) => phone.brand === response.data.brand
+        );
+        setFilteredPhones(filteredPhones);
     } catch (error) {
       console.error("Error adding vendor:", error);
       setError("Failed to add new vendor. Please try again.");
@@ -265,6 +275,7 @@ function PurchaseTransactionForm() {
     try {
       const response = await api.post("inventory/brand/", {
         name: newBrandName,
+        branch: branchId
       });
       console.log("New Brand Added:", response.data);
       setBrands((prevBrands) => [...prevBrands, response.data]);
@@ -850,6 +861,23 @@ function PurchaseTransactionForm() {
                       onChange={handleNewVendorChange}
                       className="col-span-3 bg-slate-700 border-slate-600 text-white"
                       placeholder="Enter vendor name"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label
+                      htmlFor="newVendorName"
+                      className="text-right text-white"
+                    >
+                      Due
+                    </Label>
+                    <Input
+                      id="newVendorDue"
+                      name="due"
+                      type="number"
+                      value={newVendorData.due}
+                      onChange={handleNewVendorChange}
+                      className="col-span-3 bg-slate-700 border-slate-600 text-white"
+                      placeholder="Enter vendor due amount"
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">

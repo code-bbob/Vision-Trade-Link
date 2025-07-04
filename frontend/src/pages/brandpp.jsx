@@ -14,6 +14,7 @@ import { format } from 'date-fns'
 import Sidebar from '@/components/sidebar'
 
 export default function BrandPPPage() {
+  const { branchId } = useParams()
   const api = useAxios()
   const navigate = useNavigate()
   const { id } = useParams()
@@ -103,7 +104,7 @@ export default function BrandPPPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br p-4 pt-14 from-slate-900 to-slate-800">
+    <div className="flex min-h-screen bg-gradient-to-br p-4 from-slate-900 to-slate-800">
       <Sidebar className="hidden lg:block w-64 flex-shrink-0" />
       <div className="flex-grow p-4 lg:p-6 lg:ml-64 overflow-auto">
         <div className="max-w-6xl mx-auto">
@@ -216,7 +217,7 @@ export default function BrandPPPage() {
         </div>
         <Button
           className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-          onClick={() => navigate('/mobile/price-protection/new')}
+          onClick={() => navigate(`/mobile/price-protection/branch/${branchId}/new`)}
         >
           <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
         </Button>

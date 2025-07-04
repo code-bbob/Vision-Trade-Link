@@ -36,6 +36,7 @@ export default function EditAllVendorTransactionForm() {
   const api = useAxios();
   const navigate = useNavigate();
   const { vendorTransactionId } = useParams();
+  const { branchId }= useParams();
 
   const [originalVendorTransactionData, setOriginalVendorTransactionData] = useState(null);
   const [formData, setFormData] = useState({
@@ -63,8 +64,8 @@ export default function EditAllVendorTransactionForm() {
     const fetchData = async () => {
       try {
         const [vendorsResponse, brandsResponse, vendorTransactionResponse] = await Promise.all([
-          api.get("alltransaction/vendor/"),
-          api.get("allinventory/brand/"),
+          api.get("alltransaction/vendor/branch/" + branchId + "/"),
+          api.get("allinventory/brand/branch/" + branchId + "/"),
           api.get(`alltransaction/vendortransaction/${vendorTransactionId}/`)
         ]);
         setVendors(vendorsResponse.data);
@@ -205,7 +206,7 @@ export default function EditAllVendorTransactionForm() {
       <div className="flex-grow p-4 lg:p-6 lg:ml-64 overflow-auto">
         <div className="max-w-4xl mx-auto">
           <Button
-            onClick={() => navigate("/vendor/transactions")}
+            onClick={() => navigate("/vendor-transactions")}
             variant="outline"
             className="mb-6 px-4 py-2 text-black border-white hover:bg-gray-700 hover:text-white"
           >
@@ -255,6 +256,8 @@ export default function EditAllVendorTransactionForm() {
                   >
                     <option value="cheque">Cheque</option>
                     <option value="cash">Cash</option>
+                    <option value="credit">Credit</option>
+
                   </select>
                 </div>
 

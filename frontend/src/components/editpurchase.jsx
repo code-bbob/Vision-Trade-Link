@@ -38,6 +38,7 @@ function EditPurchaseTransactionForm() {
   const api = useAxios()
   const navigate = useNavigate()
   const { purchaseId } = useParams()
+  const {branchId} = useParams()
 
   const [originalPurchaseData, setOriginalPurchaseData] = useState(null);
   const [formData, setFormData] = useState({
@@ -47,7 +48,8 @@ function EditPurchaseTransactionForm() {
     bill_no: '',
     method: '',
     cheque_number: '',
-    cashout_date: ''
+    cashout_date: '',
+    branch: branchId
   });
   const [phones, setPhones] = useState([]);
   const [filteredPhones, setFilteredPhones] = useState([]);
@@ -104,6 +106,17 @@ function EditPurchaseTransactionForm() {
 
     fetchData();
   }, [purchaseId]);
+
+   useEffect(() => {
+      const brandToDisplay = vendors?.find(
+        (vendor) => vendor.id.toString() === formData.vendor.toString()
+      )?.brand;
+      console.log(brandToDisplay);
+      const filtered = phones?.filter(
+        (phone) => phone.brand === brandToDisplay
+      );
+      setFilteredPhones(filtered);  
+    }, [vendors]);
 
   const handleDelete = (e) => {
     api.delete(`transaction/purchasetransaction/${purchaseId}/`)
@@ -288,7 +301,7 @@ function EditPurchaseTransactionForm() {
     
     try {
       setSubLoading(true);
-      const response = await api.post('transaction/purchase-return/', {"purchase_ids":returns, "purchase_transaction_id":purchaseId});
+      const response = await api.post('transaction/purchase-return/', {"purchase_ids":returns, "purchase_transaction_id":purchaseId,"branch":branchId});
       console.log('Returned:', response.data);
 
       

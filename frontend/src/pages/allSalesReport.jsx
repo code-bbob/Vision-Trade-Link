@@ -13,8 +13,9 @@ import useAxios from "@/utils/useAxios"
 import { useNavigate } from "react-router-dom"
 import jsPDF from "jspdf"
 import "jspdf-autotable"
-
+import { useParams } from "react-router-dom"
 const AllSalesReport = () => {
+  const { branchId } = useParams()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -32,7 +33,7 @@ const AllSalesReport = () => {
     setLoading(true)
     try {
       const queryString = new URLSearchParams(params).toString()
-      const response = await api.get(`alltransaction/sales-report/?${queryString}`)
+      const response = await api.get(`alltransaction/sales-report/branch/${branchId}/?${queryString}`)
       const salesData = {
         sales: response.data.slice(0, -1),
         ...response.data[response.data.length - 1],
@@ -70,17 +71,17 @@ const AllSalesReport = () => {
     }
   
     // Create CSV header
-    let csvContent = "Date,Product,Brand,quantity,Unit Price,Profit\n"
+    let csvContent = "Date,Product,Brand,quantity,Unit Price\n"
   
     // Convert each sale into a CSV row
     data.sales.forEach((item) => {
-      const row = `${item.date},${item.product},${item.brand},${item.imei_number},${item.unit_price},${item.profit}`
+      const row = `${item.date},${item.product},${item.brand},${item.imei_number},${item.unit_price},${item.total_price}\n`
       csvContent += row + "\n"
     })
   
     // Add summary row
     csvContent += `\nTotal Sales: ,,,${data.total_sales}\n`
-    csvContent += `Total Profit: ,,,${data.total_profit}\n`
+    // csvContent += `Total Profit: ,,,${data.total_price}\n`
     csvContent += `Total Transactions: ,,,${data.count}\n`
   
     // Create a downloadable CSV file
@@ -104,7 +105,7 @@ const AllSalesReport = () => {
     doc.text("Sales Report", 14, 10)
   
     // Table Headers
-    const headers = [["Date", "Product", "Brand", "Quantity", "Unit Price", "Profit"]]
+    const headers = [["Date", "Product", "Brand", "Quantity", "Unit Price", "Total Price"]]
   
     // Table Data
     const tableData = data.sales.map((item) => [
@@ -113,12 +114,12 @@ const AllSalesReport = () => {
       item.brand,
       item.quantity,
       item.unit_price,
-      item.profit,
+      item.total_price,
     ])
   
     // Add Summary Row
     tableData.push(["", "", "", "Total Sales", data.total_sales])
-    tableData.push(["", "", "", "Total Profit", data.total_profit])
+    // tableData.push(["", "", "", "Total Profit", data.total_profit])
     tableData.push(["", "", "", "Total Transactions", data.count])
   
     // Generate table
@@ -235,8 +236,9 @@ const AllSalesReport = () => {
                 <TableHead className="w-[180px] text-white print:text-black">Product</TableHead>
                 <TableHead className="text-white print:text-black">Brand</TableHead>
                 <TableHead className="text-white print:text-black">Quantity</TableHead>
+                <TableHead className="text-white print:text-black">Method</TableHead>
                 <TableHead className="text-right text-white print:text-black">Unit Price</TableHead>
-                <TableHead className="text-right text-white print:text-black">Profit</TableHead>
+                <TableHead className="text-right text-white print:text-black">Total Price</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -246,11 +248,12 @@ const AllSalesReport = () => {
                   <TableCell className="font-medium text-white print:text-black">{item.product}</TableCell>
                   <TableCell className="text-white print:text-black">{item.brand}</TableCell>
                   <TableCell className="text-white print:text-black">{item.quantity}</TableCell>
+                  <TableCell className="text-white print:text-black">{item.method}</TableCell>
                   <TableCell className="text-right text-white print:text-black">
                     {item.unit_price.toLocaleString("en-US", { style: "currency", currency: "NPR" })}
                   </TableCell>
                   <TableCell className="text-right text-white print:text-black">
-                    {item.profit.toLocaleString("en-US", { style: "currency", currency: "NPR" })}
+                    {item.total_price.toLocaleString("en-US", { style: "currency", currency: "NPR" })}
                   </TableCell>
                 </TableRow>
               ))}
@@ -260,9 +263,21 @@ const AllSalesReport = () => {
           <div className="mt-6 flex justify-end">
             <div className="w-64 bg-slate-800 p-4 rounded-lg print:bg-gray-100">
               <div className="flex justify-between mb-2">
+                <span className="font-semibold text-white print:text-black">Subtotal Sales:</span>
+                <span className="text-white print:text-black">
+                  {data?.subtotal_sales?.toLocaleString("en-US", { style: "currency", currency: "NPR" })}
+                </span>
+              </div>
+              <div className="flex justify-between mb-2">
+                <span className="font-semibold text-white print:text-black">Total Discount:</span>
+                <span className="text-white print:text-black">
+                  {data?.total_discount.toLocaleString("en-US", { style: "currency", currency: "NPR" })}
+                </span>
+              </div>
+              <div className="flex justify-between mb-2">
                 <span className="font-semibold text-white print:text-black">Total Sales:</span>
                 <span className="text-white print:text-black">
-                  {data.total_sales.toLocaleString("en-US", { style: "currency", currency: "NPR" })}
+                  {data?.total_sales?.toLocaleString("en-US", { style: "currency", currency: "NPR" })}
                 </span>
               </div>
               <div className="flex justify-between mb-2">
@@ -270,10 +285,10 @@ const AllSalesReport = () => {
                 <span className="text-white print:text-black">{data.count}</span>
               </div>
               <div className="flex justify-between font-bold text-lg">
-                <span className="text-white print:text-black">Total Profit:</span>
+                 <span className="text-white print:text-black">Cash Sales:</span>
                 <span className="text-white print:text-black">
-                  {data.total_profit.toLocaleString("en-US", { style: "currency", currency: "NPR" })}
-                </span>
+                  {data?.cash_sales?.toLocaleString("en-US", { style: "currency", currency: "NPR" })}
+                </span> 
               </div>
            
             </div>

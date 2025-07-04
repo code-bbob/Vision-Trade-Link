@@ -34,6 +34,7 @@ import Sidebar from "@/components/allsidebar";
 
 export default function EditVendorTransactionForm() {
   const api = useAxios();
+  const { branchId } = useParams();
   const navigate = useNavigate();
   const { vendorTransactionId } = useParams();
 
@@ -46,6 +47,7 @@ export default function EditVendorTransactionForm() {
     method: "",
     vendor: "",
     desc:"",
+    branch: branchId,
   });
   const [vendors, setVendors] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -63,8 +65,8 @@ export default function EditVendorTransactionForm() {
     const fetchData = async () => {
       try {
         const [vendorsResponse, brandsResponse, vendorTransactionResponse] = await Promise.all([
-          api.get("transaction/vendor/"),
-          api.get("inventory/brand/"),
+          api.get("transaction/vendor/branch/" + branchId + "/"),
+          api.get("inventory/brand/branch/" + branchId + "/"),
           api.patch(`transaction/vendortransaction/${vendorTransactionId}/`)
         ]);
         setVendors(vendorsResponse.data);
@@ -205,7 +207,7 @@ export default function EditVendorTransactionForm() {
       <div className="flex-grow p-4 lg:p-6 lg:ml-64 overflow-auto">
         <div className="max-w-4xl mx-auto">
           <Button
-            onClick={() => navigate("/mobile/vendor/transactions")}
+            onClick={() => navigate("/mobile/vendor-transactions")}
             variant="outline"
             className="mb-6 px-4 py-2 text-black border-white hover:bg-gray-700 hover:text-white"
           >

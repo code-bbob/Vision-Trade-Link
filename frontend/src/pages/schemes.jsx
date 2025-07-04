@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,14 +21,13 @@ export default function SchemePageComponent() {
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [newSchemeBrand, setNewSchemeBrand] = useState('')
   const [showExpired, setShowExpired] = useState(false)
+  const { branchId } = useParams()
 
   useEffect(() => {
     const fetchSchemes = async () => {
       try {
-        const response = await api.get('transaction/schemebrands/')
+        const response = await api.get(`transaction/schemebrands/branch/${branchId}/`)
         setActiveSchemes(response.data.active_schemes)
         setExpiredSchemes(response.data.expired_schemes)
         setFilteredSchemes(response.data.active_schemes)
@@ -53,20 +52,6 @@ export default function SchemePageComponent() {
 
   const handleSearch = (event) => {
     setSearchTerm(event.target.value)
-  }
-
-  const handleAddScheme = async (e) => {
-    e.preventDefault()
-    try {
-      const response = await api.post('transaction/schemebrands/', { brand: newSchemeBrand })
-      console.log('New Scheme Added:', response.data)
-      setActiveSchemes([...activeSchemes, response.data])
-      setFilteredSchemes([...filteredSchemes, response.data])
-      setNewSchemeBrand('')
-      setIsDialogOpen(false)
-    } catch (error) {
-      console.error('Error adding scheme:', error)
-    }
   }
 
   const handleToggleExpired = () => {
@@ -137,7 +122,7 @@ export default function SchemePageComponent() {
               <SchemeCard
                 key={scheme.id}
                 scheme={scheme}
-                onClick={() => navigate(`/mobile/schemes/brand/${scheme.id}`)}
+                onClick={() => navigate(`/mobile/schemes/branch/${branchId}/brand/${scheme.id}`)}
               />
             ))}
           </div>
@@ -156,7 +141,7 @@ export default function SchemePageComponent() {
 
         <Button
           className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-          onClick={() => navigate('/mobile/schemes/new')}
+          onClick={() => navigate(`/mobile/schemes/branch/${branchId}/new`)}
         >
           <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
         </Button>
@@ -187,10 +172,10 @@ function SchemeCard({ scheme, onClick }) {
         </CardHeader>
         <CardContent className="relative z-10">
           <div className="text-sm text-slate-400 group-hover:text-purple-200 transition-colors duration-300">
-            Count: {scheme.count}
+            Active Schemes: {scheme.count}
           </div>
           <div className="text-sm text-slate-400 group-hover:text-purple-200 transition-colors duration-300 mt-1">
-            Total Receivables: ${scheme.total_receivables}
+            Total Receivables: Rs. {scheme.total_receivables}
           </div>
         </CardContent>
       </Card>

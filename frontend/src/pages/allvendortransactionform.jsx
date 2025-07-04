@@ -30,8 +30,10 @@ import {
 } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "@/components/allsidebar";
+import { useParams } from "react-router-dom";
 
 function AllVendorTransactionForm() {
+  const { branchId } = useParams();
   const api = useAxios();
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -41,6 +43,7 @@ function AllVendorTransactionForm() {
     method: "cheque",
     vendor: "",
     desc: "",
+    branch: branchId
   });
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,8 +62,8 @@ function AllVendorTransactionForm() {
     const fetchData = async () => {
       try {
         const [vendorsResponse, brandsResponse] = await Promise.all([
-          api.get("alltransaction/vendor/"),
-          api.get("allinventory/brand/"),
+          api.get(`alltransaction/vendor/branch/${branchId}/`),
+          api.get(`allinventory/brand/branch/${branchId}/`),
         ]);
         setVendors(vendorsResponse.data);
         setBrands(brandsResponse.data);

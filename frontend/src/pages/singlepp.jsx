@@ -9,6 +9,7 @@ import Sidebar from '@/components/sidebar';
 import { useParams, useNavigate } from 'react-router-dom';
 
 export default function SinglePP() {
+    const { branchId } = useParams();
     const api = useAxios();
     const [data, setData] = useState([]);
     const [phone, setPhone] = useState('');

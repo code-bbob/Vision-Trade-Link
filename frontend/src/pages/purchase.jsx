@@ -9,11 +9,12 @@ import { Label } from "@/components/ui/label"
 import { Calendar, ChevronLeft, ChevronRight, Search, Plus, ArrowLeft } from 'lucide-react'
 import useAxios from '@/utils/useAxios'
 import { format } from 'date-fns'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import Sidebar from '@/components/sidebar'
 
 export default function PurchaseTransactions() {
   const api = useAxios()
+  const {branchId} = useParams()
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -51,7 +52,7 @@ export default function PurchaseTransactions() {
 
   const fetchInitData = async () => {
     try {
-      const response = await api.get("transaction/purchasetransaction/")
+      const response = await api.get(`transaction/purchasetransaction/branch/${branchId}/`)
       setTransactions(response.data.results)
       setMetadata({
         next: response.data.next,
@@ -75,7 +76,7 @@ export default function PurchaseTransactions() {
     e.preventDefault()
     setLoading(true)
     try {
-      const response = await api.get(`transaction/purchasetransaction/?search=${localSearchTerm}`)
+      const response = await api.get(`transaction/purchasetransaction/branch/${branchId}/?search=${localSearchTerm}`)
       setTransactions(response.data.results)
       setMetadata({
         next: response.data.next,
@@ -95,7 +96,7 @@ export default function PurchaseTransactions() {
     e.preventDefault()
     setLoading(true)
     try {
-      const response = await api.get(`transaction/purchasetransaction/?start_date=${startDate}&end_date=${endDate}`)
+      const response = await api.get(`transaction/purchasetransaction/branch/${branchId}/?start_date=${startDate}&end_date=${endDate}`)
       setTransactions(response.data.results)
       setMetadata({
         next: response.data.next,
@@ -248,7 +249,7 @@ export default function PurchaseTransactions() {
       </div>
       <Button
         className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={() => navigate('/mobile/purchases/form/')}
+        onClick={() => navigate('/mobile/purchases/form/branch/' + branchId)}
       >
         <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
       </Button>

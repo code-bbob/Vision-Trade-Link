@@ -21,7 +21,7 @@ export default function SinglePhone() {
   async function fetchData() {
     setLoading(true)
     try {
-      const response = await api.get(`inventory/phone/${id}/`)
+      const response = await api.get(`inventory/phone/imeis/${id}/`)
       setData(response.data.list)
       setPhone(response.data.phone)
     } catch (err) {
@@ -70,6 +70,7 @@ export default function SinglePhone() {
             <CardHeader className="border-b border-slate-700">
               <CardTitle className="text-xl font-medium text-white flex justify-between items-center">
                 <span>{phone}</span>
+                <Button onClick={() => navigate(`/mobile/inventory/edit-phone/${id}`)}>Edit</Button>
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">

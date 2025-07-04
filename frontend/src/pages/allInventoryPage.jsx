@@ -2,14 +2,13 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Smartphone, ArrowLeft, Search, Plus, Trash2 } from 'lucide-react'
+import { Search, ArrowLeft, Trash2, List, Smartphone } from 'lucide-react'
 import useAxios from '../utils/useAxios'
-import Sidebar from '../components/allsidebar';
+import Sidebar from '../components/allsidebar'
 import {
   Dialog,
   DialogContent,
@@ -19,24 +18,53 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import AddAllBrandDialog  from '../components/addAllBrand'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export function AllInventoryPageComponent() {
   const api = useAxios()
   const navigate = useNavigate()
+  const { branchId } = useParams()
   const [brands, setBrands] = useState([])
   const [filteredBrands, setFilteredBrands] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [newBrandName, setNewBrandName] = useState('')
+  const [branch, setBranch] = useState([])
+
+  // State for handling the reusable branch dialog
+  const [selectedBranch, setSelectedBranch] = useState(null)
+  const [isBranchDialogOpen, setIsBranchDialogOpen] = useState(false)
+
+  const handleMerge = async (id) => {
+    try {
+      await api.post(`allinventory/brand/branch/${branchId}/merge/${id}/`)
+      setIsBranchDialogOpen(false)
+      window.location.reload()
+      // navigate('/')
+    } catch (error) {
+      console.error("Error merging branch:", error)
+    }
+  }
 
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const response = await api.get('allinventory/brand/')
+        const response = await api.get(`allinventory/brand/branch/${branchId}/`)
         setBrands(response.data)
         setFilteredBrands(response.data)
+        const branchResponse = await api.get(`enterprise/branch/`)
+        setBranch(branchResponse.data)
         setLoading(false)
       } catch (err) {
         console.error('Error fetching brands:', err)
@@ -46,7 +74,7 @@ export function AllInventoryPageComponent() {
     }
 
     fetchBrands()
-  }, [])
+  }, [branchId])
 
   useEffect(() => {
     const results = brands.filter(brand =>
@@ -59,18 +87,9 @@ export function AllInventoryPageComponent() {
     setSearchTerm(event.target.value)
   }
 
-  const handleAddBrand = async (e) => {
-    e.preventDefault()
-    try {
-      const response = await api.post('allinventory/brand/', { name: newBrandName })
-      console.log('New Brand Added:', response.data)
-      setBrands([...brands, response.data])
-      setFilteredBrands([...filteredBrands, response.data])
-      setNewBrandName('')
-      setIsDialogOpen(false)
-    } catch (error) {
-      console.error('Error adding brand:', error)
-    }
+  const handleBrandAdded = (newBrand) => {
+    setBrands(prevBrands => [...prevBrands, newBrand])
+    setFilteredBrands(prevBrands => [...prevBrands, newBrand])
   }
 
   const handleBrandDelete = async (brandId) => {
@@ -82,6 +101,11 @@ export function AllInventoryPageComponent() {
     } catch (error) {
       console.error("Error deleting brand:", error)
     }
+  }
+
+  const handleBranchClick = (branch) => {
+    setSelectedBranch(branch)
+    setIsBranchDialogOpen(true)
   }
 
   if (loading) return (
@@ -96,41 +120,105 @@ export function AllInventoryPageComponent() {
     </div>
   )
 
+  // Sort brands alphabetically
   filteredBrands.sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
       <Sidebar />
-      <div className="flex-1 lg:ml-64 overflow-auto relative p-8 lg:p-6">
-        <div className="max-w-6xl  mx-auto">
+      <div className="flex-1 lg:ml-64 overflow-auto p-4 sm:p-6 md:p-8">
+        <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="flex flex-col space-y-4 mb-8"
+            className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 mb-8"
           >
-            <h1 className="text-3xl lg:text-4xl font-bold text-center pb-4 text-white">Inventory Brands</h1>
+            <div className='flex justify-between w-full'>
+            <div>
 
-            <div className="flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0 sm:space-x-4 w-full">
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Search brands..."
-                  value={searchTerm}
-                  onChange={handleSearch}
-                  className="pl-10 w-full bg-slate-700 text-white border-gray-600 focus:border-purple-500 focus:ring-purple-500"
-                />
-              </div>
+            <h1 className="text-3xl md:text-4xl font-bold text-white text-center md:text-left">
+              Inventory Brands
+            </h1>
+            </div>
+            <div className='md:hidden gap-5'>
 
-              <Button
-                onClick={() => navigate('/')}
-                variant="outline"
-                className="w-full sm:w-auto text-black  border-white hover:bg-gray-700 hover:text-white"
-              >
-                <ArrowLeft className="mr-2 h-4 w-3" />
-                Back to Dashboard
-              </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <List className="h-6 w-6 text-white cursor-pointer" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>Import From Branch</DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                      {branch?.map((b) => (
+                        <DropdownMenuItem
+                          key={b.id}
+                          onClick={() => handleBranchClick(b)}
+                        >
+                          {b.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
+                <DropdownMenuSeparator />
+              </DropdownMenuContent>
+            </DropdownMenu>
+            </div>
+            </div>
+            
+            <Button
+              onClick={() => navigate('/')}
+              variant="outline"
+              className="w-full md:w-auto text-black border-white hover:bg-gray-700 hover:text-white"
+            >
+              <ArrowLeft className="mr-2 h-4 w-3" />
+              Back to Dashboard
+            </Button>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6"
+          >
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search brands..."
+                value={searchTerm}
+                onChange={handleSearch}
+                className="pl-10 w-full bg-slate-700 text-white border-gray-600 focus:border-purple-500 focus:ring-purple-500"
+              />
+            </div>
+            <div className='hidden md:block'>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <List className="h-6 w-6 text-white cursor-pointer" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>Import From Branch</DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                      {branch?.map((b) => (
+                        <DropdownMenuItem
+                          key={b.id}
+                          onClick={() => handleBranchClick(b)}
+                        >
+                          {b.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
+                <DropdownMenuSeparator />
+              </DropdownMenuContent>
+            </DropdownMenu>
             </div>
           </motion.div>
 
@@ -139,10 +227,10 @@ export function AllInventoryPageComponent() {
               <BrandCard
                 key={brand.id}
                 brand={brand}
-                onClick={() => navigate(`/brand/${brand.id}`)}
+                onClick={() => navigate(`brand/${brand.id}`)}
                 onDelete={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
+                  e.stopPropagation()
+                  e.preventDefault()
                   handleBrandDelete(brand.id)
                 }}
               />
@@ -160,45 +248,16 @@ export function AllInventoryPageComponent() {
             </motion.div>
           )}
         </div>
-
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-              onClick={() => setIsDialogOpen(true)}
-            >
-              <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
-            <DialogHeader>
-              <DialogTitle>Add New Brand</DialogTitle>
-              <DialogDescription className="text-slate-400">
-                Enter the name of the new brand you want to add.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="newBrandName" className="text-right">
-                  Brand Name
-                </Label>
-                <Input
-                  id="newBrandName"
-                  value={newBrandName}
-                  onChange={(e) => setNewBrandName(e.target.value)}
-                  className="col-span-3 bg-slate-700 text-white border-gray-600 focus:border-purple-500 focus:ring-purple-500"
-                  placeholder="Enter brand name"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" onClick={handleAddBrand} className="bg-purple-600 hover:bg-purple-700 text-white">
-                Add Brand
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <AddAllBrandDialog onBrandAdded={handleBrandAdded} branchId={branchId}/>
       </div>
+
+      {/* Reusable Branch Dialog */}
+      <BranchDialog
+        branch={selectedBranch}
+        isOpen={isBranchDialogOpen}
+        onClose={() => setIsBranchDialogOpen(false)}
+        onMerge={handleMerge}
+      />
     </div>
   )
 }
@@ -221,7 +280,7 @@ function BrandCard({ brand, onClick, onDelete }) {
       <Card className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow duration-300 group relative overflow-hidden">
         <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
         <div className="absolute inset-0 bg-purple-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
           <CardTitle className="text-lg sm:text-xl font-medium text-slate-300 group-hover:text-white transition-colors duration-300">
             {brand.name}
           </CardTitle>
@@ -231,23 +290,31 @@ function BrandCard({ brand, onClick, onDelete }) {
           <div className="text-xs sm:text-sm text-slate-400 group-hover:text-purple-200 transition-colors duration-300">
             Items in stock: {brand.count}
           </div>
-          <div className="flex justify-between">
-            <div className="text-xs sm:text-sm text-blue-400 mt-1 group-hover:text-purple-200 transition-colors duration-300">
+          <div className="flex items-center justify-between mt-2">
+            <div className="text-xs sm:text-sm text-blue-400 group-hover:text-purple-200 transition-colors duration-300">
               RS. {brand.stock?.toFixed(2)}
             </div>
             <Dialog>
               <DialogTrigger asChild>
-                <Trash2 size={16} className="text-red-500 hover:text-red-700" onClick={(e) => e.stopPropagation()} />
+                <Trash2
+                  size={16}
+                  className="text-red-500 hover:text-red-700"
+                  onClick={(e) => e.stopPropagation()}
+                />
               </DialogTrigger>
               <DialogContent className="bg-slate-800 text-white">
                 <DialogHeader>
                   <DialogTitle>Are you absolutely sure?</DialogTitle>
                   <DialogDescription className="text-slate-300">
-                    This action cannot be undone. This will permanently delete your transaction and remove your data from our servers.
+                    This action cannot be undone. This will permanently delete your brand and remove your data from our servers.
                   </DialogDescription>
                 </DialogHeader>
-                <Button type="button" className="w-full bg-red-600 mt-6 hover:bg-red-700 text-white" onClick={onDelete}>
-                  Delete Transaction
+                <Button
+                  type="button"
+                  className="w-full bg-red-600 mt-6 hover:bg-red-700 text-white"
+                  onClick={onDelete}
+                >
+                  Delete Brand
                 </Button>
               </DialogContent>
             </Dialog>
@@ -257,4 +324,28 @@ function BrandCard({ brand, onClick, onDelete }) {
     </motion.div>
   )
 }
-  
+
+function BranchDialog({ branch, isOpen, onClose, onMerge }) {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-slate-800 text-white">
+        <DialogHeader>
+          <DialogTitle className="my-2">
+            {`Are you sure you want to import from ${branch?.name}?`}
+          </DialogTitle>
+          <DialogDescription className="text-slate-300">
+            This action is permanent and all your current inventory will be replaced with the selected branch inventory.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            onClick={() => onMerge(branch.id)}
+            className="w-full bg-red-600 hover:scale-105 hover:bg-red-700 text-white"
+          >
+            Yes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

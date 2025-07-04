@@ -183,7 +183,7 @@ export default function EditPriceProtectionForm() {
         <Button
           onClick={() => navigate('/mobile/price-protection')}
           variant="outline"
-          className="mb-4 w-full sm:w-auto px-5 text-white border-white hover:bg-gray-700 hover:text-white"
+          className="mb-4 w-full sm:w-auto px-5 border-white hover:bg-gray-700 hover:text-white"
         >
           <ArrowLeft className="mr-2 h-4 w-3" />
           Back to Price Protection

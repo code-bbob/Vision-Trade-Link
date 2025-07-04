@@ -66,7 +66,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
             # Create VendorTransaction if payment method requires it
             method = purchase_transaction.method
             if method == 'cash':
-                VendorTransactionSerialzier().create({
+                VendorTransactionSerializer().create({
                     'vendor': vendor,
                     'date': purchase_transaction.date,
                     'amount': purchase_transaction.total_amount,
@@ -76,7 +76,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
                     'enterprise': purchase_transaction.enterprise
                 })
             elif method == 'cheque':
-                VendorTransactionSerialzier().create({
+                VendorTransactionSerializer().create({
                     'vendor': vendor,
                     'date': purchase_transaction.date,
                     'amount': purchase_transaction.total_amount,
@@ -209,7 +209,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
                     old_vendor.refresh_from_db()
                     new_vendor.refresh_from_db()
                 if new_method == 'cash':
-                    VendorTransactionSerialzier().create({
+                    VendorTransactionSerializer().create({
                         'vendor': new_vendor,
                         'date': instance.date,
                         'amount': instance.total_amount,
@@ -219,7 +219,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
                         'enterprise': instance.enterprise
                     })
                 elif new_method == 'cheque':
-                    VendorTransactionSerialzier().create({
+                    VendorTransactionSerializer().create({
                         'vendor': new_vendor,
                         'date': instance.date,
                         'amount': instance.total_amount,
@@ -375,7 +375,7 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
         return representation
 
 
-class VendorTransactionSerialzier(serializers.ModelSerializer):
+class VendorTransactionSerializer(serializers.ModelSerializer):
     date = serializers.DateField()
     vendor_name = serializers.SerializerMethodField()
 

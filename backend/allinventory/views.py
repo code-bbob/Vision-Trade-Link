@@ -64,11 +64,10 @@ class ProductView(APIView):
         if serializer.is_valid():
             serializer.save()
             old_stock = product.stock if product.stock else 0
-            product.stock = product.count * product.selling_price if product.count else 0
-            if old_stock != product.stock:
-                product.brand.stock = product.brand.stock - old_stock + product.stock
-                product.brand.save()
-                product.save()
+            product.stock = product.count * product.selling_price
+            product.brand.stock = product.brand.stock - old_stock + product.stock
+            product.brand.save()
+            product.save()
             return Response(serializer.data)
         return Response(serializer.errors)
     

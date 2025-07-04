@@ -13,7 +13,9 @@ import useAxios from '@/utils/useAxios'
 import { format } from 'date-fns'
 import Sidebar from '@/components/sidebar'
 
+
 export default function BrandSchemePage() {
+  const { branchId } = useParams()
   const api = useAxios()
   const navigate = useNavigate()
   const { id } = useParams()
@@ -29,7 +31,7 @@ export default function BrandSchemePage() {
   const handleEdit = (e, schemeId) => {
     e.stopPropagation()
     e.preventDefault()
-    navigate(`mobile/schemes/editform/${schemeId}`)
+    navigate(`/mobile/schemes/branch/${branchId}/editform/${schemeId}`)
   }
 
   useEffect(() => {
@@ -226,7 +228,7 @@ export default function BrandSchemePage() {
         </div>
         <Button
           className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-          onClick={() => navigate('/mobile/schemes/new')}
+          onClick={() => navigate(`/mobile/schemes/branch/${branchId}/new`)}
         >
           <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
         </Button>

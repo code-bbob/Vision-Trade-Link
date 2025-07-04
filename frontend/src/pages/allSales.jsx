@@ -11,6 +11,7 @@ import useAxios from '@/utils/useAxios'
 import { format } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '@/components/allsidebar'
+import { useParams } from 'react-router-dom';
 
 export default function AllSalesTransactions() {
   const api = useAxios()
@@ -27,6 +28,8 @@ export default function AllSalesTransactions() {
     previous: null,
     count: 0
   })
+  const { branchId } = useParams();
+
 
   const navigate = useNavigate()
 
@@ -51,7 +54,7 @@ export default function AllSalesTransactions() {
 
   const fetchInitData = async () => {
     try {
-      const response = await api.get("alltransaction/salestransaction/")
+      const response = await api.get(`alltransaction/salestransaction/branch/${branchId}/`)
       setTransactions(response.data.results)
       console.log(response.data.results)
       console.log(response.data.results)
@@ -77,7 +80,7 @@ export default function AllSalesTransactions() {
     e.preventDefault()
     setLoading(true)
     try {
-      const response = await api.get(`alltransaction/salestransaction/?search=${localSearchTerm}`)
+      const response = await api.get(`alltransaction/salestransaction/branch/${branchId}/?search=${localSearchTerm}`)
       setTransactions(response.data.results)
       setMetadata({
         next: response.data.next,
@@ -97,7 +100,7 @@ export default function AllSalesTransactions() {
     e.preventDefault()
     setLoading(true)
     try {
-      const response = await api.get(`alltransaction/salestransaction/?start_date=${startDate}&end_date=${endDate}`)
+      const response = await api.get(`alltransaction/salestransaction/branch/${branchId}/?start_date=${startDate}&end_date=${endDate}`)
       setTransactions(response.data.results)
       setMetadata({
         next: response.data.next,
@@ -151,7 +154,7 @@ export default function AllSalesTransactions() {
         >
           <h1 className="text-3xl lg:text-4xl font-bold text-white mb-4 lg:mb-0">Sales Transactions</h1>
           <Button
-            onClick={() => navigate('/mobile/')}
+            onClick={() => navigate('/')}
             variant="outline"
             className="w-full lg:w-auto px-5 text-black border-white hover:bg-gray-700 hover:text-white"
           >
@@ -224,6 +227,7 @@ export default function AllSalesTransactions() {
                       </div>
                       <div className="flex justify-between items-center text-sm text-slate-300">
                         <span>Unit Price: RS. {item.unit_price.toLocaleString()}</span>
+                        <span> Quantity : {item.quantity}</span>
                       </div>
                     </div>
                   ))}
@@ -261,7 +265,7 @@ export default function AllSalesTransactions() {
       </div>
       <Button
         className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={() => navigate('/sales/form/')}
+        onClick={() => navigate(`/sales/form/branch/${branchId}`)}
       >
         <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
       </Button>

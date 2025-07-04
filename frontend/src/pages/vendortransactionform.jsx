@@ -28,11 +28,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Sidebar from "@/components/sidebar";
 
 function VendorTransactionForm() {
   const api = useAxios();
+  const { branchId } = useParams();
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
     cashout_date: new Date().toISOString().split("T")[0],
@@ -41,13 +42,14 @@ function VendorTransactionForm() {
     method: "cheque",
     vendor: "",
     desc: "",
+    branch: branchId,
   });
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showNewVendorDialog, setShowNewVendorDialog] = useState(false);
   const [showNewBrandDialog, setShowNewBrandDialog] = useState(false);
-  const [newVendorData, setNewVendorData] = useState({ name: "", brand: "" });
+  const [newVendorData, setNewVendorData] = useState({ name: "", brand: "" , branch: branchId });
   const [newBrandName, setNewBrandName] = useState("");
   const [openVendor, setOpenVendor] = useState(false);
   const [openBrand, setOpenBrand] = useState(false);
@@ -59,8 +61,8 @@ function VendorTransactionForm() {
     const fetchData = async () => {
       try {
         const [vendorsResponse, brandsResponse] = await Promise.all([
-          api.get("transaction/vendor/"),
-          api.get("inventory/brand/"),
+          api.get("transaction/vendor/branch/" + branchId + "/"),
+          api.get("inventory/brand/branch/" + branchId + "/"),
         ]);
         setVendors(vendorsResponse.data);
         setBrands(brandsResponse.data);

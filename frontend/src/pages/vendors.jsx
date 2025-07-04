@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog"
 
 export function VendorPage() {
+  const { branchId } = useParams()
   const api = useAxios()
   const navigate = useNavigate()
   const [brands, setBrands] = useState([])
@@ -34,7 +35,7 @@ export function VendorPage() {
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const response = await api.get('transaction/vendorbrand/')
+        const response = await api.get(`transaction/vendorbrand/branch/${branchId}/`)
         setBrands(response.data)
         setFilteredBrands(response.data)
         setLoading(false)
@@ -62,7 +63,7 @@ export function VendorPage() {
   const handleAddBrand = async (e) => {
     e.preventDefault()
     try {
-      const response = await api.post('inventory/brand/', { name: newBrandName })
+      const response = await api.post(`inventory/brand/branch/${branchId}`, { name: newBrandName, branch: branchId })
       console.log('New Brand Added:', response.data)
       setBrands([...brands, response.data])
       setFilteredBrands([...filteredBrands, response.data])
@@ -126,7 +127,7 @@ export function VendorPage() {
               <BrandCard
                 key={brand.id}
                 brand={brand}
-                onClick={() => navigate(`/mobile/vendors/brand/${brand.id}`)}
+                onClick={() => navigate(`/mobile/vendors/branch/${branchId}/brand/${brand.id}`)}
               />
             ))}
           </div>

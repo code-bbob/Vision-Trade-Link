@@ -34,4 +34,11 @@ urlpatterns = [
     path('staff/branch/<int:branchId>/',views.StaffView.as_view(), name='staff'),
     path('customer-total/<str:pk>/',views.CustomerTotalView.as_view(), name='customertotal'),
 
+    path('debtors/', views.DebtorsView.as_view(), name='debtors'),
+    path('debtors/branch/<int:branchId>/', views.DebtorsView.as_view(), name='debtors_branch'),
+    path('debtors/<int:pk>/', views.DebtorsView.as_view(), name='debtor_detail'),
+    path('debtortransaction/', views.DebtorTransactionView.as_view(), name='debtortransaction'),
+    path('debtortransaction/branch/<int:branch>/', views.DebtorTransactionView.as_view(), name='debtortransaction'),
+    path('debtortransaction/<int:pk>/', views.DebtorTransactionView.as_view(), name='debtortransaction'),
+
 ]

@@ -56,6 +56,10 @@ export default function Sidebar() {
     { title: 'Price Protection', icon: Shield, path: '/mobile/price-protection' },
     { title: 'Vendors', icon: BookUser, path: '/mobile/vendors' },
     { title: 'VendorTransactions', icon: BookUser, path: '/mobile/vendor-transactions' },
+    { title: 'Debtors', icon: BookUser, path: '/debtors' },
+    { title: 'DebtorTransactions', icon: BookUser, path: '/debtor-transactions' },
+    { title: 'EMI', icon: BookUser, path: '/mobile/emi' },
+    { title: 'EMI Transactions', icon: BookUser, path: '/mobile/emi-transactions' },
     { title: 'AllInventory', icon: BookUser, path: '/' },
 
   ]

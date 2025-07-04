@@ -10,6 +10,7 @@ from barcode.writer import SVGWriter
 import io
 from django.http import FileResponse
 from enterprise.models import Branch
+from rest_framework import status
 
 
 
@@ -53,9 +54,16 @@ class BrandView(APIView):
 class PhoneView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self,request,branch=None,*args, **kwargs):
+    def get(self,request,id=None, branch=None,*args, **kwargs):
         phones=Phone.objects.all()
         phones = Phone.objects.filter(brand__enterprise = request.user.person.enterprise)
+        if id:
+            try:
+                phone = Phone.objects.get(id=id)
+                serializer = PhoneSerializer(phone)
+                return Response(serializer.data)
+            except Phone.DoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND)
         if branch:
             phones = phones.filter(branch=branch)
         serializer = PhoneSerializer(phones,many=True)
@@ -69,6 +77,29 @@ class PhoneView(APIView):
             #print("YAHA SAMMAAA")
             serializer.save()
             return Response(serializer.data)
+        
+    def patch(self,request,id):
+        data = request.data
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
+        data['enterprise'] = request.user.person.enterprise.id
+        
+        try:
+            phone = Phone.objects.get(id=id)
+        except Phone.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        serializer = PhoneSerializer(phone,data=data,partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            old_stock = phone.stock if phone.stock else 0
+            phone.stock = phone.count * phone.selling_price
+            phone.brand.stock = phone.brand.stock - old_stock + phone.stock
+            phone.brand.save()
+            phone.save()
+            return Response(serializer.data)
+        return Response(serializer.errors)
     
     def delete(self,request,id):
         print(request.user.person.role)

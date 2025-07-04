@@ -3,11 +3,12 @@ from inventory.models import Brand, Phone,Item
 from enterprise.models import Enterprise
 from django.core.validators import MinLengthValidator
 from django.db import transaction
+from alltransactions.models import Debtor, DebtorTransaction
 
 class Vendor(models.Model):
     name = models.CharField(max_length=255)
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
-    due = models.FloatField(null=True, blank=True)
+    due = models.FloatField(null=True, blank=True, default=0)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
     cashback = models.FloatField(null=True,blank=True)
     branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='vendor_branch',null=True,blank=True)
@@ -21,7 +22,7 @@ class PurchaseTransaction(models.Model):
         ('active', 'Active'),
         ('expired', 'Expired'),
     ]
-    date = models.DateTimeField()
+    date = models.DateField()
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
     total_amount = models.FloatField(null=True, blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
@@ -92,16 +93,14 @@ class Purchase(models.Model):
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        #print("Delete method called for Purchase")
         item = Item.objects.filter(imei_number=self.imei_number).first()
         if item:
-            #print("Deleting related item")
             item.delete()
         super().delete(*args, **kwargs)
 
 
 class SalesTransaction(models.Model):
-    date = models.DateTimeField()
+    date = models.DateField()
     # vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
     name = models.CharField(max_length=255,null=True,blank=True)
     phone_number = models.CharField(max_length=10,null=True)
@@ -109,6 +108,13 @@ class SalesTransaction(models.Model):
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
     bill_no = models.CharField(max_length=255,null = True)
     branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='sales_transaction_branch',null=True,blank=True)
+    discount = models.FloatField(null=True,blank=True,default=0)
+    subtotal = models.FloatField(null=True,blank=True)
+    method = models.CharField(max_length=20,choices=(('cash','cash'),('online','online'),('card','card'),('credit','credit'),('emi','emi')),default='cash')
+    debtor = models.ForeignKey(Debtor, on_delete=models.CASCADE, null=True, blank=True, related_name='sales_transaction')
+    credited_amount = models.FloatField(null=True,blank=True,default=0)
+    amount_paid = models.FloatField(null=True,blank=True,default=0)
+    emi_debtor = models.ForeignKey('transaction.EMIDebtor', on_delete=models.CASCADE, null=True, blank=True, related_name='sales_transaction_emi',default=None)
 
     def calculate_total_amount(self):
         #print("Ya samma ayo")
@@ -119,44 +125,12 @@ class SalesTransaction(models.Model):
         return self.total_amount    
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-    
-    # def checkit(self):
-    #     sales = self.sales.all()
-    #     scheme_list = []
-    #     for sale in sales:
-    #         #print(f"Checking for phone: {sale.phone} on date: {self.date}")
-    #         schemes = Scheme.objects.filter(
-    #             phone=sale.phone, 
-    #             from_date__lte=self.date, 
-    #             to_date__gte=self.date
-    #         )
-    #         if schemes.exists():
-    #             for scheme in schemes:
-    #                 scheme.sales.add(sale)
-    #                 scheme.calculate_receivable()
-    #                 scheme.save()
-    #             scheme_list.append(scheme)
-    #         else:
-    #             #print("No matching scheme found.")
-    #     #print(scheme_list)
-    #     price_protection = []
-    #     for sale in sales:
-    #         #print(f"Checking pp for phone: {sale.phone} on date: {self.date}")
-    #         pps = PriceProtection.objects.filter(phone = sale.phone,from_date__lte = self.date,to_date__gte = self.date)
-    #         if pps.exists():
-    #             for pp in pps:
-    #                 pp.sales.add(sale)
-    #                 pp.calculate_receivable()
-    #                 pp.save()
-    #                 price_protection.append(pp)
-    #         #print(price_protection)
 
     def __str__(self):
         return f"Transaction on {self.date} with "
     
 class Sales(models.Model):
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE)
-    # quantity = models.IntegerField()
     imei_number = models.CharField(max_length=15,validators=[MinLengthValidator(15)])
     unit_price = models.FloatField()
     profit = models.FloatField(null=True,blank=True)
@@ -170,79 +144,66 @@ class Sales(models.Model):
             self.checkit()
             super().save(*args, **kwargs)
         if self.pk is None:  # Only update stock for new purchases
-            self.phone.quantity = (self.phone.quantity - 1) if self.phone.quantity is not None else self.phone.quantity
-            # item = Item.objects.get(imei_number = self.imei_number)
-            self.phone.save()
+            print("HERE checking")
             self.checkit()
             purchase = Purchase.objects.filter(imei_number = self.imei_number).first()
-            #print(purchase.unit_price)
             self.profit = self.unit_price - purchase.unit_price
-            #print("YAHA SAMMA")
             self.save()
 
     def checkit(self, *args, **kwargs):
-        #print(f"Checking for phone: {self.phone} on date: {self.sales_transaction.date}")
-        
-        # Ensure the sales instance is saved before adding it to schemes
         if not self.pk:
             super().save(*args, **kwargs)
         
+        print("Checking schemes and price protection for sales id:", self.pk)
+
+        prev_schemes = Scheme.objects.filter(sales=self)
+        
+        if prev_schemes.exists():
+            for prev_scheme in prev_schemes:
+                if self in prev_scheme.sales.all():
+                    prev_scheme.sales.remove(self)
+                    prev_scheme.calculate_receivable()
+                    prev_scheme.save()
+
         schemes = Scheme.objects.filter(
             phone=self.phone, 
             from_date__lte=self.sales_transaction.date, 
-            to_date__gte=self.sales_transaction.date
+            to_date__gte=self.sales_transaction.date,
+            enterprise=self.sales_transaction.enterprise,
+            branch=self.sales_transaction.branch
         )
         
+        print("For sale id:", self.pk, "found schemes:", schemes)
+
+        # Remove previous schemes if they exist
+
         if schemes.exists():
             for scheme in schemes:
                 scheme.sales.add(self)  # Now the sales instance has a valid pk
                 scheme.calculate_receivable()
                 scheme.save()
-        
-        else:
-            #print("No matching scheme found.")
-            scheme = Scheme.objects.filter(sales=self).first()
-            if scheme:
-                #print("This is the scheme",scheme)
-                scheme.sales.remove(self)
-                scheme.calculate_receivable()
-        
-        #print(f"Checking pp for phone: {self.phone} on date: {self.sales_transaction.date}")
-        #print(self.sales_transaction.date)
-        purchase_date = Purchase.objects.filter(imei_number = self.imei_number).first().purchase_transaction.date
-        pps = PriceProtection.objects.filter(enterprise=self.sales_transaction.enterprise,phone=self.phone, from_date__lte=self.sales_transaction.date, to_date__gte=self.sales_transaction.date)
-        if not pps:
-            pp = PriceProtection.objects.filter(sales=self).first()
-            if pp:
-                #print("((((((((((((((((((((((((((((((yes))))))))))))))))))))))))))))))")
-                pp.sales.remove(self)
-                pp.calculate_receivable()
-                pp.save()
-            #print("here balblabla",pps)
-        for pp in pps:
-            #print(pp.sales.all())
-            #print(self)
-            if self in pp.sales.all():
-                #print("YES#################")
-                pp.sales.remove(self)
-                pp.calculate_receivable()
+
+
+        purchase_date = Purchase.objects.filter(imei_number = self.imei_number, purchase_transaction__branch=self.sales_transaction.branch).first().purchase_transaction.date
+        pps = PriceProtection.objects.filter(enterprise=self.sales_transaction.enterprise,branch=self.sales_transaction.branch, phone=self.phone, from_date__lte=self.sales_transaction.date, to_date__gte=self.sales_transaction.date)
+        prev_pps = PriceProtection.objects.filter(sales=self)
+        print("For sale id:", self.pk, "found price protections:", pps)
+        for pp in prev_pps:
+            pp.sales.remove(self)
+            pp.calculate_receivable()
 
         pps = pps.filter(from_date__gte = purchase_date)
-        #print(purchase_date)
-        #print("here pps",pps)
+        print("HERE for sale id:", self.pk, "filtered price protections:", pps, "with purchase date:", purchase_date, "from purchase transaction:", Purchase.objects.filter(imei_number = self.imei_number).first().purchase_transaction.id)
         if pps.exists():
             for pp in pps:
                 pp.sales.add(self)
-                #print("HERE")
-                #print(self.phone.item.first())
                 pp_item = PPItems.objects.create(pp=pp, phone=self.phone,imei_number = self.imei_number)
-                #print(pp_item)
-                #print(pp_item.id)
-                #print("NOT HERE")
                 pp_item.save()
                 pp.save()
+                print("PP Item created for sale id:", self.pk, "with PP id:", pp.id, "and IMEI:", self.imei_number)
                 pp.calculate_receivable()
-        #print("here is the problem")
+
+        #FINALLY, DELETE THE ITEM
         item = Item.objects.filter(imei_number = self.imei_number).first()
         if item:
             item.delete()
@@ -259,16 +220,14 @@ class Scheme(models.Model):
     phone = models.ForeignKey(Phone,on_delete=models.CASCADE, related_name='scheme_phones')
     sales = models.ManyToManyField(Sales,related_name="scheme",blank=True)  #error was here
     enterprise = models.ForeignKey(Enterprise,on_delete=models.CASCADE,related_name='scheme_enterprise')
-    receivable = models.IntegerField(null = True)
+    receivable = models.IntegerField(null = True,blank=True,default=0)
     brand = models.ForeignKey(Brand, related_name="scheme_brand", on_delete=models.CASCADE)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
     branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='scheme_branch',null=True,blank=True)
 
     def calculate_receivable(self):
         sales = self.sales.all()
-        # #print(f"HIIII asjd jka dk sa {purchases}")
         count = sales.count()
-        #print(count)
         subscheme = self.subscheme.filter(lowerbound__lte=count, upperbound__gte=count).first()
         if subscheme:
             self.receivable = subscheme.cashback * count
@@ -289,48 +248,6 @@ class Subscheme(models.Model):
 
     def __str__(self):
         return f"{self.lowerbound} to {self.upperbound} => {self.cashback}"
-    
-# class MoneyScheme(models.Model):
-
-#     STATUS_CHOICES = [
-#         ('active', 'Active'),
-#         ('expired', 'Expired'),
-#     ]
-#     from_date = models.DateField()
-#     to_date = models.DateField()
-#     phone = models.ForeignKey(Phone,on_delete=models.CASCADE, related_name='moneyscheme_phones')
-#     sales = models.ManyToManyField(Sales,related_name="moneyscheme",blank=True)  #error was here
-#     enterprise = models.ForeignKey(Enterprise,on_delete=models.CASCADE,related_name='moneyscheme_enterprise')
-#     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
-#     receivable = models.IntegerField(null = True)
-
-#     def calculate_receivable(self):
-#         sales = self.sales.all()
-#         count = sales.count()
-#         #print(count)
-#         self.save()
-    
-#     def __str__(self):
-#         return f"{self.phone} from {self.from_date} to {self.to_date}"
-
-
-# class MoneySubscheme(models.Model):
-#     lowerbound = models.FloatField()
-#     upperbound = models.IntegerField()
-#     percentage_cashback = models.FloatField()
-#     scheme = models.ForeignKey(MoneyScheme,on_delete=models.CASCADE, related_name='moneysubscheme') #related name here
-
-#     def __str__(self):
-#         return f"{self.lowerbound} to {self.upperbound} => {self.cashback}"
-# # Register your signal handlers to calculate the total amount after saving a PurchaseTransaction
-
-
-# from django.db.models.signals import post_save
-# from django.dispatch import receiver
-
-# @receiver(post_save, sender=Purchase)
-# def update_total_amount(sender, instance, **kwargs):
-#     instance.purchase_transaction.calculate_total_amount()
 
 
 class PriceProtection(models.Model):
@@ -346,7 +263,7 @@ class PriceProtection(models.Model):
     enterprise = models.ForeignKey(Enterprise,on_delete=models.CASCADE,related_name='pp_enterprise')
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE, related_name='pp_brand')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
-    receivable = models.FloatField(null=True)
+    receivable = models.FloatField(null=True,blank=True,default=0)
     branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='price_protection_branch',null=True,blank=True)
         
 
@@ -368,7 +285,7 @@ class PPItems(models.Model):
 
 
 class VendorTransaction(models.Model):
-    date = models.DateTimeField()
+    date = models.DateField()
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE,related_name="vendor_transaction")
     amount = models.FloatField(null=True, blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
@@ -383,13 +300,42 @@ class VendorTransaction(models.Model):
     
     @transaction.atomic
     def delete(self, *args, **kwargs):
-
+        print("HERE")
         self.vendor.due = self.vendor.due + self.amount
-        vendor = self.vendor.id
+        print(self.vendor.due)
         self.vendor.save() 
+        print(self.vendor.due)
         super().delete(*args, **kwargs)
-        vendor = Vendor.objects.get(id=vendor)
 
 
+class EMIDebtor(models.Model):
+    
+    name = models.CharField(max_length=255)
+    phone_number = models.CharField(max_length=10, null=True, blank=True)
+    due = models.FloatField(default=0)
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='emi_branch')
+    enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE, related_name='emi_enterprise')
+    brand = models.ForeignKey(Brand, on_delete=models.CASCADE, related_name='emi_brand',null=True,blank=True)
 
-
+    def __str__(self):
+        return self.name
+    
+class EMIDebtorTransaction(models.Model):
+    debtor = models.ForeignKey(EMIDebtor, on_delete=models.CASCADE, related_name='emi_transactions')
+    date = models.DateField()
+    amount = models.FloatField()
+    method = models.CharField(max_length=20, choices=[('cash', 'Cash'), ('cheque', 'Cheque'), ('bank_transfer', 'Bank Transfer')], default='cash')
+    cheque_number = models.CharField(max_length=10, null=True, blank=True)
+    cashout_date = models.DateField(null=True, blank=True)
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='emi_transaction_branch',null=True,blank=True)
+    enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE, related_name='emi_transaction_enterprise')
+    sales_transaction = models.ForeignKey(SalesTransaction, on_delete=models.CASCADE, null=True, blank=True, related_name='emi_sales_transaction')
+    desc = models.CharField(max_length=255, null=True, blank=True)
+    def __str__(self):
+        return f"EMI Transaction of {self.amount} for {self.debtor.name} on {self.date}"
+    
+    @transaction.atomic
+    def delete(self, *args, **kwargs):
+        self.debtor.due = self.debtor.due + self.amount
+        self.debtor.save()
+        super().delete(*args, **kwargs)

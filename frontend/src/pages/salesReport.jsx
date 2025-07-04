@@ -11,8 +11,10 @@ import { Printer, Download, ChevronDown, Search, Calendar, ArrowLeft } from "luc
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import useAxios from "@/utils/useAxios"
 import { useNavigate } from "react-router-dom"
+import { useParams } from "react-router-dom"
 import jsPDF from "jspdf"
 import "jspdf-autotable"
+
 
 const SalesReport = () => {
   const [data, setData] = useState(null)
@@ -24,6 +26,7 @@ const SalesReport = () => {
   const [searchPhone, setSearchPhone] = useState("")
   const api = useAxios()
   const navigate = useNavigate()
+  const {branchId} = useParams()
 
   useEffect(() => {
     fetchSalesData()
@@ -33,7 +36,7 @@ const SalesReport = () => {
     setLoading(true)
     try {
       const queryString = new URLSearchParams(params).toString()
-      const response = await api.get(`transaction/sales-report/?${queryString}`)
+      const response = await api.get(`transaction/sales-report/branch/${branchId}/?${queryString}`)
       const salesData = {
         sales: response.data.slice(0, -1),
         ...response.data[response.data.length - 1],
@@ -41,6 +44,7 @@ const SalesReport = () => {
       setData(salesData)
     } catch (err) {
       setError("Failed to fetch sales data")
+      console.error("Error fetching sales data:", err)
     } finally {
       setLoading(false)
     }

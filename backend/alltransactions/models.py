@@ -91,7 +91,10 @@ class SalesTransaction(models.Model):
     branch = models.ForeignKey(Branch,related_name='sales_transaction',on_delete=models.CASCADE)
     discount = models.FloatField(null=True,blank=True)
     subtotal = models.FloatField(null=True,blank=True)
-    method = models.CharField(max_length=20,choices=(('cash','cash'),('online','online'),('card','card')),default='cash')
+    method = models.CharField(max_length=20,choices=(('cash','cash'),('online','online'),('card','card'),('credit','credit')),default='cash')
+    debtor = models.ForeignKey('Debtor', on_delete=models.CASCADE, null=True, blank=True, related_name='all_sales_transaction')
+    credited_amount = models.FloatField(null=True,blank=True,default=0)
+    amount_paid = models.FloatField(null=True,blank=True,default=0)
     def __str__(self):
         return f"Sales Transaction {self.pk} of {self.enterprise.name}"
     
@@ -178,7 +181,7 @@ class VendorTransactions(models.Model):
 class Staff(models.Model):
     name = models.CharField(max_length=255)
     phone_number = models.CharField(max_length=10,null=True,blank=True)
-    due = models.FloatField(null=True,blank=True)
+    due = models.FloatField(null=True,blank=True,default=0)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='staff')
     branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, null=True, blank=True)
 
@@ -209,9 +212,44 @@ class StaffTransactions(models.Model):
 class Customer(models.Model):
     name = models.CharField(max_length=255)
     phone_number = models.CharField(primary_key=True,max_length=10,blank=True)
-    total_spent = models.FloatField(null=True,blank=True)
+    total_spent = models.FloatField(null=True,blank=True,default=0)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='customers')
 
     def __str__(self):
         return self.name
+
+class Debtor(models.Model):
+    name = models.CharField(max_length=255)
+    phone_number = models.CharField(max_length=10,blank=True)
+    due = models.FloatField(null=True,blank=True,default=0)
+    enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='debtors')
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+    
+class DebtorTransaction(models.Model):
+    date = models.DateField()
+    debtor = models.ForeignKey(Debtor, on_delete=models.CASCADE,related_name='debtor_transaction')
+    amount = models.FloatField(null=True,blank=True)
+    method = models.CharField(max_length=20,choices=(('cash','Cash'),('credit','Credit'),('cheque','Cheque')),default='cash')
+    cheque_number = models.CharField(max_length=255,null=True,blank=True)
+    cashout_date = models.DateField(null=True)
+    enterprise = models.ForeignKey('enterprise.Enterprise', on_delete=models.CASCADE,related_name='all_debtor_transactions')
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, null=True, blank=True)
+    # base = models.BooleanField(default=False)
+    type = models.CharField(max_length=20,choices=(('base','base'),('return','return'),('payment','payment')),default='base')
+    all_sales_transaction = models.ForeignKey(SalesTransaction, on_delete=models.CASCADE,related_name="all_debtor_transaction",null=True,blank=True)
+    sales_transaction = models.ForeignKey('transaction.SalesTransaction', on_delete=models.CASCADE, null=True, blank=True, related_name='debtor_transaction')
+    desc = models.CharField(max_length=255, null=True, blank=True)
+    inventory = models.CharField(max_length=20, choices=(('all','all'),('phone','phone')), null=True, blank=True)
+    
+    def __str__(self):
+        return f"Debtor Transaction {self.pk} of {self.debtor.name}"
+    
+    @transaction.atomic
+    def delete(self, *args, **kwargs):
+        self.debtor.due = self.debtor.due + self.amount if self.debtor.due is not None else self.amount
+        self.debtor.save() 
+        super().delete(*args, **kwargs)
     

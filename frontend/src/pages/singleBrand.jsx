@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Smartphone, Search, ArrowLeft, Trash2 } from "lucide-react"
+import { Smartphone, Search, ArrowLeft, Trash2, Plus } from "lucide-react"
 import useAxios from "../utils/useAxios"
 import { useParams, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
@@ -18,10 +18,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import NewPhoneDialog from "../components/newphonedialog"
 
 export default function BrandPhones() {
   const api = useAxios()
-  const { id } = useParams()
+  const { branchId, id } = useParams(); // id is the brand id, branchId is the current branch
   const [phones, setPhones] = useState([])
   const [filteredPhones, setFilteredPhones] = useState([])
   const [brandName, setBrandName] = useState("")
@@ -31,6 +32,16 @@ export default function BrandPhones() {
   const navigate = useNavigate()
   const [selectedPhones, setSelectedPhones] = useState([])
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  
+  // New Phone Dialog states
+  const [showNewPhoneDialog, setShowNewPhoneDialog] = useState(false)
+  const [newPhoneData, setNewPhoneData] = useState({
+    name: "",
+    brand: id,
+    cost_price: "",
+    selling_price: "",
+    branch: branchId
+  })
 
   useEffect(() => {
     const fetchBrandPhones = async () => {
@@ -38,7 +49,7 @@ export default function BrandPhones() {
         const response = await api.get(`inventory/brand/?id=${id}`)
         setPhones(response.data)
         setFilteredPhones(response.data)
-        setBrandName(response.data[0].brand_name)
+        setBrandName(response.data[0]?.brand_name)
         setLoading(false)
       } catch (err) {
         console.error("Error fetching brand phones:", err)
@@ -47,6 +58,7 @@ export default function BrandPhones() {
       }
     }
 
+    
     fetchBrandPhones()
   }, [id])
 
@@ -77,16 +89,48 @@ export default function BrandPhones() {
       // Here you might want to show an error message to the user
     }
   }
-
+  
+  // Handle new phone data changes
+  const handleNewPhoneChange = (e) => {
+    const { name, value } = e.target
+    setNewPhoneData(prev => ({ ...prev, [name]: value }))
+  }
+  
+  // Handle brand selection change
+  const handleNewPhoneBrandChange = (brandId) => {
+    setNewPhoneData(prev => ({ ...prev, brand: brandId }))
+    setOpenBrand(false)
+  }
+  
+  // Handle adding a new phone
+  const handleAddPhone = async () => {
+    try {
+      const response = await api.post('inventory/phone/', newPhoneData)
+      // Add the new phone to the list and reset form
+      setPhones(prev => [...prev, response.data])
+      setFilteredPhones(prev => [...prev, response.data])
+      setNewPhoneData({
+        name: "",
+        brand: id,
+        cost_price: "",
+        selling_price: "",
+        branch:  branchId
+      })
+      setShowNewPhoneDialog(false)
+    } catch (err) {
+      console.error("Error adding phone:", err)
+    }
+  }
+  
   // Sort phones by name first
-  filteredPhones.sort((a, b) => a.name.localeCompare(b.name));
+  filteredPhones && filteredPhones.sort((a, b) => a.name.localeCompare(b.name));
   
   // Sort phones by quantity first (0 at the bottom) and then by name
-  filteredPhones.sort((a, b) => {
+  filteredPhones && filteredPhones.sort((a, b) => {
     // Put phones with quantity 0 at the bottom
-    if (a.quantity === 0 && b.quantity !== 0) return 1;
-    if (a.quantity !== 0 && b.quantity === 0) return -1;
-
+    if (a.count === 0 && b.count !== 0) return 1;
+    if (a.count !== 0 && b.count === 0) return -1;
+    return 0;
   });
 
   if (loading) {
@@ -151,11 +195,13 @@ export default function BrandPhones() {
 
         <Card className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg">
           <CardContent className="p-0 overflow-x-auto">
+    
             <div className="grid grid-cols-12 gap-2 p-2 sm:p-4 text-xs sm:text-sm font-medium text-slate-300 border-b border-slate-700">
-              <div className="col-span-1"></div>
-              <div className="col-span-5 lg:col-span-5">Particulars</div>
-              <div className="col-span-3 lg:col-span-3 text-center">Quantity</div>
-              <div className="col-span-3 lg:col-span-3 text-right">Unit Price</div>
+              <div className="col-span-1 flex items-center justify-center"></div>
+              <div className="col-span-3 lg:col-span-5">Particulars</div>
+              <div className="col-span-2 lg:col-span-2 text-center">Quantity</div>
+              <div className="col-span-3 lg:col-span-2 text-right">Cost Price</div>
+              <div className="col-span-3 lg:col-span-2 text-right">Selling Price</div>
             </div>
             {filteredPhones?.map((phone) => (
               <motion.div
@@ -176,19 +222,22 @@ export default function BrandPhones() {
                   />
                 </div>
                 <div
-                  className="col-span-5 lg:col-span-5 flex items-center"
+                  className="col-span-3 lg:col-span-5 flex items-center"
                   onClick={() => navigate(`/mobile/phone/${phone.id}`)}
                 >
                   <Smartphone className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-purple-400 mr-1 sm:mr-2 flex-shrink-0" />
-                  <span className="text-white text-xs sm:text-sm lg:text-base truncate">{phone.name}</span>
+                  <span className="text-white text-xs sm:text-sm lg:text-base ">{phone.name}</span>
                 </div>
                 <div
-                  className={`col-span-3 lg:col-span-3 text-center ${phone.quantity < 3 ? "text-red-500" : "text-green-500"} text-xs sm:text-sm lg:text-base`}
+                  className={`col-span-2 lg:col-span-2 text-center ${phone.count < 3 ? "text-red-500" : "text-green-500"} text-xs sm:text-sm lg:text-base`}
                 >
-                  {phone.quantity}
+                  {phone.count}
                 </div>
-                <div className="col-span-3 lg:col-span-3 text-right text-white text-xs sm:text-sm lg:text-base">
-                  {phone.unit_price ? `RS. ${phone.unit_price.toLocaleString()}` : "N/A"}
+                <div className="col-span-3 lg:col-span-2 text-right text-white text-xs sm:text-sm lg:text-base">
+                  {phone.cost_price ? `RS. ${phone.cost_price.toLocaleString()}` : "N/A"}
+                </div>
+                <div className="col-span-3 lg:col-span-2 text-right text-white text-xs sm:text-sm lg:text-base">
+                  {phone.cost_price ? `RS. ${phone.selling_price.toLocaleString()}` : "N/A"}
                 </div>
               </motion.div>
             ))}
@@ -224,6 +273,24 @@ export default function BrandPhones() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        
+        {/* Plus Button to trigger New Phone Dialog */}
+        <Button
+          className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
+          onClick={() => setShowNewPhoneDialog(true)}
+        >
+          <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
+        </Button>
+        
+        {/* New Phone Dialog */}
+        <NewPhoneDialog
+          open={showNewPhoneDialog}
+          setOpen={setShowNewPhoneDialog}
+          newPhoneData={newPhoneData}
+          handleNewPhoneChange={handleNewPhoneChange}
+          handleNewPhoneBrandChange={handleNewPhoneBrandChange}
+          handleAddPhone={handleAddPhone}
+        />
       </div>
     </div>
   )

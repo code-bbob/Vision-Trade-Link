@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Calendar, ChevronLeft, ChevronRight, Search, ArrowLeft } from "lucide-react"
 import useAxios from "@/utils/useAxios"
 import { format } from "date-fns"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 import Sidebar from "@/components/sidebar"
 import {
   Dialog,
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog"
 
 export default function PurchaseReturns() {
+  const {branchId} = useParams()
   const api = useAxios()
   const [returns, setReturns] = useState([])
   const [loading, setLoading] = useState(true)
@@ -59,7 +60,7 @@ export default function PurchaseReturns() {
 
   const fetchInitData = async () => {
     try {
-      const response = await api.get("transaction/purchase-return/")
+      const response = await api.get(`transaction/purchase-return/branch/${branchId}/`)
       setReturns(response.data.results)
       setMetadata({
         next: response.data.next,
@@ -70,6 +71,7 @@ export default function PurchaseReturns() {
       setCurrentPage(response.data.page)
     } catch (err) {
       setError("Failed to fetch initial data")
+      console.error(err)
     } finally {
       setLoading(false)
     }
@@ -84,7 +86,7 @@ export default function PurchaseReturns() {
     e.preventDefault()
     setLoading(true)
     try {
-      const response = await api.get(`transaction/purchase-return/?search=${localSearchTerm}`)
+      const response = await api.get(`transaction/purchase-return/branch/${branchId}/?search=${localSearchTerm}`)
       setReturns(response.data.results)
       setMetadata({
         next: response.data.next,
@@ -104,7 +106,7 @@ export default function PurchaseReturns() {
     e.preventDefault()
     setLoading(true)
     try {
-      const response = await api.get(`transaction/purchase-return/?start_date=${startDate}&end_date=${endDate}`)
+      const response = await api.get(`transaction/purchase-return/branch/${branchId}/?start_date=${startDate}&end_date=${endDate}`)
       setReturns(response.data.results)
       setMetadata({
         next: response.data.next,
@@ -233,7 +235,7 @@ export default function PurchaseReturns() {
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="mb-4">
-                    <p className="text-blue-500 hover:text-blue-800" onClick={()=>{navigate(`/mobile/purchases/editform/${returnItem.purchase_transaction.id}`)}}>
+                    <p className="text-blue-500 hover:text-blue-800" onClick={()=>{navigate(`/mobile/purchases/branch/${branchId}/editform/${returnItem.purchase_transaction.id}`)}}>
                       Original Transaction: {returnItem.purchase_transaction.id}
                     </p>
                     <div className="flex justify-between items-center text-sm mt-1 text-slate-300">

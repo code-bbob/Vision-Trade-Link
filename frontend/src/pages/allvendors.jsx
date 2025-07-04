@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { useParams } from 'react-router-dom';
 
 export function AllVendorPage() {
   const api = useAxios()
@@ -30,11 +31,12 @@ export function AllVendorPage() {
   const [error, setError] = useState(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [newBrandName, setNewBrandName] = useState('')
+  const { branchId } = useParams()
 
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const response = await api.get('alltransaction/vendorbrand/')
+        const response = await api.get('alltransaction/vendorbrand/branch/' + branchId + '/')
         setBrands(response.data)
         setFilteredBrands(response.data)
         setLoading(false)
@@ -62,7 +64,7 @@ export function AllVendorPage() {
   const handleAddBrand = async (e) => {
     e.preventDefault()
     try {
-      const response = await api.post('allinventory/brand/', { name: newBrandName })
+      const response = await api.post('allinventory/brand/', { name: newBrandName, branch: branchId })
       console.log('New Brand Added:', response.data)
       setBrands([...brands, response.data])
       setFilteredBrands([...filteredBrands, response.data])
@@ -113,7 +115,7 @@ export function AllVendorPage() {
               </div>
 
               <Button
-                onClick={() => navigate('/mobile/')}
+                onClick={() => navigate('/')}
                 variant="outline"
                 className="w-full sm:w-auto text-slate-900 border-white hover:bg-gray-500 hover:text-slate-900"
               >
@@ -128,7 +130,7 @@ export function AllVendorPage() {
               <BrandCard
                 key={brand.id}
                 brand={brand}
-                onClick={() => navigate(`/vendors/brand/${brand.id}`)}
+                onClick={() => navigate(`/vendors/branch/${branchId}/brand/${brand.id}`)}
               />
             ))}
           </div>
@@ -145,7 +147,7 @@ export function AllVendorPage() {
           )}
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        {/* <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button
               className="fixed bottom-4 right-4 md:bottom-8 md:right-8 rounded-full w-12 h-12 md:w-16 md:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
@@ -158,7 +160,7 @@ export function AllVendorPage() {
             <DialogHeader>
               <DialogTitle>Add New Brand</DialogTitle>
               <DialogDescription className="text-slate-400">
-                Enter the name of the new brand you want to add.
+                Enter the details of the new brand you want to add.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -181,7 +183,7 @@ export function AllVendorPage() {
               </Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+        </Dialog> */}
       </div>
     </div>
   )

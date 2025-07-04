@@ -18,8 +18,10 @@ import useAxios from "@/utils/useAxios";
 import { format, set } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "@/components/sidebar";
+import { useParams } from "react-router-dom";
 
 export default function VendorTransactions() {
+  const {branchId} = useParams();
   const api = useAxios();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +60,7 @@ export default function VendorTransactions() {
 
   const fetchInitData = async () => {
     try {
-      const response = await api.get("transaction/vendortransaction/");
+      const response = await api.get("transaction/vendortransaction/branch/" + branchId + "/");
       setTransactions(response.data.results);
       console.log(response.data.results);
       setMetadata({
@@ -84,7 +86,7 @@ export default function VendorTransactions() {
     setLoading(true);
     try {
       const response = await api.get(
-        `transaction/vendortransaction/?search=${localSearchTerm}`
+        `transaction/vendortransaction/branch/${branchId}/?search=${localSearchTerm}`
       );
       setTransactions(response.data.results);
       setMetadata({
@@ -106,7 +108,7 @@ export default function VendorTransactions() {
     setLoading(true);
     try {
       const response = await api.get(
-        `transaction/vendortransaction/?start_date=${startDate}&end_date=${endDate}`
+        `transaction/vendortransaction/branch/${branchId}/?start_date=${startDate}&end_date=${endDate}`
       );
       setTransactions(response.data.results);
       setMetadata({
@@ -226,7 +228,7 @@ export default function VendorTransactions() {
             transactions?.map((transaction) => (
               <Card
                 key={`${transaction.id}-${transaction.date}`}
-                onClick={() => navigate(`editform/${transaction.id}`)}
+                onClick={() => navigate(`/mobile/vendor-transactions/branch/${branchId}/editform/${transaction.id}`)}
                 className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow duration-300"
               >
                 <CardHeader className="border-b border-slate-700">
@@ -295,7 +297,7 @@ export default function VendorTransactions() {
       </div>
       <Button
         className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={() => navigate("/mobile/vendor-transactions/form/")}
+        onClick={() => navigate(`/mobile/vendor-transactions/branch/${branchId}/form/`)}
       >
         <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
       </Button>
