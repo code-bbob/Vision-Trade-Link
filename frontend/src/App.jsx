@@ -68,6 +68,8 @@ import EditDebtorTransactionForm from "./pages/editAllDebtors";
 import DebtorTransactionForm from "./pages/allDebtorTransactionForm";
 import EMIDebtorsPage from "./pages/emiDebtors";
 import EMIDebtorTransactions from "./pages/emiDebtorsTransaction";
+import EMIDebtorTransactionForm from "./pages/emiDebtorsTransactionForm";
+import EditEMIDebtorTransaction from "./pages/editEmiDebtorTransactions";
 
 
 function App() {
@@ -215,6 +217,8 @@ function App() {
 
           <Route path = "emi-transactions" element = {<BranchSelectionPage pageName="emi-transactions" />}/>
           <Route path = "emi-transactions/branch/:branchId" element = {<EMIDebtorTransactions/>}/>
+          <Route path="emi-transactions/branch/:branchId/form" element={<EMIDebtorTransactionForm />} />
+          <Route path="emi-transactions/branch/:branchId/editform/:transactionId" element={<EditEMIDebtorTransaction />} />
 
           <Route path = "sales-report" element = {<BranchSelectionPage pageName="sales-report" />}/>
           <Route path = "sales-report/branch/:branchId" element = {<SalesReport/>}/>

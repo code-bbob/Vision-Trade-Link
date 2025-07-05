@@ -329,7 +329,7 @@ class EMIDebtorTransaction(models.Model):
     cashout_date = models.DateField(null=True, blank=True)
     branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='emi_transaction_branch',null=True,blank=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE, related_name='emi_transaction_enterprise')
-    sales_transaction = models.ForeignKey(SalesTransaction, on_delete=models.CASCADE, null=True, blank=True, related_name='emi_sales_transaction')
+    sales_transaction = models.ForeignKey(SalesTransaction, on_delete=models.CASCADE, null=True, blank=True, related_name='emi_sales_transaction')  
     desc = models.CharField(max_length=255, null=True, blank=True)
     def __str__(self):
         return f"EMI Transaction of {self.amount} for {self.debtor.name} on {self.date}"

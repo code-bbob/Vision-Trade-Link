@@ -8,7 +8,7 @@ import { Calendar, ChevronLeft, ChevronRight, Search, Plus, ArrowLeft } from 'lu
 import useAxios from '@/utils/useAxios'
 import { format } from 'date-fns'
 import { useNavigate, useParams } from 'react-router-dom'
-import Sidebar from '@/components/allsidebar'
+import Sidebar from '@/components/sidebar'
 
 export default function EMIDebtorTransactions() {
   const { branchId } = useParams()
@@ -57,7 +57,7 @@ export default function EMIDebtorTransactions() {
   // Navigate into a transaction’s edit form
   const handleTransactionClick = (e, id) => {
     e.stopPropagation()
-    navigate(`/emi-debtor-transactions/branch/${branchId}/editform/${id}`)
+    navigate(`/mobile/emi-transactions/branch/${branchId}/editform/${id}`)
   }
 
   // Simple text search
@@ -194,7 +194,7 @@ export default function EMIDebtorTransactions() {
                         Sales Reference: {tx.sales_transaction || 'N/A'}
                       </p>
                     </div>
-                    <span className="mt-2 lg:mt-0">{tx.debtor_name}</span>
+                    <span className="mt-2 lg:mt-0">{tx.emi_debtor_name}</span>
                     <span className="mt-2 lg:mt-0 text-sm lg:text-lg">
                       {format(new Date(tx.date), 'dd MMM yyyy')}
                     </span>
@@ -256,7 +256,7 @@ export default function EMIDebtorTransactions() {
       {/* Add New Debtor Transaction */}
       <Button
         className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={() => navigate(`/debtor-transactions/branch/${branchId}/form/`)}
+        onClick={() => navigate(`/mobile/emi-transactions/branch/${branchId}/form/`)}
       >
         <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
       </Button>

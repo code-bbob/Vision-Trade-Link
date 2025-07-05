@@ -1498,7 +1498,7 @@ class EMIDebtorSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_brand_name(self,obj):
-        return obj.brand.name
+        return obj.brand.name if obj.brand else None
 
 
 class EMIDebtorTransactionSerializer(serializers.ModelSerializer):

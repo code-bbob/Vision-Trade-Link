@@ -61,6 +61,8 @@ urlpatterns = [
     path('emidebtors/<int:pk>/', views.EMIDebtorsView.as_view(), name='debtor_detail'),
     path('emidebtors/', views.EMIDebtorsView.as_view(), name='debtors'),
 
+    path('emidebtortransaction/', views.EMIDebtorTransactionView.as_view(), name='debtortransactionform'),
+
     path('emidebtortransaction/branch/<int:branch>/', views.EMIDebtorTransactionView.as_view(), name='debtortransaction'),
     path('emidebtortransaction/<int:pk>/', views.EMIDebtorTransactionView.as_view(), name='debtortransaction'),
 
