@@ -53,6 +53,7 @@ export default function StaffTransactions() {
       setLoading(false)
     }
   }
+  
 
   const fetchInitData = async () => {
     try {
