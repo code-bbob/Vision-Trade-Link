@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import NewPhoneDialog from "../components/newphonedialog"
+import NewPhoneDialog from "../components/newPhoneDialog"
 
 export default function BrandPhones() {
   const api = useAxios()
