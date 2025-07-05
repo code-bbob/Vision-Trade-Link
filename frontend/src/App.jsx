@@ -58,7 +58,7 @@ import AllSalesReturns from "./pages/allSalesReturn";
 import StaffPage from "./pages/staffs";
 import BranchSelectionPage from "./pages/branchSelect";
 import AllBranchSelectionPage from "./pages/allBranchSelect";
-import StaffTransactions from "./pages/staffTransactions";
+import StaffTransactions from "./pages/stafftransactions";
 import StaffTransactionForm from "./pages/staffTransactionForm";
 import StaffTransactionEditForm from "./pages/editStaffTransactionForm";
 import EditPhoneForm from "./components/editPhoneForm";
