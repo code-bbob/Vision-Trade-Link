@@ -147,7 +147,8 @@ class Sales(models.Model):
             print("HERE checking")
             self.checkit()
             purchase = Purchase.objects.filter(imei_number = self.imei_number).first()
-            self.profit = self.unit_price - purchase.unit_price
+            if purchase:
+                self.profit = self.unit_price - purchase.unit_price
             self.save()
 
     def checkit(self, *args, **kwargs):
@@ -188,9 +189,10 @@ class Sales(models.Model):
         pps = PriceProtection.objects.filter(enterprise=self.sales_transaction.enterprise,branch=self.sales_transaction.branch, phone=self.phone, from_date__lte=self.sales_transaction.date, to_date__gte=self.sales_transaction.date)
         prev_pps = PriceProtection.objects.filter(sales=self)
         print("For sale id:", self.pk, "found price protections:", pps)
-        for pp in prev_pps:
-            pp.sales.remove(self)
-            pp.calculate_receivable()
+        if prev_pps.exists():
+            for pp in prev_pps:
+                pp.sales.remove(self)
+                pp.calculate_receivable()
 
         pps = pps.filter(from_date__gte = purchase_date)
         print("HERE for sale id:", self.pk, "filtered price protections:", pps, "with purchase date:", purchase_date, "from purchase transaction:", Purchase.objects.filter(imei_number = self.imei_number).first().purchase_transaction.id)
