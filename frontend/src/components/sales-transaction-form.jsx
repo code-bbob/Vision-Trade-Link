@@ -658,7 +658,7 @@ function SalesTransactionForm() {
                       <SelectTrigger className="w-full bg-slate-600 border-slate-500 text-white">
                         <SelectValue placeholder="Select payment method" />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-slate-800 border-slate-700 text-white">
                         <SelectItem value="cash">Cash</SelectItem>
                         <SelectItem value="card">Card</SelectItem>
                         <SelectItem value="online">Online</SelectItem>
