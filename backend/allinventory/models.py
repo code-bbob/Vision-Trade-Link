@@ -8,7 +8,7 @@ class Brand(models.Model):
     stock = models.FloatField(null=True,blank=True,default=0)
     count = models.IntegerField(null=True,blank=True,default=0)
     enterprise = models.ForeignKey('enterprise.Enterprise', on_delete=models.CASCADE,related_name='all_brand')
-    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE,related_name='all_brand')
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE,related_name='all_brand', null=True, blank=True)
     
     def __str__(self):
         return self.name
@@ -24,7 +24,7 @@ class Product(models.Model):
     count = models.IntegerField(null=True,blank=True,default=0)
     # vendor = models.ForeignKey('alltransactions.Vendor', on_delete=models.CASCADE,related_name='all_product')
     enterprise = models.ForeignKey('enterprise.Enterprise', on_delete=models.CASCADE,related_name='all_product')
-    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE,related_name='all_product')
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE,related_name='all_product', null=True, blank=True)
     def __str__(self):
         return self.name    
     

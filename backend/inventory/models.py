@@ -10,7 +10,7 @@ class Brand(models.Model):
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE, related_name="brand")
     stock = models.FloatField(null=True,blank=True,default=0)
     count = models.IntegerField(null=True,blank=True,default=0)
-    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='inventory_brand')
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='inventory_brand', null=True, blank=True)
     def __str__(self):
         return self.name
 
@@ -21,8 +21,8 @@ class Phone(models.Model):
     cost_price = models.FloatField(null=True,blank=True,default=0)
     selling_price = models.FloatField(null=True,blank=True,default=0)
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
-    branch = models.ForeignKey('enterprise.Branch',on_delete=models.CASCADE, related_name='inventory_phone')
-    enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE, related_name='inventory_phone')
+    branch = models.ForeignKey('enterprise.Branch',on_delete=models.CASCADE, related_name='inventory_phone', null=True, blank=True)
+    enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE, related_name='inventory_phone',null=True, blank=True)
 
     def __str__(self):
         return self.name    

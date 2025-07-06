@@ -17,7 +17,7 @@ class Vendor(models.Model):
 class PurchaseTransaction(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='all_purchase_transaction')
-    branch = models.ForeignKey(Branch,related_name='purchase_transaction',on_delete=models.CASCADE)
+    branch = models.ForeignKey(Branch,related_name='purchase_transaction',on_delete=models.CASCADE, null=True, blank=True)
     bill_no = models.CharField(max_length=20)
     total_amount = models.FloatField(null=True,blank=True)
     date = models.DateField()
@@ -47,7 +47,7 @@ class PurchaseTransaction(models.Model):
 class PurchaseReturn(models.Model):
     date = models.DateField(auto_now_add=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='all_purchase_return')
-    branch = models.ForeignKey(Branch,related_name='purchase_return',on_delete=models.CASCADE)
+    branch = models.ForeignKey(Branch,related_name='purchase_return',on_delete=models.CASCADE, null=True, blank=True)
     purchase_transaction = models.ForeignKey(PurchaseTransaction, on_delete=models.CASCADE,related_name='purchase_return')
     
 class Purchase(models.Model):
@@ -88,7 +88,7 @@ class SalesTransaction(models.Model):
     total_amount = models.FloatField(null=True,blank=True)
     date = models.DateField()
     bill_no = models.IntegerField()
-    branch = models.ForeignKey(Branch,related_name='sales_transaction',on_delete=models.CASCADE)
+    branch = models.ForeignKey(Branch,related_name='sales_transaction',on_delete=models.CASCADE, null=True, blank=True)
     discount = models.FloatField(null=True,blank=True)
     subtotal = models.FloatField(null=True,blank=True)
     method = models.CharField(max_length=20,choices=(('cash','cash'),('online','online'),('card','card'),('credit','credit')),default='cash')
@@ -120,7 +120,7 @@ class SalesTransaction(models.Model):
 class SalesReturn(models.Model):
     date = models.DateField(auto_now_add=True)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='sales_return')
-    branch = models.ForeignKey(Branch,related_name='sales_return',on_delete=models.CASCADE)
+    branch = models.ForeignKey(Branch,related_name='sales_return',on_delete=models.CASCADE, null=True, blank=True)
     sales_transaction = models.ForeignKey(SalesTransaction, on_delete=models.CASCADE,related_name='sales_return')
     
 class Sales(models.Model):
