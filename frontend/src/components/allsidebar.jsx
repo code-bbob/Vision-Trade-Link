@@ -17,7 +17,6 @@ import {
   X
 } from "lucide-react"
 import { Link, useNavigate, useLocation } from "react-router-dom"
-import { icon } from "@fortawesome/fontawesome-svg-core"
 
 export default function Sidebar() {
   const navigate = useNavigate()
@@ -54,15 +53,14 @@ export default function Sidebar() {
     { title: 'PurchaseReturn', icon: ShoppingCart, path: '/purchase-returns' },
     { title: 'Sales', icon: TrendingUp, path: '/sales' },
     { title: 'SalesReturn', icon: TrendingDown, path: '/sales-returns' },
-    { title: 'SalesReport', icon: TrendingUp, path: '/sales-report' },
+    { title: 'SalesReport', icon: TrendingUp, path: '/sales-report' }, // opens in new tab
     { title: 'Staffs', icon: TrendingUp, path: '/staff' },
     { title: 'StaffTransaction', icon: TrendingUp, path: '/staff-transactions' },
-    { title: 'Debtors', icon: BookUser, path: '/debtors' },
-    { title: 'DebtorTransactions', icon: BookUser, path: '/debtor-transactions' },
     { title: 'Vendors', icon: BookUser, path: '/vendors' },
     { title: 'VendorTransactions', icon: BookUser, path: '/vendor-transactions' },
+    { title: 'Debtors', icon: BookUser, path: '/debtors' },
+    { title: 'DebtorTransactions', icon: BookUser, path: '/debtor-transactions' },
     { title: 'Phone Only', icon: Smartphone, path: '/mobile' },
-    
   ]
 
   return (
@@ -85,7 +83,7 @@ export default function Sidebar() {
             variants={sidebarVariants}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
           >
-            <div className="p-6 pt-16 lg:pt-6"> {/* Added padding-top for mobile */}
+            <div className="p-6 pt-16 lg:pt-6">
               <div 
                 className="text-2xl font-bold mb-6 text-white cursor-pointer" 
                 onClick={() => {
@@ -96,18 +94,40 @@ export default function Sidebar() {
                 Inventory System
               </div>
               <nav className="space-y-2">
-                {menuItems.map((item) => (
-                  <Link key={item.path} to={item.path}>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {item.title}
-                    </Button>
-                  </Link>
-                ))}
+                {menuItems.map((item) => {
+                  const isSalesReport = item.title === 'SalesReport'
+                  if (isSalesReport) {
+                    return (
+                      <a
+                        key={item.path}
+                        href={item.path}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
+                        >
+                          <item.icon className="mr-2 h-4 w-4" />
+                          {item.title}
+                        </Button>
+                      </a>
+                    )
+                  }
+
+                  return (
+                    <Link key={item.path} to={item.path}>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {item.title}
+                      </Button>
+                    </Link>
+                  )
+                })}
               </nav>
             </div>
           </motion.div>
