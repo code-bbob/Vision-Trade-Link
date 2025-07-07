@@ -998,7 +998,7 @@ class BarChartView(APIView):
         end_date = request.GET.get('end_date')
 
         if not start_date or not end_date:
-            today = timezone.now()
+            today = timezone.now().date()  # Get today's date
             start_date = today.replace(day=1)  # First day of the current month
             end_date = today
         
@@ -1006,7 +1006,7 @@ class BarChartView(APIView):
         end_date = parse_date(end_date) if isinstance(end_date, str) else end_date
 
         enterprise = request.user.person.enterprise
-        sales = Sales.objects.filter(sales_transaction__enterprise = enterprise,sales_transaction__date__date__range=(start_date, end_date))
+        sales = Sales.objects.filter(sales_transaction__enterprise = enterprise,sales_transaction__date__range=(start_date, end_date))
         print(sales)
         brands = Brand.objects.filter(enterprise = enterprise)
         count_list = []
@@ -1104,9 +1104,9 @@ class LineGraphView(APIView):
         sales = (
             Sales.objects.filter(
                 sales_transaction__enterprise=enterprise,
-                sales_transaction__date__date__range=[start_date, today]
+                sales_transaction__date__range=[start_date, today]
             )
-            .values('sales_transaction__date__date')
+            .values('sales_transaction__date')
             .annotate(total_sales=Sum('unit_price'))
         )
 
@@ -1121,7 +1121,7 @@ class LineGraphView(APIView):
 
         # Step 7: Update the list with actual sales data
         for sale in sales:
-            sale_date = sale['sales_transaction__date__date']
+            sale_date = sale['sales_transaction__date']
             day_name = sale_date.strftime('%A')
             total_sales = sale['total_sales']
 
@@ -1236,8 +1236,8 @@ class SalesReportView(APIView):
         if branch:
             sales = sales.filter(sales_transaction__branch = branch)
         if search:
-            first_date_of_month = timezone.now().replace(day=1)
-            today = timezone.now()
+            first_date_of_month = timezone.now().date().replace(day=1)
+            today = timezone.now().date()
             sales = sales.filter(phone__brand__name__icontains = search)
             # sales = sales.filter(sales_transaction__date__date__range=(first_date_of_month,today))
 
@@ -1247,13 +1247,18 @@ class SalesReportView(APIView):
         if start_date and end_date:
             start_date = parse_date(start_date)
             end_date = parse_date(end_date)
-            start_date = make_aware(datetime.combine(start_date, time.min))
-            end_date = make_aware(datetime.combine(end_date, time.max))
             sales = sales.filter(sales_transaction__date__range=(start_date, end_date))
+        
+        elif start_date and not end_date:
+            start_date = parse_date(start_date)
+            sales = sales.filter(sales_transaction__date__gte=start_date)
+        elif end_date and not start_date:
+            end_date = parse_date(end_date)
+            sales = sales.filter(sales_transaction__date__lte=end_date)
 
         
         if not search and not start_date and not end_date:
-            sales = sales.filter(sales_transaction__date__date = timezone.now().date())
+            sales = sales.filter(sales_transaction__date = timezone.now().date())
 
         count = sales.count()
 
@@ -1265,9 +1270,8 @@ class SalesReportView(APIView):
             profit = sale.unit_price - purchase.unit_price
             total_profit += profit
             total_sales += sale.unit_price
-            local_dt = localtime(sale.sales_transaction.date)
             list.append({
-                "date": local_dt.date(),
+                "date": sale.sales_transaction.date.strftime('%Y-%m-%d'),
                 "brand": sale.phone.brand.name,
                 "phone": sale.phone.name,
                 "imei_number": sale.imei_number,

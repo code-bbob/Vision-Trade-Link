@@ -67,6 +67,7 @@ export default function AllBrandProducts() {
 
   const handleImportProducts = async (selectedBranchId) => {
     try {
+      console.log("MERGING ................")
       await api.post(`allinventory/product/branch/${branchId}/brand/${id}/merge/${selectedBranchId}/`);
       setIsImportDialogOpen(false);
       // Refresh products list

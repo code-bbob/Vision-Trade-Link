@@ -176,7 +176,7 @@ class MergeProductBrandView(APIView):
         print("MERGING PRODUCTS")
         brand = Brand.objects.get(id=brand)
         products = Product.objects.filter(branch_id=mergebranch,brand__name__iexact=brand.name)
-        print("THERESASDSAD ",products)
+        print("THERESASDSAD ",products) 
         for product in Product.objects.filter(branch_id=mergebranch,brand__name__iexact=brand.name):
             print(product)
             if Product.objects.filter(branch_id=selfbranch, brand=brand, name__iexact=product.name).exists():

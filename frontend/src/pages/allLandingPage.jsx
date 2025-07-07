@@ -27,6 +27,7 @@ import {
 import { useDispatch } from "react-redux"
 import { logout } from "../redux/accessSlice"
 import Sidebar from "../components/allsidebar"
+import ChartsDashboard from "../components/charts-dashboard"
 
 export default function AllLandingPage() {
   const api = useAxios()
@@ -232,6 +233,19 @@ export default function AllLandingPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Charts Dashboard */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.5 }}
+          className="mt-8"
+        >
+          <h2 className="text-2xl font-bold text-white mb-6 bg-gradient-to-r from-purple-400 to-blue-400 text-transparent bg-clip-text">
+            Analytics Dashboard
+          </h2>
+          <ChartsDashboard />
+        </motion.div>
       </div>
     </div>
   )

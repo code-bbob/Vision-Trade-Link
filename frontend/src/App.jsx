@@ -46,8 +46,6 @@ import EditAllSalesTransactionForm from "./components/editallsales";
 import AllVendorTransactions from "./pages/allvendortransactions";
 import AllVendorTransactionForm from "./pages/allvendortransactionform";
 import EditAllVendorTransactionForm from "./components/editallvendortransactions";
-import BarCh from "./components/barchart";
-import LineGraph from "./components/linegraph";
 import PurchaseReturns from "./pages/purchaseReturn";
 import SalesReport from "./pages/salesReport";
 import AllSalesReport from "./pages/allSalesReport";
@@ -145,12 +143,6 @@ function App() {
         <Route path="debtor-transactions/branch/:branchId" element={<AllDebtorTransactions />} />
         <Route path="debtor-transactions/branch/:branchId/form" element={<DebtorTransactionForm />} />
         <Route path="debtor-transactions/branch/:branchId/editform/:debtorTransactionId" element={<EditDebtorTransactionForm />} />
-
-
-        <Route path = "bar" element={<BarCh/>}/>
-        <Route path = "line" element={<LineGraph/>}/>
-
-
 
 
         {/* Mobile Section */}
