@@ -128,6 +128,13 @@ class SalesTransaction(models.Model):
 
     def __str__(self):
         return f"Transaction on {self.date} with "
+
+class SalesReturn(models.Model):
+    date = models.DateField(auto_now_add=True)
+    enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE)
+    sales_transaction = models.ForeignKey(SalesTransaction, on_delete=models.CASCADE,related_name='sales_return')
+    branch = models.ForeignKey('enterprise.Branch', on_delete=models.CASCADE, related_name='sales_return_branch',null=True,blank=True)
+
     
 class Sales(models.Model):
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE)
@@ -135,7 +142,15 @@ class Sales(models.Model):
     unit_price = models.FloatField()
     profit = models.FloatField(null=True,blank=True)
     sales_transaction = models.ForeignKey(SalesTransaction, related_name="sales", on_delete=models.CASCADE) ###relatedname here esma j xa uta serializer ma tei nai hunu prxa
-    
+    returned = models.BooleanField(default=False)
+    sales_return = models.ForeignKey(
+        SalesReturn,
+        on_delete=models.SET_NULL,   # or CASCADE
+        null=True,
+        blank=True,
+        related_name='purchases'
+    )
+
     def __str__(self):
         return f"{self.phone} @ {self.unit_price}"
     

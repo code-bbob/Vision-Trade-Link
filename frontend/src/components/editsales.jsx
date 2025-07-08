@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
 } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -54,12 +55,14 @@ export default function EditSalesTransactionForm() {
     sales: [],
     method: 'cash',
     debtor: '',
-    amount_paid: '',
+    emi_debtor: '',
+    amount_paid: null,
     credited_amount: '',
   });
   const [phones, setPhones] = useState([]);
   const [brands, setBrands] = useState([]);
   const [debtors, setDebtors] = useState([]);
+  const [emiDebtors, setEmiDebtors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -67,14 +70,17 @@ export default function EditSalesTransactionForm() {
   const [showNewPhoneDialog, setShowNewPhoneDialog] = useState(false);
   const [showNewBrandDialog, setShowNewBrandDialog] = useState(false);
   const [showNewDebtorDialog, setShowNewDebtorDialog] = useState(false);
+  const [showNewEMIDebtorDialog, setShowNewEMIDebtorDialog] = useState(false);
   const [newPhoneData, setNewPhoneData] = useState({ name: '', brand: '' });
   const [newBrandName, setNewBrandName] = useState('');
   const [newDebtorData, setNewDebtorData] = useState({ name: '', phone_number: '', due: '', branch: branchId });
+  const [newEMIDebtorData, setNewEMIDebtorData] = useState({ name: '', phone_number: '', due: '', brand: '', branch: branchId });
   const [openPhone, setOpenPhone] = useState([]);
   const [openIMEI, setOpenIMEI] = useState([]);
   const [openBrand, setOpenBrand] = useState(false);
   const [openDebtor, setOpenDebtor] = useState(false);
   const [subLoading, setSubLoading] = useState(false);
+  const [returns, setReturns] = useState([]);
 
   // Discount & totals
   const [subtotal, setSubtotal] = useState(0);
@@ -86,16 +92,18 @@ export default function EditSalesTransactionForm() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [phonesRes, brandsRes, debtorsRes, salesRes] = await Promise.all([
+        const [phonesRes, brandsRes, debtorsRes, emiDebtorsRes, salesRes] = await Promise.all([
           api.get(`inventory/phone/branch/${branchId}/`),
           api.get(`inventory/brand/branch/${branchId}/`),
           api.get(`alltransaction/debtors/branch/${branchId}/`),
+          api.get(`transaction/emidebtors/branch/${branchId}/`),
           api.get(`transaction/salestransaction/${salesId}/`)
         ]);
 
         setPhones(phonesRes.data);
         setBrands(brandsRes.data);
         setDebtors(debtorsRes.data);
+        setEmiDebtors(emiDebtorsRes.data);
 
         const data = salesRes.data;
         setOriginalSalesData(data);
@@ -114,7 +122,8 @@ export default function EditSalesTransactionForm() {
           })),
           method: data.method || 'cash',
           debtor: data.debtor ? data.debtor.toString() : '',
-          amount_paid: data.amount_paid != null ? data.amount_paid.toString() : '',
+          emi_debtor: data.emi_debtor ? data.emi_debtor.toString() : '',
+          amount_paid: data.amount_paid != null ? data.amount_paid.toString() : null,
           credited_amount: data.credited_amount != null ? data.credited_amount.toString() : '',
         });
 
@@ -268,6 +277,22 @@ export default function EditSalesTransactionForm() {
     }
   };
 
+  const handleAddEMIDebtor = async () => {
+    try {
+      const res = await api.post(`transaction/emidebtors/`, newEMIDebtorData);
+      setEmiDebtors([...emiDebtors, res.data]);
+      setNewEMIDebtorData({ name: '', phone_number: '', due: '', brand: '', branch: branchId });
+      setShowNewEMIDebtorDialog(false);
+      setFormData({
+        ...formData,
+        emi_debtor: res.data.id.toString(),
+      });
+    } catch (err) {
+      console.error('Error adding EMI debtor:', err);
+      setError('Failed to add EMI debtor');
+    }
+  };
+
   // Submit updated transaction
   const handleSubmit = async e => {
     e.preventDefault();
@@ -301,6 +326,35 @@ export default function EditSalesTransactionForm() {
     }
   };
 
+  const appendReturn = (id) => {
+    setReturns(prevReturns => [...prevReturns, id]);
+    setFormData(prevState => ({
+      ...prevState,
+      sales: prevState.sales.map(sale => 
+        sale.id === id ? { ...sale, returned: true } : sale
+      )
+    }));
+    console.log(returns);
+  };
+
+  const handleReturn = async () => {
+    try {
+      setSubLoading(true);
+      const response = await api.post('transaction/sales-return/', {
+        "sales_ids": returns, 
+        "sales_transaction_id": salesId,
+        "branch": branchId
+      });
+      console.log('Returned:', response.data);
+    } catch (error) {
+      console.error('Error returning sales:', error);
+      setError('Failed to process return. Please try again.');
+    } finally {
+      setSubLoading(false);
+      navigate('/mobile/sales');
+    }
+  };
+
   const hasFormChanged = () => {
     if (!originalSalesData) return false;
     // you can extend this to include new payment/discount fields if desired
@@ -317,6 +371,7 @@ export default function EditSalesTransactionForm() {
       formData.bill_no !== originalSalesData.bill_no ||
       formData.method !== (originalSalesData.method || 'cash') ||
       formData.debtor !== (originalSalesData.debtor?.toString() || '') ||
+      formData.emi_debtor !== (originalSalesData.emi_debtor?.toString() || '') ||
       formData.amount_paid !== (originalSalesData.amount_paid?.toString() || '') ||
       discountValue !== (originalSalesData.discount?.toString() || '');
   };
@@ -404,7 +459,33 @@ export default function EditSalesTransactionForm() {
             {/* Sales Lines */}
             {formData.sales.map((sale, idx) => (
               <div key={idx} className="bg-slate-700 p-4 rounded-md shadow mb-4">
+                <div className='flex justify-between'>
                   <h3 className="text-lg text-white font-semibold mb-4">Sale {idx + 1}</h3>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="bg-blue-500" disabled={sale.returned}>Returned</Button>
+                    </DialogTrigger>
+                    <DialogContent className="bg-slate-800 text-white">
+                      <DialogHeader>
+                        <DialogTitle>Are you absolutely sure?</DialogTitle>
+                        <DialogDescription className="text-slate-300">
+                          This action cannot be undone. This will permanently save your sale as returned
+                          and remove your data from our servers.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DialogClose asChild>
+                        <Button 
+                          type="button" 
+                          disabled={subLoading}
+                          className="w-full bg-red-600 mt-6 hover:bg-red-700 text-white"
+                          onClick={() => appendReturn(sale.id)}
+                        >
+                          Yes
+                        </Button>
+                      </DialogClose>
+                    </DialogContent>
+                  </Dialog>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Phone */}
@@ -599,11 +680,12 @@ export default function EditSalesTransactionForm() {
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Method" />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectContent className="bg-slate-800 text-white border-slate-700">
                       <SelectItem value="cash">Cash</SelectItem>
                       <SelectItem value="card">Card</SelectItem>
                       <SelectItem value="online">Online</SelectItem>
                       <SelectItem value="credit">Credit</SelectItem>
+                      <SelectItem value="emi">EMI</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -690,6 +772,86 @@ export default function EditSalesTransactionForm() {
               </div>
             )}
 
+            {/* EMI Details */}
+            {formData.method === 'emi' && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                <div className="flex flex-col">
+                  <Label className="text-white mb-3">EMI Debtor</Label>
+                  <Popover open={openDebtor} onOpenChange={setOpenDebtor}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-between bg-slate-600 border-slate-500 text-white"
+                      >
+                        {formData.emi_debtor
+                          ? emiDebtors.find(d => d.id.toString() === formData.emi_debtor)?.name
+                          : 'Select an EMI debtor...'}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0 bg-slate-700 border-slate-600">
+                      <Command className="bg-slate-700">
+                        <CommandInput placeholder="Search..." className="bg-slate-700 text-white" />
+                        <CommandList>
+                          <CommandEmpty>No EMI debtors</CommandEmpty>
+                          <CommandGroup>
+                            {emiDebtors.map(d => (
+                              <CommandItem
+                                key={d.id}
+                                onSelect={() => {
+                                  setFormData(prev => ({ ...prev, emi_debtor: d.id.toString() }));
+                                  setOpenDebtor(false);
+                                }}
+                                className="text-white hover:bg-slate-600"
+                              >
+                                <Check
+                                  className={cn(
+                                    'mr-2 h-4 w-4',
+                                    formData.emi_debtor === d.id.toString() ? 'opacity-100' : 'opacity-0'
+                                  )}
+                                />
+                                {d.name}
+                              </CommandItem>
+                            ))}
+                            <CommandItem
+                              onSelect={() => {
+                                setShowNewEMIDebtorDialog(true);
+                                setOpenDebtor(false);
+                              }}
+                              className="text-white hover:bg-slate-600"
+                            >
+                              <PlusCircle className="mr-2 h-4 w-4" />
+                              Add a new EMI debtor
+                            </CommandItem>
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="flex flex-col">
+                  <Label className="text-white mb-3">Amount Paid</Label>
+                  <Input
+                    type="number"
+                    name="amount_paid"
+                    value={formData.amount_paid}
+                    onChange={handleChange}
+                    className="bg-slate-700 border-slate-600 text-white"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <Label className="text-white mb-3">EMI Amount</Label>
+                  <Input
+                    type="number"
+                    name="credited_amount"
+                    value={formData.credited_amount}
+                    readOnly
+                    className="bg-slate-700 border-slate-600 text-white"
+                  />
+                </div>
+              </div>
+            )}
+
             <Button
               type="button"
               onClick={handleAddSale}
@@ -707,6 +869,15 @@ export default function EditSalesTransactionForm() {
               Update Transaction
             </Button>
           </form>
+
+          <Button 
+            type="button" 
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white mt-5"
+            onClick={handleReturn}
+            disabled={returns.length === 0 || subLoading}
+          >
+            Return Sales
+          </Button>
 
           {/* Delete Confirmation */}
           <Dialog>
@@ -872,6 +1043,101 @@ export default function EditSalesTransactionForm() {
                   className="w-full bg-green-600 hover:bg-green-700 text-white"
                 >
                   Add Debtor
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* New EMI Debtor Dialog */}
+          <Dialog open={showNewEMIDebtorDialog} onOpenChange={setShowNewEMIDebtorDialog}>
+            <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
+              <DialogHeader>
+                <DialogTitle>Add New EMI Debtor</DialogTitle>
+                <DialogDescription>Enter EMI debtor details</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-white">Name</Label>
+                  <Input
+                    value={newEMIDebtorData.name}
+                    onChange={e => setNewEMIDebtorData(prev => ({ ...prev, name: e.target.value }))}
+                    className="col-span-3 bg-slate-700 border-slate-600 text-white"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-white">Phone</Label>
+                  <Input
+                    value={newEMIDebtorData.phone_number}
+                    onChange={e =>
+                      setNewEMIDebtorData(prev => ({ ...prev, phone_number: e.target.value }))
+                    }
+                    className="col-span-3 bg-slate-700 border-slate-600 text-white"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-white">Due</Label>
+                  <Input
+                    type="number"
+                    value={newEMIDebtorData.due}
+                    onChange={e =>
+                      setNewEMIDebtorData(prev => ({ ...prev, due: e.target.value }))
+                    }
+                    className="col-span-3 bg-slate-700 border-slate-600 text-white"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-white">Brand</Label>
+                  <div className="col-span-3">
+                    <Popover open={openBrand} onOpenChange={setOpenBrand}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-between bg-slate-700 border-slate-600 text-white"
+                        >
+                          {newEMIDebtorData.brand
+                            ? brands.find(b => b.id.toString() === newEMIDebtorData.brand)?.name
+                            : 'Select a brand...'}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0 bg-slate-700 border-slate-600">
+                        <Command className="bg-slate-700">
+                          <CommandInput placeholder="Search..." className="bg-slate-700 text-white" />
+                          <CommandList>
+                            <CommandEmpty>No brands</CommandEmpty>
+                            <CommandGroup>
+                              {brands.map(b => (
+                                <CommandItem
+                                  key={b.id}
+                                  onSelect={() => {
+                                    setNewEMIDebtorData(prev => ({ ...prev, brand: b.id.toString() }));
+                                    setOpenBrand(false);
+                                  }}
+                                  className="text-white hover:bg-slate-600"
+                                >
+                                  <Check
+                                    className={cn(
+                                      'mr-2 h-4 w-4',
+                                      newEMIDebtorData.brand === b.id.toString() ? 'opacity-100' : 'opacity-0'
+                                    )}
+                                  />
+                                  {b.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={handleAddEMIDebtor}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                >
+                  Add EMI Debtor
                 </Button>
               </DialogFooter>
             </DialogContent>

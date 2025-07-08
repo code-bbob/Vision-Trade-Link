@@ -87,7 +87,7 @@ export default function AllVendorBrand() {
       setPhones((prev) => [...prev, response.data]);
       setFilteredPhones((prev) => [...prev, response.data]);
       // Reset and close the dialog
-      setNewVendorData({ name: '', due: 0, brand: id });
+      setNewVendorData({ name: '', due: 0, brand: id, branch: branchId });
       setShowNewVendorDialog(false);
     } catch (err) {
       console.error("Error adding vendor:", err);

@@ -141,7 +141,7 @@ function AllVendorTransactionForm() {
         ...prevState,
         vendor: response.data.id.toString(),
       }));
-      setNewVendorData({ name: "", brand: "" });
+      setNewVendorData({ name: "", brand: "" , branch: branchId});
       setShowNewVendorDialog(false);
     } catch (error) {
       console.error("Error adding vendor:", error);
@@ -154,6 +154,7 @@ function AllVendorTransactionForm() {
     try {
       const response = await api.post("allinventory/brand/", {
         name: newBrandName,
+        branch: branchId,
       });
       console.log("New Brand Added:", response.data);
       setBrands((prevBrands) => [...prevBrands, response.data]);

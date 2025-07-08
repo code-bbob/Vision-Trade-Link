@@ -67,7 +67,7 @@ function AllPurchaseTransactionForm() {
   const [showNewProductDialog, setShowNewProductDialog] = useState(false);
   const [showNewVendorDialog, setShowNewVendorDialog] = useState(false);
   const [showNewBrandDialog, setShowNewBrandDialog] = useState(false);
-  const [newProductData, setNewProductData] = useState({ name: "", brand: "", cost_price:"",selling_price:"" });
+  const [newProductData, setNewProductData] = useState({ name: "", brand: "", cost_price:"",selling_price:"" , branch: branchId });
   const [newVendorData, setNewVendorData] = useState({ name: "", brand: "",due:0 ,branch:branchId});
   const [newBrandName, setNewBrandName] = useState("");
   const [openProduct, setOpenProduct] = useState(
@@ -316,7 +316,7 @@ function AllPurchaseTransactionForm() {
       const response = await api.post("allinventory/product/", newProductData);
       console.log("New Product Added:", response.data);
       setProducts((prevProducts) => [...prevProducts, response.data]);
-      setNewProductData({ name: "", brand: "", cost_price:"", selling_price:"" });
+      setNewProductData({ name: "", brand: "", cost_price:"", selling_price:"" , branch: branchId });
       setShowNewProductDialog(false);
       setFilteredProducts((prevFilteredProducts) => [
         ...prevFilteredProducts,
@@ -338,7 +338,7 @@ function AllPurchaseTransactionForm() {
         ...prevState,
         vendor: response.data.id.toString(),
       }));
-      setNewVendorData({ name: "", brand: "" });
+      setNewVendorData({ name: "", brand: "" , branch: branchId , due:0});
       setShowNewVendorDialog(false);
       const filteredProducts = products.filter(
           (product) => product.brand === response.data.brand

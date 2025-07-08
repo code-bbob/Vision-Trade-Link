@@ -216,7 +216,9 @@ class SalesTransactionView(APIView):
                 brand.count += sale.quantity
                 brand.stock += sale.product.selling_price * sale.quantity
                 brand.save()
-            DebtorTransaction.objects.filter(all_sales_transaction=sales_transaction).first().delete()
+            dt = DebtorTransaction.objects.filter(all_sales_transaction=sales_transaction).first()
+            if dt:
+                dt.delete()
             sales_transaction.delete()
             return Response("Deleted")
         

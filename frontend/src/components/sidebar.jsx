@@ -50,6 +50,7 @@ export default function Sidebar() {
     { title: 'Purchases', icon: ShoppingCart, path: '/mobile/purchases' },
     { title: 'PurchaseReturns', icon: ShoppingCart, path: '/mobile/purchase-returns' },
     { title: 'Sales', icon: TrendingUp, path: '/mobile/sales' },
+    { title: 'SalesReturns', icon: TrendingUp, path: '/mobile/sales-returns' },
     { title: 'SalesReport', icon: TrendingUp, path: '/mobile/sales-report' }, // Open in new tab
     { title: 'Schemes', icon: Zap, path: '/mobile/schemes' },
     { title: 'Price Protection', icon: Shield, path: '/mobile/price-protection' },
@@ -75,7 +76,7 @@ export default function Sidebar() {
       <AnimatePresence>
         {(isOpen || window.innerWidth >= 1024) && (
           <motion.div
-            className="sidebar fixed top-0 left-0 z-40 w-64 h-full bg-slate-800 shadow-xl overflow-y-auto"
+            className="sidebar fixed top-0 left-0 z-40 w-64 h-full bg-slate-800 shadow-xl overflow-y-hidden"
             initial="closed"
             animate="open"
             exit="closed"
@@ -90,7 +91,7 @@ export default function Sidebar() {
                   setIsOpen(false)
                 }}
               >
-                Mobile Inventory
+                Phone Inventory
               </div>
               <nav className="space-y-2">
                 {menuItems.map((item) => {

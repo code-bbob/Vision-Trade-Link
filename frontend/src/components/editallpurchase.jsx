@@ -80,6 +80,7 @@ function EditAllPurchaseTransactionForm() {
     brand: "",
     cost_price: "",
     selling_price: "",
+    branch: branchId,
   });
   const [newVendorData, setNewVendorData] = useState({ name: "", brand: "" , branch: branchId});
   const [newBrandName, setNewBrandName] = useState("");
@@ -304,7 +305,7 @@ function EditAllPurchaseTransactionForm() {
       const response = await api.post("allinventory/product/", newProductData);
       console.log("New Product Added:", response.data);
       setProducts((prevProducts) => [...prevProducts, response.data]);
-      setNewProductData({ name: "", brand: "", cost_price: "", selling_price: "" });
+      setNewProductData({ name: "", brand: "", cost_price: "", selling_price: "", branch: branchId });
       setShowNewProductDialog(false);
     } catch (error) {
       console.error("Error adding product:", error);
@@ -322,7 +323,7 @@ function EditAllPurchaseTransactionForm() {
         ...prevState,
         vendor: response.data.id.toString(),
       }));
-      setNewVendorData({ name: "", brand: "" });
+      setNewVendorData({ name: "", brand: "", branch: branchId, due: 0 });
       setShowNewVendorDialog(false);
     } catch (error) {
       console.error("Error adding vendor:", error);
@@ -333,8 +334,9 @@ function EditAllPurchaseTransactionForm() {
   const handleAddBrand = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post("inventory/brand/", {
+      const response = await api.post("allinventory/brand/", {
         name: newBrandName,
+        branch: branchId,
       });
       console.log("New Brand Added:", response.data);
       setBrands((prevBrands) => [...prevBrands, response.data]);

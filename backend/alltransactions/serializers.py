@@ -951,7 +951,8 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
             dts = DebtorTransaction.objects.filter(all_sales_transaction=instance)
             for dt in dts:
                 dt.delete()
-            instance.debtor.refresh_from_db()
+            if instance.debtor:
+                instance.debtor.refresh_from_db()
             if instance.method == 'credit':
                 # Base transaction
                 base = {
@@ -1062,45 +1063,48 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
             'purchases',       # for read
             'purchase_ids' ,    # for write
         ]
-
     @transaction.atomic
     def create(self, validated_data):
-
-        
         purchase_ids = validated_data.pop('purchase_ids', [])
-
-        # Create the PurchaseReturn instance
         purchase_return = PurchaseReturn.objects.create(**validated_data)
-
-
-        # Retrieve the vendor from the linked transaction
         vendor = purchase_return.purchase_transaction.vendor
-
-        # We'll subtract the total of all returned purchases
         total_unit_price = 0
-        # print(purchase_ids)
 
-        # Attach each purchase to this return
+        # Memory cache
+        products_cache = {}
+        brands_cache = {}
+
         for purchase in purchase_ids:
-
             purchase.purchase_return = purchase_return
             purchase.returned = True
             purchase.save()
             total_unit_price += purchase.unit_price * purchase.quantity
-            product = purchase.product
-            product.count = (product.count - purchase.quantity) if product.count is not None else - purchase.quantity
-            product.stock = (product.stock - purchase.quantity * product.selling_price) if product.stock is not None else - purchase.quantity * product.selling_price
-            brand = product.brand
-            brand.count = (brand.count - purchase.quantity) if brand.count is not None else - purchase.quantity
-            brand.stock = (brand.stock - purchase.quantity * product.selling_price) if brand.stock is not None else - purchase.quantity * product.selling_price
-            brand.save()
-            product.save()
 
-        # Update vendor dues if needed
+            # Cache product
+            product_id = purchase.product.id
+            if product_id not in products_cache:
+                products_cache[product_id] = purchase.product
+            product = products_cache[product_id]
+            product.count = (product.count or 0) - purchase.quantity
+            product.stock = (product.stock or 0) - purchase.quantity * product.selling_price
+
+            # Cache brand
+            brand_id = product.brand.id
+            if brand_id not in brands_cache:
+                brands_cache[brand_id] = product.brand
+            brand = brands_cache[brand_id]
+            brand.count = (brand.count or 0) - purchase.quantity
+            brand.stock = (brand.stock or 0) - purchase.quantity * product.selling_price
+
+        # Save all cached products and brands
+        for product in products_cache.values():
+            product.save()
+        for brand in brands_cache.values():
+            brand.save()
+
         if vendor.due is None:
             vendor.due = 0
 
-        ####use vendor transactions to update the dues
         print(vendor.due)
         VendorTransactionSerializer().create({
             'vendor': vendor,
@@ -1111,39 +1115,154 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
             'purchase_transaction': purchase_return.purchase_transaction,
             'enterprise': purchase_return.enterprise,
             'branch': purchase_return.branch,
-            'type':'return'
+            'type': 'return'
         })
         vendor.refresh_from_db()
         print(vendor.due)
 
         return purchase_return
-
+    
     @transaction.atomic
     def delete(self, instance):
         purchase_ids = instance.purchases.all()
         vendor = instance.purchase_transaction.vendor
         total_unit_price = 0
+
+        # Memory cache
+        products_cache = {}
+        brands_cache = {}
+
         for purchase in purchase_ids:
             purchase.returned = False
             purchase.save()
             total_unit_price += purchase.unit_price * purchase.quantity
-            purchase.product.count = (purchase.product.count + purchase.quantity) if purchase.product.count is not None else purchase.quantity
-            purchase.product.stock = (purchase.product.stock + purchase.quantity * purchase.product.selling_price) if purchase.product.stock is not None else purchase.quantity * purchase.product.selling_price
-            purchase.product.brand.count = (purchase.product.brand.count + purchase.quantity) if purchase.product.brand.count is not None else purchase.quantity
-            purchase.product.brand.stock = (purchase.product.brand.stock + purchase.quantity * purchase.product.selling_price) if purchase.product.brand.stock is not None else purchase.quantity * purchase.product.selling_price
-            purchase.product.brand.save()
-            purchase.product.save()
-            
-        vt = VendorTransactions.objects.filter(purchase_transaction=instance.purchase_transaction,type="return").first()
-        print(vt)   
-        vt.delete()
+
+            # Cache product
+            product_id = purchase.product.id
+            if product_id not in products_cache:
+                products_cache[product_id] = purchase.product
+            product = products_cache[product_id]
+            product.count = (product.count or 0) + purchase.quantity
+            product.stock = (product.stock or 0) + purchase.quantity * product.selling_price
+
+            # Cache brand
+            brand_id = product.brand.id
+            if brand_id not in brands_cache:
+                brands_cache[brand_id] = product.brand
+            brand = brands_cache[brand_id]
+            brand.count = (brand.count or 0) + purchase.quantity
+            brand.stock = (brand.stock or 0) + purchase.quantity * product.selling_price
+
+        for product in products_cache.values():
+            product.save()
+        for brand in brands_cache.values():
+            brand.save()
+
+        vt = VendorTransactions.objects.filter(purchase_transaction=instance.purchase_transaction, type="return").first()
+        print(vt)
+        if vt:
+            vt.delete()
+
         instance.delete()
         return instance
+
+# class SalesReturnSerializer(serializers.ModelSerializer):
+   
+#     sales_transaction = SalesTransactionSerializer(read_only=True)
+#     sales = SalesSerializer(many=True,read_only=True) ##related name
+
+#     # Write-only fields for accepting the IDs in the request
+#     sales_transaction_id = serializers.PrimaryKeyRelatedField(
+#         queryset=SalesTransaction.objects.all(),
+#         write_only=True,
+#         source='sales_transaction'
+#     )
+#     sales_ids = serializers.PrimaryKeyRelatedField(
+#         many=True,
+#         queryset=Sales.objects.all(),
+#         write_only=True
+#     )
+
+
+#     class Meta:
+#         model = PurchaseReturn
+#         # fields = '__all__'
+#         fields = [
+#             'id',
+#             'date',
+#             'branch',
+#             'enterprise',
+#             'sales_transaction',
+#             'sales_transaction_id',  # for write
+#             'sales',       # for read
+#             'sales_ids' ,    # for write
+#         ]
+
+#     @transaction.atomic
+#     def create(self, validated_data):
+
+        
+#         sales_ids = validated_data.pop('sales_ids', [])
+
+#         # Create the PurchaseReturn instance
+#         sales_return = SalesReturn.objects.create(**validated_data)
+
+
+#         # Retrieve the vendor from the linked transaction
+#         # vendor = sales_return.sales_transaction.vendor
+
+#         # We'll subtract the total of all returned purchases
+#         # total_unit_price = 0
+#         # print(purchase_ids)
+
+#         # Attach each purchase to this return
+#         for sale in sales_ids:
+
+#             sale.sales_return = sales_return
+#             sale.returned = True
+#             sale.save()
+#             product = sale.product
+#             product.count = (product.count + sale.quantity) if product.count is not None else sale.quantity
+#             product.stock = (product.stock + sale.quantity * product.selling_price) if product.stock is not None else sale.quantity * product.selling_price
+#             brand = product.brand
+#             brand.count = (brand.count + sale.quantity) if brand.count is not None else sale.quantity
+#             brand.stock = (brand.stock + sale.quantity * product.selling_price) if brand.stock is not None else sale.quantity * product.selling_price
+#             brand.save()
+#             product.save()
+
+#         # Update vendor dues if needed
+#         # if vendor.due is None:
+#         #     vendor.due = 0
+#         # vendor.due -= total_unit_price
+#         # vendor.save()
+
+#         return sales_return
+
+
+#     def delete(self, instance):
+#         sales_ids = instance.sales.all()
+#         # vendor = instance.purchase_transaction.vendor
+#         # total_unit_price = 0
+#         for sale in sales_ids:
+#             sale.returned = False
+#             sale.save()
+#             # total_unit_price += sale.unit_price * sale.quantity
+#             sale.product.count = (sale.product.count - sale.quantity) if sale.product.count is not None else -(sale.quantity)
+#             sale.product.stock = (sale.product.stock - sale.quantity * sale.product.selling_price) if sale.product.stock is not None else -(sale.quantity * sale.product.selling_price)
+#             sale.product.brand.count = (sale.product.brand.count - sale.quantity) if sale.product.brand.count is not None else - (sale.quantity)
+#             sale.product.brand.stock = (sale.product.brand.stock - sale.quantity * sale.product.selling_price) if sale.product.brand.stock is not None else -(sale.quantity * sale.product.selling_price)
+#             sale.product.brand.save()
+#             sale.product.save()
+            
+#         # vendor.due += total_unit_price
+#         # vendor.save()
+#         instance.delete()
+#         return instance
 
 class SalesReturnSerializer(serializers.ModelSerializer):
    
     sales_transaction = SalesTransactionSerializer(read_only=True)
-    sales = SalesSerializer(many=True,read_only=True) ##related name
+    sales = SalesSerializer(many=True, read_only=True)  ##related name
 
     # Write-only fields for accepting the IDs in the request
     sales_transaction_id = serializers.PrimaryKeyRelatedField(
@@ -1157,10 +1276,8 @@ class SalesReturnSerializer(serializers.ModelSerializer):
         write_only=True
     )
 
-
     class Meta:
         model = PurchaseReturn
-        # fields = '__all__'
         fields = [
             'id',
             'date',
@@ -1168,68 +1285,85 @@ class SalesReturnSerializer(serializers.ModelSerializer):
             'enterprise',
             'sales_transaction',
             'sales_transaction_id',  # for write
-            'sales',       # for read
-            'sales_ids' ,    # for write
+            'sales',                 # for read
+            'sales_ids',             # for write
         ]
 
     @transaction.atomic
     def create(self, validated_data):
-
-        
         sales_ids = validated_data.pop('sales_ids', [])
 
-        # Create the PurchaseReturn instance
+        # Create the SalesReturn instance
         sales_return = SalesReturn.objects.create(**validated_data)
 
+        # Memory caches
+        products_cache = {}
+        brands_cache = {}
 
-        # Retrieve the vendor from the linked transaction
-        # vendor = sales_return.sales_transaction.vendor
-
-        # We'll subtract the total of all returned purchases
-        # total_unit_price = 0
-        # print(purchase_ids)
-
-        # Attach each purchase to this return
+        # Attach each sale to this return
         for sale in sales_ids:
-
             sale.sales_return = sales_return
             sale.returned = True
             sale.save()
-            product = sale.product
-            product.count = (product.count + sale.quantity) if product.count is not None else sale.quantity
-            product.stock = (product.stock + sale.quantity * product.selling_price) if product.stock is not None else sale.quantity * product.selling_price
-            brand = product.brand
-            brand.count = (brand.count + sale.quantity) if brand.count is not None else sale.quantity
-            brand.stock = (brand.stock + sale.quantity * product.selling_price) if brand.stock is not None else sale.quantity * product.selling_price
-            brand.save()
-            product.save()
 
-        # Update vendor dues if needed
-        # if vendor.due is None:
-        #     vendor.due = 0
-        # vendor.due -= total_unit_price
-        # vendor.save()
+            # Cache product
+            product_id = sale.product.id
+            if product_id not in products_cache:
+                products_cache[product_id] = sale.product
+            product = products_cache[product_id]
+            product.count = (product.count or 0) + sale.quantity
+            product.stock = (product.stock or 0) + sale.quantity * product.selling_price
+
+            # Cache brand
+            brand_id = product.brand.id
+            if brand_id not in brands_cache:
+                brands_cache[brand_id] = product.brand
+            brand = brands_cache[brand_id]
+            brand.count = (brand.count or 0) + sale.quantity
+            brand.stock = (brand.stock or 0) + sale.quantity * product.selling_price
+
+        # Save all cached objects once
+        for product in products_cache.values():
+            product.save()
+        for brand in brands_cache.values():
+            brand.save()
 
         return sales_return
 
-
+    @transaction.atomic
     def delete(self, instance):
         sales_ids = instance.sales.all()
-        # vendor = instance.purchase_transaction.vendor
-        # total_unit_price = 0
+
+        # Memory caches
+        products_cache = {}
+        brands_cache = {}
+
         for sale in sales_ids:
             sale.returned = False
             sale.save()
-            # total_unit_price += sale.unit_price * sale.quantity
-            sale.product.count = (sale.product.count - sale.quantity) if sale.product.count is not None else -(sale.quantity)
-            sale.product.stock = (sale.product.stock - sale.quantity * sale.product.selling_price) if sale.product.stock is not None else -(sale.quantity * sale.product.selling_price)
-            sale.product.brand.count = (sale.product.brand.count - sale.quantity) if sale.product.brand.count is not None else - (sale.quantity)
-            sale.product.brand.stock = (sale.product.brand.stock - sale.quantity * sale.product.selling_price) if sale.product.brand.stock is not None else -(sale.quantity * sale.product.selling_price)
-            sale.product.brand.save()
-            sale.product.save()
-            
-        # vendor.due += total_unit_price
-        # vendor.save()
+
+            # Cache product
+            product_id = sale.product.id
+            if product_id not in products_cache:
+                products_cache[product_id] = sale.product
+            product = products_cache[product_id]
+            product.count = (product.count or 0) - sale.quantity
+            product.stock = (product.stock or 0) - sale.quantity * product.selling_price
+
+            # Cache brand
+            brand_id = product.brand.id
+            if brand_id not in brands_cache:
+                brands_cache[brand_id] = product.brand
+            brand = brands_cache[brand_id]
+            brand.count = (brand.count or 0) - sale.quantity
+            brand.stock = (brand.stock or 0) - sale.quantity * product.selling_price
+
+        # Save all cached objects once
+        for product in products_cache.values():
+            product.save()
+        for brand in brands_cache.values():
+            brand.save()
+
         instance.delete()
         return instance
 

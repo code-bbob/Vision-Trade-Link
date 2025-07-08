@@ -258,7 +258,7 @@ function PurchaseTransactionForm() {
         ...prevState,
         vendor: response.data.id.toString(),
       }));
-      setNewVendorData({ name: "", brand: "" });
+      setNewVendorData({ name: "", brand: "" , branch: branchId});
       setShowNewVendorDialog(false);
       const filteredPhones = phones.filter(
           (phone) => phone.brand === response.data.brand

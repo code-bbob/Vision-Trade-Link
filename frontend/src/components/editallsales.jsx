@@ -60,7 +60,7 @@ export default function EditAllSalesTransactionForm() {
     sales: [],
     method: "",
     // Debtor fields
-    debtor: "",
+    debtor: null,
     amount_paid: null,
     credited_amount: "",
   });
@@ -105,7 +105,7 @@ export default function EditAllSalesTransactionForm() {
   // Computed fields
   const [subtotal, setSubtotal] = useState(0);
   const [discountType, setDiscountType] = useState("amount");
-  const [discountValue, setDiscountValue] = useState("");
+  const [discountValue, setDiscountValue] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
 
   // Fetch initial data: products, brands, transaction, debtors
@@ -139,8 +139,9 @@ export default function EditAllSalesTransactionForm() {
             returned: s.returned,
           })),
           method: data.method,
-          debtor: data.debtor?.toString() || "",
-          amount_paid: data.amount_paid?.toString() || null,
+          debtor: data.debtor,
+          amount_paid: data.amount_paid,
+          discount: data.discount,
           credited_amount: data.credited_amount?.toString() || "",
         });
         setDiscountValue(data.discount?.toString() || "");
@@ -353,9 +354,9 @@ export default function EditAllSalesTransactionForm() {
   const handleAddProduct = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post("inventory/product/", newProductData);
+      const res = await api.post("allinventory/product/", newProductData);
       setProducts((p) => [...p, res.data]);
-      setNewProductData({ name: "", brand: "" });
+      setNewProductData({ name: "", brand: "", branch: branchId });
       setShowNewProductDialog(false);
     } catch (err) {
       console.error(err);
@@ -363,10 +364,24 @@ export default function EditAllSalesTransactionForm() {
     }
   };
 
+  const handleNewProductChange = (e) => {
+    const { name, value } = e.target;
+    setNewProductData({ ...newProductData, [name]: value });
+  };
+
+  const handleNewProductBrandChange = (value) => {
+    if (value === "new") {
+      setShowNewBrandDialog(true);
+    } else {
+      setNewProductData({ ...newProductData, brand: value });
+    }
+    setOpenBrand(false);
+  };
+
   const handleAddBrand = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post("inventory/brand/", { name: newBrandName });
+      const res = await api.post("allinventory/brand/", { name: newBrandName, branch: branchId });
       setBrands((b) => [...b, res.data]);
       setNewBrandName("");
       setShowNewBrandDialog(false);
@@ -381,7 +396,7 @@ export default function EditAllSalesTransactionForm() {
     try {
       const res = await api.post("alltransaction/debtors/", newDebtorData);
       setDebtors((d) => [...d, res.data]);
-      setFormData((prev) => ({ ...prev, debtor: res.data.id.toString() }));
+      setFormData((prev) => ({ ...prev, debtor: res.data.id }));
       setNewDebtorData({ name: "", phone_number: "", due: "", branch: branchId });
       setShowNewDebtorDialog(false);
     } catch (err) {
@@ -389,7 +404,9 @@ export default function EditAllSalesTransactionForm() {
       setError("Failed to add debtor");
     }
   };
-
+  console.log("Form Data:", discountValue);
+  console.log("original Sales Data:", originalSalesData?.discount);
+  console.log(formData.discount == originalSalesData?.discount);
   const hasFormChanged = () => {
     if (!originalSalesData) return false;
     // compare top-level fields
@@ -400,11 +417,10 @@ export default function EditAllSalesTransactionForm() {
       formData.bill_no !== originalSalesData.bill_no ||
       formData.branch !== originalSalesData.branch?.toString() ||
       formData.method !== originalSalesData.method ||
-      formData.debtor !== originalSalesData.debtor?.toString() ||
-      formData.amount_paid !== originalSalesData.amount_paid?.toString() ||
-      formData.credited_amount !==
-        originalSalesData.credited_amount?.toString() ||
-      discountValue !== originalSalesData.discount?.toString() ||
+      formData.debtor !== originalSalesData.debtor ||
+      formData.amount_paid !== originalSalesData.amount_paid ||
+      parseFloat(discountValue || 0) !== parseFloat(originalSalesData.discount || 0) ||
+
       formData.sales.length !== originalSalesData.sales.length
     )
       return true;
@@ -799,7 +815,7 @@ export default function EditAllSalesTransactionForm() {
                     <SelectTrigger className="w-full bg-slate-600 border-slate-500">
                       <SelectValue placeholder="Select payment method" />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectContent className="bg-slate-800 text-white border-slate-700">
                       <SelectItem value="cash">Cash</SelectItem>
                       <SelectItem value="card">Card</SelectItem>
                       <SelectItem value="online">Online</SelectItem>
@@ -826,9 +842,9 @@ export default function EditAllSalesTransactionForm() {
                                       aria-expanded={openDebtor}
                                       className="w-full justify-between bg-slate-600 border-slate-500 text-white hover:bg-slate-500"
                                     >
-                                      {formData.debtor
+                                      {formData?.debtor
                                         ? debtors.find(
-                                            (d) => d.id.toString() === formData.debtor
+                                            (d) => d.id === formData.debtor
                                           )?.name
                                         : "Select a debtor..."}
                                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -1007,111 +1023,19 @@ export default function EditAllSalesTransactionForm() {
         </div>
       </div>
       {/* New Product Dialog */}
-      <Dialog
+      <NewProductDialog
         open={showNewProductDialog}
-        onOpenChange={setShowNewProductDialog}
-      >
-        <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
-          <DialogHeader>
-            <DialogTitle>Add New Product</DialogTitle>
-            <DialogDescription>Enter new product details.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="newProductName" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="newProductName"
-                name="name"
-                value={newProductData.name}
-                onChange={(e) =>
-                  setNewProductData({ ...newProductData, name: e.target.value })
-                }
-                className="col-span-3 bg-slate-700 border-slate-600 text-white"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="newProductBrand" className="text-right">
-                Brand
-              </Label>
-              <Popover open={openBrand} onOpenChange={setOpenBrand}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={openBrand}
-                    className="w-full justify-between bg-slate-700 border-slate-600 text-white"
-                  >
-                    <span>
-                      {newProductData.brand
-                        ? brands.find(
-                            (b) => b.id.toString() === newProductData.brand
-                          )?.name
-                        : "Select a brand..."}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0 bg-slate-700 border-slate-600">
-                  <Command className="bg-slate-700">
-                    <CommandInput
-                      placeholder="Search brand..."
-                      className="bg-slate-700 text-white"
-                    />
-                    <CommandList>
-                      <CommandEmpty>No brand found.</CommandEmpty>
-                      <CommandGroup>
-                        {brands.map((b) => (
-                          <CommandItem
-                            key={b.id}
-                            onSelect={() => {
-                              setNewProductData({
-                                ...newProductData,
-                                brand: b.id.toString(),
-                              });
-                              setOpenBrand(false);
-                            }}
-                            className="text-white hover:bg-slate-600"
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                newProductData.brand === b.id.toString()
-                                  ? "opacity-100"
-                                  : "opacity-0"
-                              )}
-                            />
-                            {b.name}
-                          </CommandItem>
-                        ))}
-                        <CommandItem
-                          onSelect={() => {
-                            setShowNewBrandDialog(true);
-                            setOpenBrand(false);
-                          }}
-                          className="text-white hover:bg-slate-600"
-                        >
-                          <PlusCircle className="mr-2 h-4 w-4" />
-                          Add a new brand
-                        </CommandItem>
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={handleAddProduct}
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
-            >
-              Add Product
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        setOpen={setShowNewProductDialog}
+        newProductData={newProductData}
+        handleNewProductChange={handleNewProductChange}
+        handleNewProductBrandChange={handleNewProductBrandChange}
+        handleAddProduct={handleAddProduct}
+        brands={brands}
+        openBrand={openBrand}
+        setOpenBrand={setOpenBrand}
+        branches={branchList}
+        userBranch={userBranch}
+      />
       {/* New Brand Dialog */}
       <Dialog open={showNewBrandDialog} onOpenChange={setShowNewBrandDialog}>
         <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">

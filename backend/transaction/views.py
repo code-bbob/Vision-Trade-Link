@@ -1,8 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import PurchaseTransaction, Vendor, Purchase, Scheme,PriceProtection, PurchaseReturn
-from .serializers import EMIDebtorTransactionSerializer, PurchaseTransactionSerializer, VendorSerializer,SalesTransactionSerializer,SalesSerializer,Sales,SalesTransaction,SchemeSerializer,PurchaseSerializer,PurchaseTransactionSerializer, PriceProtectionSerializer, VendorBrandSerializer,PurchaseReturnSerializer,EMIDebtorSerializer
+from .models import PurchaseTransaction, Vendor, Purchase, Scheme,PriceProtection, PurchaseReturn, SalesReturn
+from .serializers import EMIDebtorTransactionSerializer, PurchaseTransactionSerializer, SalesReturnSerializer, VendorSerializer,SalesTransactionSerializer,SalesSerializer,Sales,SalesTransaction,SchemeSerializer,PurchaseSerializer,PurchaseTransactionSerializer, PriceProtectionSerializer, VendorBrandSerializer,PurchaseReturnSerializer,EMIDebtorSerializer, SalesReturnSerializer
 from inventory.serializers import BrandSerializer
 from rest_framework.permissions import IsAuthenticated
 from inventory.models import Item,Brand,Phone
@@ -326,7 +326,9 @@ class SalesTransactionView(APIView):
             brand.stock = brand.stock + sale.phone.selling_price if brand.stock is not None else sale.phone.selling_price
             brand.save()
 
-        DebtorTransaction.objects.filter(sales_transaction=sales_transaction).first().delete()
+        dt = DebtorTransaction.objects.filter(sales_transaction=sales_transaction).first()
+        if dt:
+            dt.delete()
         sales_transaction.delete()
         return Response("Sales transaction deleted successfully", status=status.HTTP_204_NO_CONTENT)
 
@@ -1220,26 +1222,102 @@ class PurchaseReturnView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 
+
+
+
+class SalesReturnView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+
+    def get(self, request, branch=None):
+        enterprise = request.user.person.enterprise
+        search = request.GET.get('search')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        # Base QuerySet
+        sales_returns = SalesReturn.objects.filter(enterprise=enterprise)
+        
+        if branch:
+            sales_returns = sales_returns.filter(branch=branch)
+        # -----------------
+        # 1) Search Filter
+        # -----------------
+        if search:
+            name_filter = sales_returns.filter(sales_transaction__customer_name__icontains=search)
+            # amount_filter = sales_returns.filter(amount__icontains=search)
+            phone_name = sales_returns.filter(sales_transaction__phone__name__icontains=search)
+            imei_number = sales_returns.filter(sales_transaction__imei_number__icontains=search)
+
+            # union() will merge the two QuerySets without duplicates.
+            sales_returns = name_filter.union(phone_name,imei_number)
+            if search.isdigit():
+                id = sales_returns.filter(id__icontains=search)
+                sales_returns = sales_returns.union(id)
+
+        # ---------------------
+        # 2) Date Range Filter
+        # ---------------------
+        # Only attempt date range filter if both start and end date are provided
+        if start_date and end_date:
+            start_date = parse_date(start_date)
+            end_date = parse_date(end_date)
+
+            sales_returns = sales_returns.filter(
+                date__range=(start_date, end_date)
+            )
+
+        # ---------------------------------
+        # 3) Sort and Paginate the Results
+        # ---------------------------------
+        sales_returns = sales_returns.order_by('-date')  # Sorting
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 5  # Set your desired page size
+        paginated_data = paginator.paginate_queryset(sales_returns, request)
+
+        serializer = SalesReturnSerializer(paginated_data, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    
+    def post(self,request):
+        data = request.data 
+        user = request.user
+        enterprise = user.person.enterprise
+        data['enterprise'] = enterprise.id 
+        serializer = SalesReturnSerializer(data=data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self,request,pk):
+        sales_return = SalesReturn.objects.filter(id=pk).first()
+        serializer = SalesReturnSerializer()
+        serializer.delete(sales_return)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+
+
 class SalesReportView(APIView):
 
     permission_classes = [IsAuthenticated]
 
     def get(self,request,branch=None):
         
-
         search = request.GET.get('search')
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
         phone = request.GET.get('phone')
 
-        sales = Sales.objects.filter(sales_transaction__enterprise = request.user.person.enterprise)
+        sales = Sales.objects.filter(sales_transaction__enterprise = request.user.person.enterprise,returned = False)
         if branch:
             sales = sales.filter(sales_transaction__branch = branch)
         if search:
             first_date_of_month = timezone.now().date().replace(day=1)
             today = timezone.now().date()
             sales = sales.filter(phone__brand__name__icontains = search)
-            # sales = sales.filter(sales_transaction__date__date__range=(first_date_of_month,today))
+            sales = sales.filter(sales_transaction__date__range=(first_date_of_month,today))
 
         if phone:
             sales = sales.filter(phone__name__startswith = phone)
@@ -1248,7 +1326,6 @@ class SalesReportView(APIView):
             start_date = parse_date(start_date)
             end_date = parse_date(end_date)
             sales = sales.filter(sales_transaction__date__range=(start_date, end_date))
-        
         elif start_date and not end_date:
             start_date = parse_date(start_date)
             sales = sales.filter(sales_transaction__date__gte=start_date)
@@ -1264,11 +1341,18 @@ class SalesReportView(APIView):
 
         total_profit = 0
         total_sales = 0
+        total_discount = 0
+        cash_sales = 0
+        sales_transaction = []
+        cash_transaction = []
         list = []
         for sale in sales:
             purchase = Purchase.objects.filter(imei_number = sale.imei_number).first()
-            profit = sale.unit_price - purchase.unit_price
-            total_profit += profit
+            if purchase:
+                profit = sale.unit_price - purchase.unit_price
+                total_profit += profit
+            else:
+                profit = 0
             total_sales += sale.unit_price
             list.append({
                 "date": sale.sales_transaction.date.strftime('%Y-%m-%d'),
@@ -1276,13 +1360,24 @@ class SalesReportView(APIView):
                 "phone": sale.phone.name,
                 "imei_number": sale.imei_number,
                 "unit_price": sale.unit_price,
-                "profit": profit
+                "profit": profit,
+                "method": sale.sales_transaction.method
             })
+            if sale.sales_transaction.id not in sales_transaction:
+                total_discount += sale.sales_transaction.discount
+                sales_transaction.append(sale.sales_transaction.id)
+            #add up the total cash transactions minus the discount on those transactions
+            if sale.sales_transaction.method == "cash" and sale.sales_transaction.id not in cash_transaction:
+                cash_transaction.append(sale.sales_transaction.id)
+                cash_sales += sale.unit_price - sale.sales_transaction.discount
         
         list.append({
             "total_profit": total_profit,
-            "total_sales": total_sales,
-            "count": count
+            "count": count,
+            "subtotal_sales": total_sales,
+            "total_discount": total_discount,
+            "total_sales": total_sales - total_discount,
+            "cash_sales": cash_sales
         })
         return Response(list)
     

@@ -66,6 +66,11 @@ urlpatterns = [
     path('emidebtortransaction/branch/<int:branch>/', views.EMIDebtorTransactionView.as_view(), name='debtortransaction'),
     path('emidebtortransaction/<int:pk>/', views.EMIDebtorTransactionView.as_view(), name='debtortransaction'),
 
+    path('sales-return/',views.SalesReturnView.as_view(),name='sales_return'),
+    path('sales-return/branch/<int:branch>/',views.SalesReturnView.as_view(),name='sales_return_branch'),
+
+    path('sales-return/<int:pk>/',views.SalesReturnView.as_view(),name='sales_return'),
+
 
 
 ]

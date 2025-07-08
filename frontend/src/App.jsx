@@ -47,6 +47,7 @@ import AllVendorTransactions from "./pages/allvendortransactions";
 import AllVendorTransactionForm from "./pages/allvendortransactionform";
 import EditAllVendorTransactionForm from "./components/editallvendortransactions";
 import PurchaseReturns from "./pages/purchaseReturn";
+import SalesReturns from "./pages/salesReturns";
 import SalesReport from "./pages/salesReport";
 import AllSalesReport from "./pages/allSalesReport";
 import AllPurchaseReturns from "./pages/allPurchaseReturn";
@@ -170,6 +171,9 @@ function App() {
           <Route path="sales/branch/:branchId" element={<SalesTransactions />} />
           <Route path="sales/form/branch/:branchId" element={<SalesTransactionForm />} />
           <Route path="sales/branch/:branchId/editform/:salesId" element={<EditSalesTransactionForm />} />
+
+          <Route path="sales-returns" element={<BranchSelectionPage pageName="sales-returns" />} />
+          <Route path="sales-returns/branch/:branchId" element={<SalesReturns />} />
 
           {/* Schemes Section */}
           <Route path="schemes" element={<BranchSelectionPage pageName="schemes" />} />

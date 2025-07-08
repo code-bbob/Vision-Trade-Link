@@ -70,7 +70,7 @@ function AllSalesTransactionForm() {
   const [error, setError] = useState(null);
   const [showNewProductDialog, setShowNewProductDialog] = useState(false);
   const [showNewBrandDialog, setShowNewBrandDialog] = useState(false);
-  const [newProductData, setNewProductData] = useState({ name: "", brand: "" });
+  const [newProductData, setNewProductData] = useState({ name: "", brand: "", selling_price: "", cost_price: "", branch: branchId });
   const [newBrandName, setNewBrandName] = useState("");
   const [openProduct, setOpenProduct] = useState(
     Array(formData.sales.length).fill(false)
@@ -282,10 +282,10 @@ function AllSalesTransactionForm() {
   const handleAddProduct = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post("inventory/product/", newProductData);
+      const response = await api.post("allinventory/product/", newProductData);
       console.log("New Product Added:", response.data);
       setProducts([...products, response.data]);
-      setNewProductData({ name: "", brand: "" });
+      setNewProductData({ name: "", brand: "", branch:branchId });
       setShowNewProductDialog(false);
     } catch (error) {
       console.error("Error adding product:", error);
@@ -295,8 +295,9 @@ function AllSalesTransactionForm() {
   const handleAddBrand = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post("inventory/brand/", {
+      const response = await api.post("allinventory/brand/", {
         name: newBrandName,
+        branch: branchId, // Assuming brand belongs to the same branch
       });
       console.log("New Brand Added:", response.data);
       setBrands([...brands, response.data]);

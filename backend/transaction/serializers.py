@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Vendor, Phone, Purchase, PurchaseTransaction,Sales, SalesTransaction,Scheme,Subscheme,Item, PriceProtection,PurchaseReturn
+from .models import Vendor, Phone, Purchase, PurchaseTransaction,Sales, SalesTransaction,Scheme,Subscheme,Item, PriceProtection,PurchaseReturn, SalesReturn
 from inventory.models import Brand
 from django.db import transaction
 from .models import VendorTransaction, EMIDebtor,EMIDebtorTransaction
@@ -1129,11 +1129,13 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
             dts = DebtorTransaction.objects.filter(sales_transaction=instance)
             for dt in dts:
                 dt.delete()
-            instance.debtor.refresh_from_db()
+            if instance.debtor:
+                instance.debtor.refresh_from_db()
             edts = EMIDebtorTransaction.objects.filter(sales_transaction=instance)
             for edt in edts:
                 edt.delete()
-            instance.emi_debtor.refresh_from_db()
+            if instance.emi_debtor:
+                instance.emi_debtor.refresh_from_db()
 
             if instance.method == 'credit':
                 # Base transaction
@@ -1158,6 +1160,7 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
                     'desc': f'Sale credited for transaction {instance.id} with bill number {instance.bill_no}',
                     'sales_transaction': instance,
                 }
+                EMIDebtorTransactionSerializer().create(base)
 
         # Recalculate total
         instance.total_amount = instance.calculate_total_amount()
@@ -1405,49 +1408,50 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
             'purchases',       # for read
             'purchase_ids'     # for write
         ]
-
     @transaction.atomic
     def create(self, validated_data):
-
-        
         purchase_ids = validated_data.pop('purchase_ids', [])
-
-        # Create the PurchaseReturn instance
         purchase_return = PurchaseReturn.objects.create(**validated_data)
-
-
-        # Retrieve the vendor from the linked transaction
         vendor = purchase_return.purchase_transaction.vendor
 
-        # We'll subtract the total of all returned purchases
         total_unit_price = 0
-        #print(purchase_ids)
 
-        # Attach each purchase to this return
+        # Initialize memory cache
+        phones_cache = {}
+        brands_cache = {}
+
         for purchase in purchase_ids:
-
             purchase.purchase_return = purchase_return
             purchase.returned = True
             purchase.save()
             total_unit_price += purchase.unit_price
-            product = purchase.phone
-            product.count = (product.count - 1) if product.count is not None else -1
-            product.stock = (product.stock -  product.selling_price) if product.stock is not None else - product.selling_price
-            brand = product.brand
-            brand.count = (brand.count - 1) if brand.count is not None else -1
-            brand.stock = (brand.stock - product.selling_price) if brand.stock is not None else - product.selling_price
-            brand.save()
+
+            # Use cache for phone
+            phone_id = purchase.phone.id
+            if phone_id not in phones_cache:
+                phones_cache[phone_id] = Phone.objects.select_for_update().get(id=phone_id)
+            product = phones_cache[phone_id]
+
+            product.count = (product.count or 0) - 1
+            product.stock = (product.stock or 0) - product.selling_price
             product.save()
+
+            # Use cache for brand
+            brand_id = product.brand.id
+            if brand_id not in brands_cache:
+                brands_cache[brand_id] = product.brand
+            brand = brands_cache[brand_id]
+
+            brand.count = (brand.count or 0) - 1
+            brand.stock = (brand.stock or 0) - product.selling_price
+            brand.save()
+
+            # Remove item instance
             item = Item.objects.filter(imei_number=purchase.imei_number).first()
-            phone = item.phone
-            item.delete()
-            phone.calculate_quantity()
+            if item:
+                item.delete()
 
-
-        # Update vendor dues if needed
-        if vendor.due is None:
-            vendor.due = 0
-
+        # Create VendorTransaction
         VendorTransactionSerializer().create({
             'vendor': vendor,
             'date': purchase_return.date,
@@ -1457,36 +1461,65 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
             'purchase_transaction': purchase_return.purchase_transaction,
             'enterprise': purchase_return.enterprise,
             'branch': purchase_return.branch,
-            'type':'return'
+            'type': 'return'
         })
+
         vendor.refresh_from_db()
         print(vendor.due)
 
         return purchase_return
-    
 
     @transaction.atomic
     def delete(self, instance):
         purchase_ids = instance.purchases.all()
         vendor = instance.purchase_transaction.vendor
         total_unit_price = 0
+
+        # Initialize in-memory caches
+        phones_cache = {}
+        brands_cache = {}
+
         for purchase in purchase_ids:
             purchase.returned = False
             purchase.save()
             total_unit_price += purchase.unit_price
-            item = Item.objects.create(imei_number=purchase.imei_number,phone=purchase.phone)
-            purchase.phone.calculate_quantity()
-            purchase.phone.stock = (purchase.phone.stock + purchase.phone.selling_price) if purchase.phone.stock is not None else purchase.phone.selling_price
-            purchase.phone.brand.count = (purchase.phone.brand.count + 1) if purchase.phone.brand.count is not None else 1
-            purchase.phone.brand.stock = (purchase.phone.brand.stock + purchase.phone.selling_price) if purchase.phone.brand.stock is not None else purchase.phone.selling_price
-            purchase.phone.brand.save()
-            purchase.phone.save()
-            
-        vt = VendorTransaction.objects.filter(purchase_transaction=instance.purchase_transaction,type="return").first()
-        print(vt)   
-        vt.delete()
+
+            # Recreate item
+            Item.objects.create(imei_number=purchase.imei_number, phone=purchase.phone)
+
+            # Cache and update phone
+            phone_id = purchase.phone.id
+            if phone_id not in phones_cache:
+                phones_cache[phone_id] = Phone.objects.select_for_update().get(id=phone_id)
+            phone = phones_cache[phone_id]
+            phone.count = (phone.count or 0) + 1
+            phone.stock = (phone.stock or 0) + phone.selling_price
+
+            # Cache and update brand
+            brand_id = phone.brand.id
+            if brand_id not in brands_cache:
+                brands_cache[brand_id] = phone.brand
+            brand = brands_cache[brand_id]
+            brand.count = (brand.count or 0) + 1
+            brand.stock = (brand.stock or 0) + phone.selling_price
+
+        # Save phones and brands once each
+        for phone in phones_cache.values():
+            phone.save()
+        for brand in brands_cache.values():
+            brand.save()
+
+        # Delete vendor transaction
+        vt = VendorTransaction.objects.filter(purchase_transaction=instance.purchase_transaction, type="return").first()
+        print(vt)
+        if vt:
+            vt.delete()
+
+        # Delete purchase return record
         instance.delete()
+
         return instance
+
     
 
 
@@ -1541,3 +1574,114 @@ class EMIDebtorTransactionSerializer(serializers.ModelSerializer):
     
     def get_emi_debtor_name(self, obj):
         return obj.debtor.name
+
+class SalesReturnSerializer(serializers.ModelSerializer):
+
+    sales_transaction = SalesTransactionSerializer(read_only=True)
+    sales = SalesSerializer(many=True,read_only=True) ##related name
+
+    # Write-only fields for accepting the IDs in the request
+    sales_transaction_id = serializers.PrimaryKeyRelatedField(
+        queryset=SalesTransaction.objects.all(),
+        write_only=True,
+        source='sales_transaction'
+    )
+    sales_ids = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Sales.objects.all(),
+        write_only=True
+    )
+
+
+    class Meta:
+        model = PurchaseReturn
+        # fields = '__all__'
+        fields = [
+            'id',
+            'date',
+            'enterprise',
+            'branch',
+            'sales_transaction',
+            'sales_transaction_id',  # for write
+            'sales',       # for read
+            'sales_ids'     # for write
+        ]
+
+    @transaction.atomic
+    def create(self, validated_data):
+
+        sales_ids = validated_data.pop('sales_ids', [])
+
+        # Create the SalesReturn instance
+        sales_return = SalesReturn.objects.create(**validated_data)
+
+        # Memory cache
+        phones_cache = {}
+        brands_cache = {}
+
+        for sale in sales_ids:
+            sale.sales_return = sales_return
+            sale.returned = True
+            sale.save()
+
+            phone_id = sale.phone.id
+            if phone_id not in phones_cache:
+                phones_cache[phone_id] = Phone.objects.select_for_update().get(id=phone_id)
+            product = phones_cache[phone_id]
+            product.count = (product.count or 0) + 1
+            product.stock = (product.stock or 0) + product.selling_price
+
+            brand_id = product.brand.id
+            if brand_id not in brands_cache:
+                brands_cache[brand_id] = product.brand
+            brand = brands_cache[brand_id]
+            brand.count = (brand.count or 0) + 1
+            brand.stock = (brand.stock or 0) + product.selling_price
+
+            item = Item.objects.create(imei_number=sale.imei_number, phone=product)
+            item.save()
+
+        for phone in phones_cache.values():
+            phone.save()
+        for brand in brands_cache.values():
+            brand.save()
+
+        return sales_return
+
+
+    @transaction.atomic
+    def delete(self, instance):
+        sales_ids = instance.sales.all()
+
+        # Memory cache
+        phones_cache = {}
+        brands_cache = {}
+
+        for sale in sales_ids:
+            sale.returned = False
+            sale.save()
+
+            item = Item.objects.filter(imei_number=sale.imei_number, phone=sale.phone).first()
+            if item:
+                item.delete()
+
+            phone_id = sale.phone.id
+            if phone_id not in phones_cache:
+                phones_cache[phone_id] = Phone.objects.select_for_update().get(id=phone_id)
+            phone = phones_cache[phone_id]
+            phone.stock = (phone.stock or 0) - phone.selling_price
+
+            brand_id = phone.brand.id
+            if brand_id not in brands_cache:
+                brands_cache[brand_id] = phone.brand
+            brand = brands_cache[brand_id]
+            brand.count = (brand.count or 0) - 1
+            brand.stock = (brand.stock or 0) - phone.selling_price
+
+        for phone in phones_cache.values():
+            phone.save()
+        for brand in brands_cache.values():
+            brand.save()
+
+        instance.delete()
+        return instance

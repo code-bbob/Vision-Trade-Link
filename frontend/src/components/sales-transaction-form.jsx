@@ -166,7 +166,7 @@ function SalesTransactionForm() {
         newEMIDebtorData
       );
       setEmiDebtors([...emiDebtors, res.data]);
-      setNewEMIDebtorData({ name: "", phone_number: "", due: "", brand: "" });
+      setNewEMIDebtorData({ name: "", phone_number: "", due: "", brand: "", branch: branchId });
       setShowNewEMIDebtorDialog(false);
       setFormData((prev) => ({
         ...prev,
@@ -277,7 +277,7 @@ function SalesTransactionForm() {
         newPhoneData
       );
       setPhones([...phones, res.data]);
-      setNewPhoneData({ name: "", brand: "" });
+      setNewPhoneData({ name: "", brand: "", branch: branchId });
       setShowNewPhoneDialog(false);
     } catch (err) {
       console.error("Error adding phone:", err);
@@ -289,6 +289,7 @@ function SalesTransactionForm() {
     try {
       const res = await api.post(`inventory/brand/branch/${branchId}/`, {
         name: newBrandName,
+        branch: branchId
       });
       setBrands([...brands, res.data]);
       setNewBrandName("");
