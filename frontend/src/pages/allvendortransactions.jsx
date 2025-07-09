@@ -227,7 +227,11 @@ export default function AllVendorTransactions() {
                     </div>
                   </div>
                 </CardContent>
-                <div className='p-4 text-white text-right'>RS. {transaction.amount}</div>
+                <div className='flex justify-between'>
+                <div className='p-4 text-purple-400 text-sm'>Remaining due : RS. {transaction.due}</div>
+                <div className='p-4 text-green-400 text-right'>Transaction Amount : RS. {transaction.amount}</div>
+
+                </div>
               </Card>
             ))
           ) : (

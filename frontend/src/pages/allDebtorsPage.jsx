@@ -199,7 +199,8 @@ export default function AllDebtorsPage() {
                 className={`grid grid-cols-12 gap-2 p-2 sm:p-4 items-center cursor-pointer hover:bg-slate-800 transition-colors ${
                   selectedDebtors.includes(debtor.id) ? "bg-slate-700" : ""
                 }`}
-                onClick={(e) => handleDebtorClick(debtor, e)}
+              onClick={() => navigate(`/debtors/statement/${debtor.id}`)}
+                
               >
                 <div className="checkbox-wrapper col-span-1 flex justify-center">
                   <Checkbox

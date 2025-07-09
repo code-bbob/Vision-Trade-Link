@@ -1015,7 +1015,7 @@ function AllSalesTransactionForm() {
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="debtor_phone" className="text-right">
-                      Phone
+                    Phone Number
                     </Label>
                     <Input
                       id="debtor_phone"

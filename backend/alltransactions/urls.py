@@ -14,8 +14,9 @@ urlpatterns = [
     path('vendortransaction/branch/<int:branch>/', views.VendorTransactionView.as_view(), name='vendor'),
     path('vendortransaction/<int:pk>/', views.VendorTransactionView.as_view(), name='vendortransactions'),
     path('stats/', views.StatsView.as_view(), name='stat'),
-    path('vendorbrand/branch/<int:branch>/',views.VendorBrandsView.as_view(), name='vendorbrand'),
-    path('vendorbrand/<int:pk>/',views.SingleVendorBrandView.as_view(), name = 'singlevendorbrand'),
+
+    path('vendor/statement/<int:vendorId>/',views.VendorStatementView.as_view(), name = 'vendorstatement'),
+
     path('purchase-return/',views.PurchaseReturnView.as_view(), name='purchasereturn'),
     path('purchase-return/branch/<int:branch>/',views.PurchaseReturnView.as_view(), name='purchasereturn'),
     path('purchase-return/<int:pk>/',views.PurchaseReturnView.as_view(), name='purchasereturn'),
@@ -40,5 +41,8 @@ urlpatterns = [
     path('debtortransaction/', views.DebtorTransactionView.as_view(), name='debtortransaction'),
     path('debtortransaction/branch/<int:branch>/', views.DebtorTransactionView.as_view(), name='debtortransaction'),
     path('debtortransaction/<int:pk>/', views.DebtorTransactionView.as_view(), name='debtortransaction'),
+
+    path('debtor/statement/<int:debtorId>/',views.DebtorStatementView.as_view(), name = 'debtorstatement'),
+
 
 ]

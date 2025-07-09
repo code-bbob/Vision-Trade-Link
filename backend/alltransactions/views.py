@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from rest_framework.response import Response
-from .serializers import PurchaseTransactionSerializer,PurchaseReturnSerializer,SalesTransactionSerializer,SalesReturnSerializer,VendorSerializer,VendorTransactionSerializer,VendorBrandSerializer,StaffTransactionSerializer,StaffSerializer
+from .serializers import PurchaseTransactionSerializer,PurchaseReturnSerializer,SalesTransactionSerializer,SalesReturnSerializer,VendorSerializer,VendorTransactionSerializer,StaffTransactionSerializer,StaffSerializer
 from rest_framework.views import APIView
 from rest_framework import status
 from .models import PurchaseTransaction,SalesTransaction,Vendor,VendorTransactions,SalesReturn,Purchase,Sales,PurchaseReturn,StaffTransactions,Staff
@@ -93,134 +93,205 @@ class PurchaseTransactionView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors)
     
-    def delete(self,request,pk,format=None):
+    def delete(self, request, pk, format=None):
         with transaction.atomic():
             role = request.user.person.role
             if role != "Admin":
                 return Response("Unauthorized")
+
             purchase_transaction = PurchaseTransaction.objects.get(id=pk)
             purchases = purchase_transaction.purchase.all()
             returned_amount = 0
+
+            # In‐memory caches
+            products_cache = {}
+            brands_cache = {}
+
             for purchase in purchases:
                 if not purchase.returned:
-                    product = purchase.product
+                    # Cache and update product
+                    pid = purchase.product.id
+                    if pid not in products_cache:
+                        products_cache[pid] = purchase.product
+                    product = products_cache[pid]
                     product.count -= purchase.quantity
                     product.stock -= purchase.quantity * product.selling_price
-                    product.save()
-                    brand = product.brand
+
+                    # Cache and update brand
+                    bid = product.brand.id
+                    if bid not in brands_cache:
+                        brands_cache[bid] = product.brand
+                    brand = brands_cache[bid]
                     brand.count -= purchase.quantity
                     brand.stock -= purchase.quantity * product.selling_price
-                    brand.save()
                 else:
                     returned_amount += purchase.total_price
-            amount = purchase_transaction.total_amount - returned_amount
-            vendor = purchase_transaction.vendor
-            if purchase_transaction.method == "credit":
-                if vendor.due is None:
-                    vendor.due = 0  
-                vendor.due -= amount 
-                vendor.save()
+
+            # Save each unique product and brand once
+            for product in products_cache.values():
+                product.save()
+            for brand in brands_cache.values():
+                brand.save()
+
+            # Remove any related vendor transactions
+            vts = VendorTransactions.objects.filter(purchase_transaction=purchase_transaction)
+            for vt in vts:
+                vt.delete()
+
             purchase_transaction.delete()
             return Response("Deleted")
 
+
 class SalesTransactionView(APIView):
         
-        def post(self, request, format=None):
-            user = request.user
-            enterprise = user.person.enterprise
-            request.data['enterprise'] = enterprise.id
-            serializer = SalesTransactionSerializer(data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request, format=None):
+        user = request.user
+        enterprise = user.person.enterprise
+        request.data['enterprise'] = enterprise.id
+        serializer = SalesTransactionSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        def get(self, request,pk=None,branch=None, format=None):
-            user = request.user
-            enterprise = user.person.enterprise
-            search = request.GET.get('search')
-            start_date = request.GET.get('start_date')
-            end_date = request.GET.get('end_date')
-            transactions = SalesTransaction.objects.filter(enterprise=enterprise)
+    def get(self, request,pk=None,branch=None, format=None):
+        user = request.user
+        enterprise = user.person.enterprise
+        search = request.GET.get('search')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        transactions = SalesTransaction.objects.filter(enterprise=enterprise)
 
-            if pk:
-                sales_transaction = SalesTransaction.objects.get(id=pk)
-                serializer = SalesTransactionSerializer(sales_transaction)
-                return Response(serializer.data)
-            
-            if branch:
-                transactions = SalesTransaction.objects.filter(enterprise=enterprise,branch=branch)
-            
-            if search:
-                product_transactions = transactions.filter(sales__product__name__startswith = search)
-                customer_transactions = transactions.filter(name__icontains = search)
-                phone_transactions = transactions.filter(phone_number__icontains = search)
-                transactions = product_transactions.union(customer_transactions,phone_transactions)
-            
-            if start_date and end_date:
-                start_date = parse_date(start_date)
-                end_date = parse_date(end_date)
-
-            if start_date and end_date:
-                
-                transactions = SalesTransaction.objects.filter(
-                    date__range=(start_date, end_date)
-                )
-
-            transactions = transactions.order_by('-id')
-
-
-            paginator = PageNumberPagination()
-            paginator.page_size = 5  # Set the page size here
-            paginated_transactions = paginator.paginate_queryset(transactions, request)
-
-            serializer = SalesTransactionSerializer(paginated_transactions, many=True)
-            return paginator.get_paginated_response(serializer.data)
-        
-        def patch(self,request,pk,format=None):
-            data = request.data
-            data['enterprise'] = request.user.person.enterprise.id
-            role = request.user.person.role
-            if role != "Admin":
-                return Response("Unauthorized")
-
-            try:
-                sales_transaction = SalesTransaction.objects.get(id=pk)
-            except SalesTransaction.DoesNotExist:
-                return Response(status=status.HTTP_404_NOT_FOUND)
-
-            serializer = SalesTransactionSerializer(sales_transaction,data=data,partial=True)
-            #print("asdmnb",serializer)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
-            return Response(serializer.errors)
-        
-        @transaction.atomic
-        def delete(self,request,pk,format=None):
+        if pk:
             sales_transaction = SalesTransaction.objects.get(id=pk)
-            role = request.user.person.role
-            modify_stock = request.GET.get('flag')
-            if role != "Admin":
-                return Response("Unauthorized")
-            if modify_stock == 'false':
-                sales_transaction.delete()
-                return Response("Deleted")
-            sales = sales_transaction.sales.all()
-            for sale in sales:
-                product = sale.product
-                product.count += sale.quantity
-                product.stock += sale.product.selling_price * sale.quantity
-                product.save()
-                brand = product.brand
-                brand.count += sale.quantity
-                brand.stock += sale.product.selling_price * sale.quantity
-                brand.save()
-            dt = DebtorTransaction.objects.filter(all_sales_transaction=sales_transaction).first()
-            if dt:
-                dt.delete()
+            serializer = SalesTransactionSerializer(sales_transaction)
+            return Response(serializer.data)
+        
+        if branch:
+            transactions = SalesTransaction.objects.filter(enterprise=enterprise,branch=branch)
+        
+        if search:
+            product_transactions = transactions.filter(sales__product__name__startswith = search)
+            customer_transactions = transactions.filter(name__icontains = search)
+            phone_transactions = transactions.filter(phone_number__icontains = search)
+            transactions = product_transactions.union(customer_transactions,phone_transactions)
+        
+        if start_date and end_date:
+            start_date = parse_date(start_date)
+            end_date = parse_date(end_date)
+
+        if start_date and end_date:
+            
+            transactions = SalesTransaction.objects.filter(
+                date__range=(start_date, end_date)
+            )
+
+        transactions = transactions.order_by('-id')
+
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 5  # Set the page size here
+        paginated_transactions = paginator.paginate_queryset(transactions, request)
+
+        serializer = SalesTransactionSerializer(paginated_transactions, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    
+    def patch(self,request,pk,format=None):
+        data = request.data
+        data['enterprise'] = request.user.person.enterprise.id
+        role = request.user.person.role
+        if role != "Admin":
+            return Response("Unauthorized")
+
+        try:
+            sales_transaction = SalesTransaction.objects.get(id=pk)
+        except SalesTransaction.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        serializer = SalesTransactionSerializer(sales_transaction,data=data,partial=True)
+        #print("asdmnb",serializer)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors)
+        
+        # @transaction.atomic
+        # def delete(self,request,pk,format=None):
+        #     sales_transaction = SalesTransaction.objects.get(id=pk)
+        #     role = request.user.person.role
+        #     modify_stock = request.GET.get('flag')
+        #     if role != "Admin":
+        #         return Response("Unauthorized")
+        #     if modify_stock == 'false':
+        #         sales_transaction.delete()
+        #         return Response("Deleted")
+        #     sales = sales_transaction.sales.all()
+        #     for sale in sales:
+        #         if not sales.returned:
+        #             product = sale.product
+        #             product.count += sale.quantity
+        #             product.stock += sale.product.selling_price * sale.quantity
+        #             product.save()
+        #             brand = product.brand
+        #             brand.count += sale.quantity
+        #             brand.stock += sale.product.selling_price * sale.quantity
+        #             brand.save()
+        #     dt = DebtorTransaction.objects.filter(all_sales_transaction=sales_transaction).first()
+        #     if dt:
+        #         dt.delete()
+        #     sales_transaction.delete()
+        #     return Response("Deleted")
+
+    @transaction.atomic
+    def delete(self, request, pk, format=None):
+        sales_transaction = SalesTransaction.objects.get(id=pk)
+        role = request.user.person.role
+        modify_stock = request.GET.get('flag')
+        if role != "Admin":
+            return Response("Unauthorized")
+        if modify_stock == 'false':
             sales_transaction.delete()
             return Response("Deleted")
+
+        sales = sales_transaction.sales.all()
+
+        # Memory caches for products and brands
+        products_cache = {}
+        brands_cache = {}
+
+        for sale in sales:
+            # preserve your original check
+            if not sale.returned:
+                # cache and update product
+                pid = sale.product.id
+                if pid not in products_cache:
+                    products_cache[pid] = sale.product
+                product = products_cache[pid]
+                product.count += sale.quantity
+                product.stock += sale.product.selling_price * sale.quantity
+
+                # cache and update brand
+                bid = product.brand.id
+                if bid not in brands_cache:
+                    brands_cache[bid] = product.brand
+                brand = brands_cache[bid]
+                brand.count += sale.quantity
+                brand.stock += sale.product.selling_price * sale.quantity
+
+        # save each unique product and brand once
+        print(products_cache)
+        for product in products_cache.values():
+            product.save()
+        for brand in brands_cache.values():
+            brand.save()
+
+        dt = DebtorTransaction.objects.filter(all_sales_transaction=sales_transaction).first()
+        if dt:
+            dt.delete()
+
+        sales_transaction.delete()
+        return Response("Deleted")
+
         
 class VendorView(APIView):
     permission_classes = [IsAuthenticated]
@@ -415,26 +486,6 @@ class StatsView(APIView):
         }
         return Response(stat)
     
-class VendorBrandsView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self,request,*args, **kwargs):
-        branch = kwargs.get('branch')
-        brands = Brand.objects.filter(enterprise = request.user.person.enterprise)
-        if branch:
-            brands = brands.filter(branch = branch)
-        serializer = VendorBrandSerializer(brands,many=True)
-
-
-        return Response(serializer.data)
-    
-class SingleVendorBrandView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self,request,pk):
-        vendors = Vendor.objects.filter(enterprise = request.user.person.enterprise, brand=pk)
-        serializer = VendorSerializer(vendors, many=True)
-        return Response(serializer.data)
 
 class PurchaseReturnView(APIView):
 
@@ -902,3 +953,77 @@ class DebtorTransactionView(APIView):
         debtor_transaction.delete()
         return Response("Deleted", status=status.HTTP_204_NO_CONTENT)
     
+
+class VendorStatementView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, vendorId=None, branch=None):
+        enterprise = request.user.person.enterprise
+        vendor = Vendor.objects.filter(id=vendorId, enterprise=enterprise).first()
+        vendor_transactions = VendorTransactions.objects.filter(enterprise=enterprise,vendor=vendor)
+
+        if not vendor:
+            return Response("Vendor not found", status=status.HTTP_404_NOT_FOUND)
+
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        if start_date and end_date:
+            start_date = parse_date(start_date)
+            end_date = parse_date(end_date)
+
+    
+        if start_date and end_date:
+            vendor_transactions = vendor_transactions.filter(
+                date__range=(start_date, end_date)
+            )
+        elif start_date and not end_date:
+            vendor_transactions = vendor_transactions.filter(
+                date__gte=start_date
+            )
+        elif not start_date and end_date:
+            vendor_transactions = vendor_transactions.filter(
+                date__lte=end_date
+            )
+
+        vendor_transactions = vendor_transactions.order_by('id')
+        vendor = VendorSerializer(vendor).data 
+        vts = VendorTransactionSerializer(vendor_transactions, many=True).data
+        return Response({'vendor_data': vendor, 'vendor_transactions': vts})
+    
+class DebtorStatementView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, debtorId=None, branch=None):
+        enterprise = request.user.person.enterprise
+        debtor = Debtor.objects.filter(id=debtorId, enterprise=enterprise).first()
+        debtor_transactions = DebtorTransaction.objects.filter(enterprise=enterprise, debtor=debtor)
+
+        if not debtor:
+            return Response("Debtor not found", status=status.HTTP_404_NOT_FOUND)
+
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        if start_date and end_date:
+            start_date = parse_date(start_date)
+            end_date = parse_date(end_date)
+
+    
+        if start_date and end_date:
+            debtor_transactions = debtor_transactions.filter(
+                date__range=(start_date, end_date)
+            )
+        elif start_date and not end_date:
+            debtor_transactions = debtor_transactions.filter(
+                date__gte=start_date
+            )
+        elif not start_date and end_date:
+            debtor_transactions = debtor_transactions.filter(
+                date__lte=end_date
+            )
+
+        debtor_transactions = debtor_transactions.order_by('id')
+        debtor = DebtorSerializer(debtor).data
+        dts = DebtorTransactionSerializer(debtor_transactions, many=True).data
+        return Response({'debtor_data': debtor, 'debtor_transactions': dts})

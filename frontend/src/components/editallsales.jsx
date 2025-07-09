@@ -961,7 +961,7 @@ export default function EditAllSalesTransactionForm() {
           <Button
             type="button"
             onClick={handleReturn}
-            disabled={returns.length === 0 || subLoading}
+            disabled={returns.length === 0 || subLoading || returned}
             className="w-full bg-green-600 hover:bg-green-700 text-white mt-4"
           >
             Return Sales
@@ -1092,7 +1092,7 @@ export default function EditAllSalesTransactionForm() {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="debtor_phone" className="text-right">
-                Phone
+                Phone Number
               </Label>
               <Input
                 id="debtor_phone"

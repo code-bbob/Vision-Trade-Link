@@ -17,6 +17,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Purchase
         fields = ['id','phone', 'imei_number', 'unit_price','phone_name','returned']
+        read_only_fields = ['returned']
         
     def get_phone_name(self,obj):
         return obj.phone.name
@@ -678,7 +679,7 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
 
                 # Update remaining fields
                 for field, val in data.items():
-                    if field not in ('id', 'phone'):
+                    if field not in ('id', 'phone','returned'):
                         setattr(purchase_inst, field, val)
                 purchase_inst.save()
 
@@ -790,7 +791,9 @@ class SalesSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Sales
-        fields = ['id','phone', 'imei_number', 'unit_price','phone_name']
+        fields = ['id','phone', 'imei_number', 'unit_price','phone_name','returned']
+        read_only_fields = ['returned']
+
     
     def get_phone_name(self,obj):
         return obj.phone.name
@@ -1072,7 +1075,7 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
 
                 # Update other fields
                 for field, val in data.items():
-                    if field not in ('id', 'phone', 'imei_number'):
+                    if field not in ('id', 'phone', 'imei_number','returned'):
                         setattr(sale_inst, field, val)
                 sale_inst.save()
 

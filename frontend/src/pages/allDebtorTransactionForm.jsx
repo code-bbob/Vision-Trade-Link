@@ -312,7 +312,7 @@ export default function DebtorTransactionForm() {
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="newPhone" className="text-right text-white">
-                    Phone
+                    Phone Number
                   </Label>
                   <Input
                     id="newPhone"

@@ -7,9 +7,13 @@ from alltransactions.models import Staff,StaffTransactions, Debtor, DebtorTransa
 
 
 class VendorSerializer(serializers.ModelSerializer):
+    brand_name = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = Vendor
         fields = '__all__'
+
+    def get_brand_name(self, obj):
+        return obj.brand.name if obj.brand else None
     
 class PurchaseSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
@@ -17,7 +21,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Purchase
         fields = ['id','product_name', 'product', 'quantity', 'unit_price', 'total_price','returned']
-        read_only_fields = ['total_price']
+        read_only_fields = ['returned','total_price']
 
     def get_product_name(self, obj):
         return obj.product.name
@@ -320,83 +324,85 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
             cache[product_id] = Product.objects.select_for_update().get(id=product_id)
         return cache[product_id]
 
+    @transaction.atomic
     def create(self, validated_data):
         purchases = validated_data.pop('purchase')
         purchase_transaction = PurchaseTransaction.objects.create(**validated_data)
+        products_cache = {}
+        brands_cache = {}
+        desc = f'Purchase made for :\n'
 
-        with transaction.atomic():
-            products_cache = {}
-            brands_cache = {}
+        # Create each Purchase and update Product/Brand counts/stocks
+        for purchase in purchases:
+            desc += f"{purchase.get('product', {})} - {purchase.get('quantity', 0)} pcs, \n"
+            if not purchase.get('total_price'):
+                purchase['total_price'] = purchase['quantity'] * purchase['unit_price']
+            purchaseobj = Purchase.objects.create(purchase_transaction=purchase_transaction, **purchase)
 
-            # Create each Purchase and update Product/Brand counts/stocks
-            for purchase in purchases:
-                if not purchase.get('total_price'):
-                    purchase['total_price'] = purchase['quantity'] * purchase['unit_price']
-                purchaseobj = Purchase.objects.create(purchase_transaction=purchase_transaction, **purchase)
+            # lock and cache product
+            product = self._get_locked_product(purchaseobj.product.id, products_cache)
+            product.count = (product.count + purchaseobj.quantity) if product.count is not None else purchaseobj.quantity
+            product.stock = (product.stock + purchaseobj.quantity * product.selling_price) if product.stock is not None else purchaseobj.quantity * product.selling_price
 
-                # lock and cache product
-                product = self._get_locked_product(purchaseobj.product.id, products_cache)
-                product.count = (product.count + purchaseobj.quantity) if product.count is not None else purchaseobj.quantity
-                product.stock = (product.stock + purchaseobj.quantity * product.selling_price) if product.stock is not None else purchaseobj.quantity * product.selling_price
+            # lock and cache brand
+            brand_obj = product.brand
+            if brand_obj.id not in brands_cache:
+                brands_cache[brand_obj.id] = brand_obj
+            brand = brands_cache[brand_obj.id]
+            brand.count = (brand.count + purchaseobj.quantity) if brand.count is not None else purchaseobj.quantity
+            brand.stock = (brand.stock + purchaseobj.quantity * product.selling_price) if brand.stock is not None else purchaseobj.quantity * product.selling_price
 
-                # lock and cache brand
-                brand_obj = product.brand
-                if brand_obj.id not in brands_cache:
-                    brands_cache[brand_obj.id] = brand_obj
-                brand = brands_cache[brand_obj.id]
-                brand.count = (brand.count + purchaseobj.quantity) if brand.count is not None else purchaseobj.quantity
-                brand.stock = (brand.stock + purchaseobj.quantity * product.selling_price) if brand.stock is not None else purchaseobj.quantity * product.selling_price
+            product.save()
+            brand.save()
 
-                product.save()
-                brand.save()
+        # Calculate total amount and record base transaction
+        amount = purchase_transaction.calculate_total_amount()
+        vendor = purchase_transaction.vendor
 
-            # Calculate total amount and record base transaction
-            amount = purchase_transaction.calculate_total_amount()
-            vendor = purchase_transaction.vendor
+        VendorTransactionSerializer().create({
+            'vendor': vendor,
+            'date': purchase_transaction.date,
+            'amount': -amount,
+            'desc': desc,
+            'method': purchase_transaction.method,
+            'purchase_transaction': purchase_transaction,
+            'enterprise': purchase_transaction.enterprise,
+            'branch': purchase_transaction.branch,
+            'type': 'base'
+        })
 
+        # Handle payment method -> create VendorTransactions if needed
+        method = purchase_transaction.method
+        if method == 'cash':
             VendorTransactionSerializer().create({
                 'vendor': vendor,
+                'branch': purchase_transaction.branch,
                 'date': purchase_transaction.date,
-                'amount': -amount,
-                'desc': f'Purchase made for transaction {purchase_transaction.bill_no}',
-                'method': purchase_transaction.method,
+                'amount': purchase_transaction.total_amount,
+                'desc': 'Paid for purchase',
+                'method': 'cash',
                 'purchase_transaction': purchase_transaction,
                 'enterprise': purchase_transaction.enterprise,
-                'branch': purchase_transaction.branch,
-                'type': 'base'
+                'type': 'payment'
             })
-
-            # Handle payment method -> create VendorTransactions if needed
-            method = purchase_transaction.method
-            if method == 'cash':
-                VendorTransactionSerializer().create({
-                    'vendor': vendor,
-                    'branch': purchase_transaction.branch,
-                    'date': purchase_transaction.date,
-                    'amount': purchase_transaction.total_amount,
-                    'desc': 'Paid for purchase',
-                    'method': 'cash',
-                    'purchase_transaction': purchase_transaction,
-                    'enterprise': purchase_transaction.enterprise,
-                    'type': 'payment'
-                })
-            elif method == 'cheque':
-                VendorTransactionSerializer().create({
-                    'vendor': vendor,
-                    'branch': purchase_transaction.branch,
-                    'date': purchase_transaction.date,
-                    'amount': purchase_transaction.total_amount,
-                    'desc': 'Paid for purchase',
-                    'method': 'cheque',
-                    'cheque_number': purchase_transaction.cheque_number,
-                    'cashout_date': purchase_transaction.cashout_date,
-                    'purchase_transaction': purchase_transaction,
-                    'enterprise': purchase_transaction.enterprise,
-                    'type': 'payment'
-                })
+        elif method == 'cheque':
+            VendorTransactionSerializer().create({
+                'vendor': vendor,
+                'branch': purchase_transaction.branch,
+                'date': purchase_transaction.date,
+                'amount': purchase_transaction.total_amount,
+                'desc': 'Paid for purchase',
+                'method': 'cheque',
+                'cheque_number': purchase_transaction.cheque_number,
+                'cashout_date': purchase_transaction.cashout_date,
+                'purchase_transaction': purchase_transaction,
+                'enterprise': purchase_transaction.enterprise,
+                'type': 'payment'
+            })
 
         return purchase_transaction
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         # Store old values
         old_vendor = instance.vendor
@@ -412,167 +418,173 @@ class PurchaseTransactionSerializer(serializers.ModelSerializer):
         instance.cashout_date = validated_data.get('cashout_date', instance.cashout_date)
         instance.save()
 
-        with transaction.atomic():
-            products_cache = {}
-            brands_cache = {}
+        products_cache = {}
+        brands_cache = {}
+        desc = f'Purchase made for :\n'
 
-            def get_product_obj(product):
-                return self._get_locked_product(product.id, products_cache)
+        def get_product_obj(product):
+            return self._get_locked_product(product.id, products_cache)
 
-            purchases_data = validated_data.pop('purchase', [])
+        purchases_data = validated_data.pop('purchase', [])
 
-            # Keep track of existing purchases
-            existing_purchases = {purchase.id: purchase for purchase in instance.purchase.all()}
-            new_purchase_ids = []
+        # Keep track of existing purchases
+        existing_purchases = {purchase.id: purchase for purchase in instance.purchase.all()}
+        new_purchase_ids = []
 
-            for purchase_data in purchases_data:
-                purchase_id = purchase_data.get('id', None)
-                if purchase_id and purchase_id in existing_purchases:
-                    # Update existing purchase
-                    purchase_instance = existing_purchases[purchase_id]
+        for purchase_data in purchases_data:
+            desc += f"{purchase_data.get('product', {})} - {purchase_data.get('quantity', 0)} pcs, \n"
+            purchase_id = purchase_data.get('id', None)
+            if purchase_id and purchase_id in existing_purchases:
+                # Update existing purchase
+                purchase_instance = existing_purchases[purchase_id]
 
-                    # Lock old
-                    old_product = get_product_obj(purchase_instance.product)
-                    old_quantity = purchase_instance.quantity
+                # Lock old
+                old_product = get_product_obj(purchase_instance.product)
+                old_quantity = purchase_instance.quantity
 
-                    # New product lock
-                    new_product = purchase_data.get('product', old_product)
-                    new_product = get_product_obj(new_product)
-                    new_quantity = purchase_data.get('quantity', old_quantity)
+                # New product lock
+                new_product = purchase_data.get('product', old_product)
+                new_product = get_product_obj(new_product)
+                new_quantity = purchase_data.get('quantity', old_quantity)
 
-                    # Adjust stock for old/new product if changed
-                    if old_product != new_product:
-                        # Decrease from old
-                        old_product.count -= old_quantity
-                        old_product.stock -= old_quantity * old_product.selling_price
-                        old_product.save()
-                        # Brand old
-                        old_brand = old_product.brand
-                        if old_brand.id not in brands_cache:
-                            brands_cache[old_brand.id] = old_brand
-                        old_brand = brands_cache[old_brand.id]
-                        old_brand.count -= old_quantity
-                        old_brand.stock -= old_quantity * old_product.selling_price
-                        old_brand.save()
+                # Adjust stock for old/new product if changed
+                if old_product != new_product:
+                    # Decrease from old
+                    old_product.count -= old_quantity
+                    old_product.stock -= old_quantity * old_product.selling_price
+                    old_product.save()
+                    # Brand old
+                    old_brand = old_product.brand
+                    if old_brand.id not in brands_cache:
+                        brands_cache[old_brand.id] = old_brand
+                    old_brand = brands_cache[old_brand.id]
+                    old_brand.count -= old_quantity
+                    old_brand.stock -= old_quantity * old_product.selling_price
+                    old_brand.save()
 
-                        # Increase in new
-                        new_product.count = (new_product.count or 0) + new_quantity
-                        new_product.stock = (new_product.stock or 0) + new_quantity * new_product.selling_price
-                        new_product.save()
-                        new_brand = new_product.brand
-                        if new_brand.id not in brands_cache:
-                            brands_cache[new_brand.id] = new_brand
-                        new_brand = brands_cache[new_brand.id]
-                        new_brand.count += new_quantity
-                        new_brand.stock += new_quantity * new_product.selling_price
-                        new_brand.save()
-                    else:
-                        # Same product -> adjust quantity
-                        quantity_diff = new_quantity - old_quantity
-                        stock_diff = quantity_diff * old_product.selling_price
-
-                        old_product.count = (old_product.count or 0) + quantity_diff
-                        old_product.stock = (old_product.stock or 0) + stock_diff
-                        old_product.save()
-
-                        old_brand = old_product.brand
-                        if old_brand.id not in brands_cache:
-                            brands_cache[old_brand.id] = old_brand
-                        old_brand = brands_cache[old_brand.id]
-                        old_brand.count += quantity_diff
-                        old_brand.stock += stock_diff
-                        old_brand.save()
-
-                    for attr, value in purchase_data.items():
-                        setattr(purchase_instance, attr, value)
-                    if not purchase_data.get('total_price'):
-                        purchase_instance.total_price = purchase_instance.quantity * purchase_instance.unit_price
-                    purchase_instance.save()
-                    new_purchase_ids.append(purchase_instance.id)
-                    del existing_purchases[purchase_id]
-                else:
-                    # Create new purchase
-                    purchase_data['purchase_transaction'] = instance
-                    if not purchase_data.get('total_price'):
-                        purchase_data['total_price'] = purchase_data['quantity'] * purchase_data['unit_price']
-                    new_purchase = Purchase.objects.create(**purchase_data)
-
-                    # Lock and update new product
-                    new_product = self._get_locked_product(new_purchase.product.id, products_cache)
-                    new_product.count = (new_product.count or 0) + new_purchase.quantity
-                    new_product.stock = (new_product.stock or 0) + new_purchase.quantity * new_product.selling_price
+                    # Increase in new
+                    new_product.count = (new_product.count or 0) + new_quantity
+                    new_product.stock = (new_product.stock or 0) + new_quantity * new_product.selling_price
                     new_product.save()
-
                     new_brand = new_product.brand
                     if new_brand.id not in brands_cache:
                         brands_cache[new_brand.id] = new_brand
                     new_brand = brands_cache[new_brand.id]
-                    new_brand.count += new_purchase.quantity
-                    new_brand.stock += new_purchase.quantity * new_product.selling_price
+                    new_brand.count += new_quantity
+                    new_brand.stock += new_quantity * new_product.selling_price
                     new_brand.save()
+                else:
+                    # Same product -> adjust quantity
+                    quantity_diff = new_quantity - old_quantity
+                    stock_diff = quantity_diff * old_product.selling_price
 
-                    new_purchase_ids.append(new_purchase.id)
+                    old_product.count = (old_product.count or 0) + quantity_diff
+                    old_product.stock = (old_product.stock or 0) + stock_diff
+                    old_product.save()
 
-            # Remove deleted purchases
-            for removed in existing_purchases.values():
-                old_product = self._get_locked_product(removed.product.id, products_cache)
-                old_quantity = removed.quantity
-                old_product.count -= old_quantity
-                old_product.stock -= old_quantity * old_product.selling_price
-                old_product.save()
+                    old_brand = old_product.brand
+                    if old_brand.id not in brands_cache:
+                        brands_cache[old_brand.id] = old_brand
+                    old_brand = brands_cache[old_brand.id]
+                    old_brand.count += quantity_diff
+                    old_brand.stock += stock_diff
+                    old_brand.save()
 
-                old_brand = old_product.brand
-                if old_brand.id not in brands_cache:
-                    brands_cache[old_brand.id] = old_brand
-                old_brand = brands_cache[old_brand.id]
-                old_brand.count -= old_quantity
-                old_brand.stock -= old_quantity * old_product.selling_price
-                old_brand.save()
+                for attr, value in purchase_data.items():
+                    if attr == 'returned':
+                        print("Handling returned attribute pid:", attr)
+                        continue
+                    print("YAHA aaunu hunna ,", attr)
+                    setattr(purchase_instance, attr, value)
+                print(f"--- Finished purchase data processing. purchase_instance.returned is now: {purchase_instance.returned} ---")
+                if not purchase_data.get('total_price'):
+                    purchase_instance.total_price = purchase_instance.quantity * purchase_instance.unit_price
+                purchase_instance.save()
+                new_purchase_ids.append(purchase_instance.id)
+                del existing_purchases[purchase_id]
+            else:
+                # Create new purchase
+                purchase_data['purchase_transaction'] = instance
+                if not purchase_data.get('total_price'):
+                    purchase_data['total_price'] = purchase_data['quantity'] * purchase_data['unit_price']
+                new_purchase = Purchase.objects.create(**purchase_data)
 
-                removed.delete()
+                # Lock and update new product
+                new_product = self._get_locked_product(new_purchase.product.id, products_cache)
+                new_product.count = (new_product.count or 0) + new_purchase.quantity
+                new_product.stock = (new_product.stock or 0) + new_purchase.quantity * new_product.selling_price
+                new_product.save()
 
-            # Recalculate total and handle vendor transactions
-            instance.calculate_total_amount()
-            instance.refresh_from_db()
-            new_total_amount = instance.total_amount
-            instance.save()
+                new_brand = new_product.brand
+                if new_brand.id not in brands_cache:
+                    brands_cache[new_brand.id] = new_brand
+                new_brand = brands_cache[new_brand.id]
+                new_brand.count += new_purchase.quantity
+                new_brand.stock += new_purchase.quantity * new_product.selling_price
+                new_brand.save()
 
-            # Refresh and adjust vendor txns as before...
-            new_vendor = instance.vendor
-            amount_diff = new_total_amount - old_total
+                new_purchase_ids.append(new_purchase.id)
 
-            if old_date != instance.date:
-                vts = VendorTransactions.objects.filter(purchase_transaction=instance)
-                for vt in vts:
-                    vt.date = instance.date
-                    vt.save()
+        # Remove deleted purchases
+        for removed in existing_purchases.values():
+            old_product = self._get_locked_product(removed.product.id, products_cache)
+            old_quantity = removed.quantity
+            old_product.count -= old_quantity
+            old_product.stock -= old_quantity * old_product.selling_price
+            old_product.save()
 
-            # Handle full vendor transaction rebuild if method/vendor/total changed
-            if old_method != instance.method or old_total != new_total_amount or old_vendor != instance.vendor:
-                vts_all = VendorTransactions.objects.filter(purchase_transaction=instance)
-                for vt in vts_all:
-                    vt.delete()
-                instance.vendor.refresh_from_db()
-                base = {
-                    'vendor': instance.vendor,
-                    'date': instance.date,
-                    'branch': instance.branch,
-                    'enterprise': instance.enterprise,
-                    'amount': -new_total_amount,
-                    'desc': f'Purchase made for transaction {instance.bill_no}',
-                    'method': instance.method,
-                    'purchase_transaction': instance,
-                    'type': 'base',
-                }
-                VendorTransactionSerializer().create(base)
-                if instance.method in ('cash', 'cheque'):
-                    pay = base.copy()
-                    pay['amount'] = new_total_amount
-                    pay['desc'] = 'Paid for purchase'
-                    pay['type'] = 'payment'
-                    if instance.method == 'cheque':
-                        pay.update({'cheque_number': instance.cheque_number, 'cashout_date': instance.cashout_date})
-                    VendorTransactionSerializer().create(pay)
+            old_brand = old_product.brand
+            if old_brand.id not in brands_cache:
+                brands_cache[old_brand.id] = old_brand
+            old_brand = brands_cache[old_brand.id]
+            old_brand.count -= old_quantity
+            old_brand.stock -= old_quantity * old_product.selling_price
+            old_brand.save()
+
+            removed.delete()
+
+        # Recalculate total and handle vendor transactions
+        instance.calculate_total_amount()
+        instance.refresh_from_db()
+        new_total_amount = instance.total_amount
+        instance.save()
+
+        # Refresh and adjust vendor txns as before...
+        new_vendor = instance.vendor
+        amount_diff = new_total_amount - old_total
+
+        if old_date != instance.date:
+            vts = VendorTransactions.objects.filter(purchase_transaction=instance)
+            for vt in vts:
+                vt.date = instance.date
+                vt.save()
+
+        # Handle full vendor transaction rebuild if method/vendor/total changed
+        if old_method != instance.method or old_total != new_total_amount or old_vendor != instance.vendor:
+            vts_all = VendorTransactions.objects.filter(purchase_transaction=instance)
+            for vt in vts_all:
+                vt.delete()
+            instance.vendor.refresh_from_db()
+            base = {
+                'vendor': instance.vendor,
+                'date': instance.date,
+                'branch': instance.branch,
+                'enterprise': instance.enterprise,
+                'amount': -new_total_amount,
+                'desc': desc,
+                'method': instance.method,
+                'purchase_transaction': instance,
+                'type': 'base',
+            }
+            VendorTransactionSerializer().create(base)
+            if instance.method in ('cash', 'cheque'):
+                pay = base.copy()
+                pay['amount'] = new_total_amount
+                pay['desc'] = 'Paid for purchase'
+                pay['type'] = 'payment'
+                if instance.method == 'cheque':
+                    pay.update({'cheque_number': instance.cheque_number, 'cashout_date': instance.cashout_date})
+                VendorTransactionSerializer().create(pay)
 
         return instance
 
@@ -591,7 +603,7 @@ class SalesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sales
         fields = ['id', 'product', 'quantity', 'unit_price', 'total_price','product_name','returned']
-        read_only_fields = ['total_price']
+        read_only_fields = ['total_price', 'returned']
 
     def get_product_name(self, obj):
         return obj.product.name
@@ -776,9 +788,11 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
 
         products_cache = {}
         brands_cache = {}
+        desc = f'Sales credited for :\n'
 
         # Create each Sale and update Product/Brand counts/stocks
         for sale in sales:
+            desc += f"{sale.get('product', {})} - {sale.get('quantity', 0)} pcs, \n"
             saleobj = Sales.objects.create(sales_transaction=transaction, **sale)
 
             # lock product
@@ -807,7 +821,8 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
                 'debtor': debtor,
                 'amount': -transaction.credited_amount,
                 'date': transaction.date,
-                'desc': f'Sales transaction {transaction.bill_no} credited',
+                'method': transaction.method,
+                'desc': desc,
                 'all_sales_transaction': transaction,
                 'branch': transaction.branch,
                 'enterprise': transaction.enterprise
@@ -826,11 +841,14 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
 
         # Update transaction fields
         for attr, value in validated_data.items():
+            if attr == 'returned':
+                continue  # 'returned' is handled separately
             setattr(instance, attr, value)
         instance.save()
 
         products_cache = {}
         brands_cache = {}
+        desc = f'Sales credited for :\n'
 
         def get_product_obj(prod):
             return self._get_locked_product(prod.id, products_cache)
@@ -840,6 +858,7 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
         new_sales_ids = []
 
         for sale_data in sales_data:
+            desc += f"{sale_data.get('product', {})} - {sale_data.get('quantity', 0)} pcs, \n"
             sale_id = sale_data.get('id')
             if sale_id and sale_id in existing_sales:
                 sale_inst = existing_sales.pop(sale_id)
@@ -960,6 +979,7 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
                     'date': instance.date,
                     'branch': instance.branch,
                     'enterprise': instance.enterprise,
+                    'method': instance.method,
                     'amount': -instance.credited_amount,
                     'desc': f'Sale credited for transaction {instance.id} with bill number {instance.bill_no}',
                     'all_sales_transaction': instance,
@@ -990,6 +1010,8 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
         vendor = transaction.vendor
         vendor.due = (vendor.due - transaction.amount) if vendor.due is not None else -transaction.amount
         vendor.save()
+        transaction.due = vendor.due
+        transaction.save()
         return transaction
     
     @transaction.atomic
@@ -1013,6 +1035,8 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
             old_vendor.save()
             new_vendor.save()
 
+        instance.due = new_vendor.due
+        instance.save()
         return instance
     
     def to_representation(self, instance):
@@ -1020,17 +1044,6 @@ class VendorTransactionSerializer(serializers.ModelSerializer):
         # Format the date in 'YYYY-MM-DD' format for the response
         representation['date'] = instance.date.strftime('%Y-%m-%d')
         return representation
-
-class VendorBrandSerializer(serializers.ModelSerializer):
-    count = serializers.SerializerMethodField(read_only = True)
-
-    class Meta:
-        model = Brand
-        fields = '__all__'
-    
-    def get_count(self,obj):
-        vendors = Vendor.objects.filter(enterprise = obj.enterprise, brand = obj).count()
-        return vendors
     
 class PurchaseReturnSerializer(serializers.ModelSerializer):
    
@@ -1105,7 +1118,6 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
         if vendor.due is None:
             vendor.due = 0
 
-        print(vendor.due)
         VendorTransactionSerializer().create({
             'vendor': vendor,
             'date': purchase_return.date,
@@ -1118,7 +1130,6 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
             'type': 'return'
         })
         vendor.refresh_from_db()
-        print(vendor.due)
 
         return purchase_return
     
@@ -1166,98 +1177,6 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
         instance.delete()
         return instance
 
-# class SalesReturnSerializer(serializers.ModelSerializer):
-   
-#     sales_transaction = SalesTransactionSerializer(read_only=True)
-#     sales = SalesSerializer(many=True,read_only=True) ##related name
-
-#     # Write-only fields for accepting the IDs in the request
-#     sales_transaction_id = serializers.PrimaryKeyRelatedField(
-#         queryset=SalesTransaction.objects.all(),
-#         write_only=True,
-#         source='sales_transaction'
-#     )
-#     sales_ids = serializers.PrimaryKeyRelatedField(
-#         many=True,
-#         queryset=Sales.objects.all(),
-#         write_only=True
-#     )
-
-
-#     class Meta:
-#         model = PurchaseReturn
-#         # fields = '__all__'
-#         fields = [
-#             'id',
-#             'date',
-#             'branch',
-#             'enterprise',
-#             'sales_transaction',
-#             'sales_transaction_id',  # for write
-#             'sales',       # for read
-#             'sales_ids' ,    # for write
-#         ]
-
-#     @transaction.atomic
-#     def create(self, validated_data):
-
-        
-#         sales_ids = validated_data.pop('sales_ids', [])
-
-#         # Create the PurchaseReturn instance
-#         sales_return = SalesReturn.objects.create(**validated_data)
-
-
-#         # Retrieve the vendor from the linked transaction
-#         # vendor = sales_return.sales_transaction.vendor
-
-#         # We'll subtract the total of all returned purchases
-#         # total_unit_price = 0
-#         # print(purchase_ids)
-
-#         # Attach each purchase to this return
-#         for sale in sales_ids:
-
-#             sale.sales_return = sales_return
-#             sale.returned = True
-#             sale.save()
-#             product = sale.product
-#             product.count = (product.count + sale.quantity) if product.count is not None else sale.quantity
-#             product.stock = (product.stock + sale.quantity * product.selling_price) if product.stock is not None else sale.quantity * product.selling_price
-#             brand = product.brand
-#             brand.count = (brand.count + sale.quantity) if brand.count is not None else sale.quantity
-#             brand.stock = (brand.stock + sale.quantity * product.selling_price) if brand.stock is not None else sale.quantity * product.selling_price
-#             brand.save()
-#             product.save()
-
-#         # Update vendor dues if needed
-#         # if vendor.due is None:
-#         #     vendor.due = 0
-#         # vendor.due -= total_unit_price
-#         # vendor.save()
-
-#         return sales_return
-
-
-#     def delete(self, instance):
-#         sales_ids = instance.sales.all()
-#         # vendor = instance.purchase_transaction.vendor
-#         # total_unit_price = 0
-#         for sale in sales_ids:
-#             sale.returned = False
-#             sale.save()
-#             # total_unit_price += sale.unit_price * sale.quantity
-#             sale.product.count = (sale.product.count - sale.quantity) if sale.product.count is not None else -(sale.quantity)
-#             sale.product.stock = (sale.product.stock - sale.quantity * sale.product.selling_price) if sale.product.stock is not None else -(sale.quantity * sale.product.selling_price)
-#             sale.product.brand.count = (sale.product.brand.count - sale.quantity) if sale.product.brand.count is not None else - (sale.quantity)
-#             sale.product.brand.stock = (sale.product.brand.stock - sale.quantity * sale.product.selling_price) if sale.product.brand.stock is not None else -(sale.quantity * sale.product.selling_price)
-#             sale.product.brand.save()
-#             sale.product.save()
-            
-#         # vendor.due += total_unit_price
-#         # vendor.save()
-#         instance.delete()
-#         return instance
 
 class SalesReturnSerializer(serializers.ModelSerializer):
    
@@ -1299,12 +1218,15 @@ class SalesReturnSerializer(serializers.ModelSerializer):
         # Memory caches
         products_cache = {}
         brands_cache = {}
+        total_unit_price = 0
 
         # Attach each sale to this return
         for sale in sales_ids:
             sale.sales_return = sales_return
             sale.returned = True
             sale.save()
+            total_unit_price += sale.unit_price * sale.quantity
+
 
             # Cache product
             product_id = sale.product.id
@@ -1327,6 +1249,24 @@ class SalesReturnSerializer(serializers.ModelSerializer):
             product.save()
         for brand in brands_cache.values():
             brand.save()
+        
+        if sales_return.sales_transaction.debtor:
+            debtor = sales_return.sales_transaction.debtor
+        
+            if debtor.due is None:
+                debtor.due = 0
+
+            DebtorTransactionSerializer().create({
+                'debtor': debtor,
+                'date': sales_return.date,
+                'amount': total_unit_price,
+                'desc': f'Sales return for transaction {sales_return.sales_transaction.bill_no}',
+                'method': sales_return.sales_transaction.method,
+                'all_sales_transaction': sales_return.sales_transaction,
+                'enterprise': sales_return.enterprise,
+                'branch': sales_return.branch,
+                'type': 'return'
+            })
 
         return sales_return
 
@@ -1363,6 +1303,13 @@ class SalesReturnSerializer(serializers.ModelSerializer):
             product.save()
         for brand in brands_cache.values():
             brand.save()
+
+        if instance.sales_transaction.debtor:
+            debtor = instance.sales_transaction.debtor
+        dt = DebtorTransaction.objects.filter(all_sales_transaction=instance.sales_transaction, type="return")
+        if dt:
+            for d in dt:
+                d.delete()
 
         instance.delete()
         return instance
@@ -1431,6 +1378,8 @@ class DebtorTransactionSerializer(serializers.ModelSerializer):
         debtor = transaction.debtor
         debtor.due = (debtor.due - transaction.amount) if debtor.due is not None else -transaction.amount
         debtor.save()
+        transaction.due = debtor.due
+        transaction.save()
         return transaction
     
     @transaction.atomic
@@ -1452,7 +1401,8 @@ class DebtorTransactionSerializer(serializers.ModelSerializer):
             new_debtor.due = (new_debtor.due - instance.amount) if new_debtor.due is not None else -instance.amount
             old_debtor.save()
             new_debtor.save()
-
+        instance.due = new_debtor.due
+        instance.save()
         return instance
     
     def get_debtor_name(self, obj):

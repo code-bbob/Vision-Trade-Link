@@ -124,8 +124,7 @@ class PurchaseTransactionChangeView(generics.RetrieveUpdateDestroyAPIView):
                     brand.save()
                 else:
                     returned_amount += purchase.unit_price
-            amount = purchase_transaction.total_amount - returned_amount
-            vendor = purchase_transaction.vendor
+
             vts = VendorTransaction.objects.filter(purchase_transaction=purchase_transaction)
             if vts:
                 for vt in vts:

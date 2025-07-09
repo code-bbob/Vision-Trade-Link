@@ -790,7 +790,7 @@ function EditAllPurchaseTransactionForm() {
               type="button"
               className="w-full bg-green-600 hover:bg-green-700 text-white mt-5"
               onClick={(e) => handleReturn(e)}
-              disabled={returns.length === 0 || subLoading}
+              disabled={returns.length === 0 || subLoading || returned}
             >
               Return Purchase
             </Button>

@@ -381,7 +381,7 @@ function AllVendorTransactionForm() {
                   onChange={handleChange}
                   className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
                   placeholder="Enter description"
-                  required
+                  
                 />
               </div>
 

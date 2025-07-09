@@ -40,8 +40,7 @@ import AllBrandProducts from "./pages/allsinglebrand";
 import AllSalesTransactions from "./pages/allSales";
 import AllSalesTransactionForm from "./components/allsalestransactionform";
 import useGlobalKeyPress from "./hooks/globalKeyPress";
-import { AllVendorPage } from "./pages/allvendors";
-import AllVendorBrand from "./pages/allvendorsbrand";
+import AllVendorPage  from "./pages/allVendors";
 import EditAllSalesTransactionForm from "./components/editallsales";
 import AllVendorTransactions from "./pages/allvendortransactions";
 import AllVendorTransactionForm from "./pages/allvendortransactionform";
@@ -69,6 +68,8 @@ import EMIDebtorsPage from "./pages/emiDebtors";
 import EMIDebtorTransactions from "./pages/emiDebtorsTransaction";
 import EMIDebtorTransactionForm from "./pages/emiDebtorsTransactionForm";
 import EditEMIDebtorTransaction from "./pages/editEmiDebtorTransactions";
+import AllVendorStatementPage from "./pages/allVendorStatementPage";
+import AllDebtorStatementPage from "./pages/allDebtorStatementPage";
 
 
 function App() {
@@ -120,8 +121,9 @@ function App() {
 
 
         <Route path="vendors/" element={<AllBranchSelectionPage pageName="vendors" />} />
+        <Route path="vendors/statement/:vendorId" element={<AllVendorStatementPage />} />
         <Route path="vendors/branch/:branchId" element={<AllVendorPage />} />
-        <Route path="vendors/branch/:branchId/brand/:id" element={<AllVendorBrand />} />
+        {/* <Route path="vendors/branch/:branchId/brand/:id" element={<AllVendorBrand />} /> */}
 
         <Route path="invoice/:transactionId" element={<InvoicePage />} />
 
@@ -144,6 +146,7 @@ function App() {
         <Route path="debtor-transactions/branch/:branchId" element={<AllDebtorTransactions />} />
         <Route path="debtor-transactions/branch/:branchId/form" element={<DebtorTransactionForm />} />
         <Route path="debtor-transactions/branch/:branchId/editform/:debtorTransactionId" element={<EditDebtorTransactionForm />} />
+        <Route path="debtors/statement/:debtorId" element={<AllDebtorStatementPage />} />
 
 
         {/* Mobile Section */}

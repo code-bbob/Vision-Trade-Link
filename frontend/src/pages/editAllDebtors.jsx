@@ -131,7 +131,7 @@ export default function EditDebtorTransactionForm() {
 
   const handleDelete = async () => {
     try {
-      await api.delete(`transaction/debtortransaction/${debtorTransactionId}/`);
+      await api.delete(`alltransaction/debtortransaction/${debtorTransactionId}/`);
       navigate(`/debtor-transactions/branch/${branchId}`);
     } catch (err) {
       console.error(err);
