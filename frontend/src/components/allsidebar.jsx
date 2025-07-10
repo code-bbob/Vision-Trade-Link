@@ -60,7 +60,6 @@ export default function Sidebar() {
     { title: 'VendorTransactions', icon: BookUser, path: '/vendor-transactions' },
     { title: 'Debtors', icon: BookUser, path: '/debtors' },
     { title: 'DebtorTransactions', icon: BookUser, path: '/debtor-transactions' },
-    { title: 'Phone Only', icon: Smartphone, path: '/mobile' },
   ]
 
   return (
