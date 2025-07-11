@@ -11,9 +11,9 @@ import useAxios from '@/utils/useAxios'
 import { format, set } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '@/components/allsidebar'
-import { useParams } from 'react-router-dom';
+import { useBranchId } from '@/hooks/useBranch'
 export default function AllVendorTransactions() {
-  const { branchId } = useParams()
+  const branchId = useBranchId()
   const api = useAxios()
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -76,7 +76,7 @@ export default function AllVendorTransactions() {
 
   const handlePurchaseClick = (e, id) => {
     e.stopPropagation()
-    navigate(`/purchases/editform/${id}`)
+    navigate(`/purchases/editform/${id}/branch/${branchId}`)
   }
 
   const handleSearch = async (e) => {
@@ -205,7 +205,7 @@ export default function AllVendorTransactions() {
         <div className="space-y-6">
           {transactions?.length > 0 ? (
             transactions?.map((transaction) => (
-              <Card key={`${transaction.id}-${transaction.date}`} onClick={() => navigate(`editform/${transaction.id}`)} className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <Card key={`${transaction.id}-${transaction.date}`} onClick={() => navigate(`/vendor-transactions/editform/${transaction.id}/branch/${branchId}`)} className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="border-b border-slate-700">
                   <CardTitle className="text-lg lg:text-xl font-medium text-white flex flex-col lg:flex-row justify-between items-start lg:items-center">
                     <div>
@@ -261,7 +261,7 @@ export default function AllVendorTransactions() {
       </div>
       <Button
         className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={() => navigate(`/vendor-transactions/branch/${branchId}/form/`)}
+        onClick={() => navigate(`/vendor-transactions/form`)}
       >
         <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
       </Button>

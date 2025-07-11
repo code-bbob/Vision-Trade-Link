@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import useAxios from "@/utils/useAxios";
 import { Button } from "@/components/ui/button";
-import { useParams } from "react-router-dom";
+import { useBranchId } from "@/hooks/useBranch";
 import {
   Dialog,
   DialogContent,
@@ -47,7 +47,7 @@ import {
 import NewProductDialog from "@/components/newProductDialog"; // Adjust the path as needed
 
 function AllPurchaseTransactionForm() {
-  const { branchId } = useParams();
+  const branchId = useBranchId();
   const api = useAxios();
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],

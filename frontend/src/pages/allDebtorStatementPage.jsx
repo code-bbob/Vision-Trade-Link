@@ -100,23 +100,29 @@ const handleDownloadCSV = () => {
   let csvContent = [
     'Date',
     'Description',
-    'Method',
+    'Bill No.',
     'Cheque No.',
-    'Amount',
+    'Gross Amount',
+    'TDS Amount',
+    'Net Amount',
     'Due Balance'
   ].map(escapeField).join(',') + '\n';
 
   // 2) Data rows
   data.debtor_transactions.forEach(tx => {
     const sign = tx.amount > 0 ? '-' : '';
-    const amt = `${sign}NPR ${Math.abs(tx.amount)}`;  // no commas
+    const grossAmt = `${sign}NPR ${Math.abs(tx.amount).toFixed(2)}`;
+    const tdsAmt = `NPR ${Math.abs(tx.tds || 0).toFixed(2)}`;
+    const netAmt = `${sign}NPR ${Math.abs(tx.net_amount || tx.amount).toFixed(2)}`;
     const row = [
       tx.date,
       tx.desc || 'N/A',
-      tx.method,
+      tx.bill_no || '-',
       tx.cheque_number || '-',
-      amt,
-      tx.due
+      grossAmt,
+      tdsAmt,
+      netAmt,
+      `NPR ${tx.due.toFixed(2)}`
     ];
     csvContent += row.map(escapeField).join(',') + '\n';
   });
@@ -126,7 +132,7 @@ const handleDownloadCSV = () => {
   csvContent += [
     ['Debtor Name:', data.debtor_data.name],
     ['Phone:',       data.debtor_data.phone_number || 'N/A'],
-    ['Current Due:', `NPR ${data.debtor_data.due}`]
+    ['Current Due:', `NPR ${data.debtor_data.due.toFixed(2)}`]
   ]
     .map(pair => pair.map(escapeField).join(','))
     .join('\n') + '\n';
@@ -160,7 +166,7 @@ const handleDownloadCSV = () => {
     doc.setFont("times", "italic");
     doc.setFontSize(20);
     doc.setTextColor(33, 33, 33); // dark charcoal
-    doc.text(`Debtor Statement - ${data.debtor_data.name}`, 15, 22);
+    doc.text(`${data.debtor_data.name}`, 15, 22);
 
     // Statement Date (italic, right-aligned)
     doc.setFont("times", "italic");
@@ -170,15 +176,17 @@ const handleDownloadCSV = () => {
 
     // — Main Statement Table —
     const headers = [
-      ["Date", "Description", "Method", "Cheque No.", "Amount", "Due Balance"],
+      ["Date", "Description", "Bill No.", "Cheque No.", "Gross Amount", "TDS Amount", "Net Amount", "Due Balance"],
     ];
     const tableData = data.debtor_transactions.map((tx) => [
       tx.date,
       tx.desc || "N/A",
-      tx.method,
+      tx.bill_no || "-",
       tx.cheque_number || "-",
-      `${tx.amount > 0 ? "-" : ""}NPR ${Math.abs(tx.amount).toLocaleString()}`,
-      `NPR ${tx.due.toLocaleString()}`,
+      `${tx.amount > 0 ? "-" : ""}NPR ${Math.abs(tx.amount).toFixed(2)}`,
+      `NPR ${Math.abs(tx.tds || 0).toFixed(2)}`,
+      `${tx.amount > 0 ? "-" : ""}NPR ${Math.abs(tx.net_amount || tx.amount).toFixed(2)}`,
+      `NPR ${tx.due.toFixed(2)}`,
     ]);
     doc.autoTable({
       head: headers,
@@ -200,9 +208,13 @@ const handleDownloadCSV = () => {
         .filter((t) => t.amount < 0)
         .reduce((sum, t) => sum + t.amount, 0)
     );
-    const totalPaid = data.debtor_transactions
+    const grossAmountPaid = data.debtor_transactions
       .filter((t) => t.amount > 0)
       .reduce((sum, t) => sum + t.amount, 0);
+    const totalTDS = data.debtor_transactions
+      .filter((t) => t.amount > 0)
+      .reduce((sum, t) => sum + Math.abs(t.tds || 0), 0);
+    const netAmountPaid = grossAmountPaid - totalTDS;
     const currentDue = data.debtor_data.due;
 
     // — Styled Summary Block (right-justified under table) —
@@ -221,26 +233,40 @@ const handleDownloadCSV = () => {
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
     let yPosition = finalY + 12 + lineHeight;
-    doc.text(`Transactions: ${totalCount}`, rightX, yPosition, {
-      align: "right",
-    });
+    // doc.text(`Transactions: ${totalCount}`, rightX, yPosition, {
+    //   align: "right",
+    // });
     yPosition += lineHeight;
     doc.text(
-      `Total Credit: NPR ${totalCredit.toLocaleString()}`,
+      `Total Credit: NPR ${totalCredit.toFixed(2)}`,
       rightX,
       yPosition,
       { align: "right" }
     );
     yPosition += lineHeight;
     doc.text(
-      `Total Paid: NPR ${totalPaid.toLocaleString()}`,
+      `Gross Amount Paid: NPR ${grossAmountPaid.toFixed(2)}`,
       rightX,
       yPosition,
       { align: "right" }
     );
     yPosition += lineHeight;
     doc.text(
-      `Current Due: NPR ${currentDue.toLocaleString()}`,
+      `Total TDS: NPR ${totalTDS.toFixed(2)}`,
+      rightX,
+      yPosition,
+      { align: "right" }
+    );
+    yPosition += lineHeight;
+    doc.text(
+      `Net Amount Paid: NPR ${netAmountPaid.toFixed(2)}`,
+      rightX,
+      yPosition,
+      { align: "right" }
+    );
+    yPosition += lineHeight;
+    doc.text(
+      `Current Due: NPR ${currentDue.toFixed(2)}`,
       rightX,
       yPosition,
       { align: "right" }
@@ -454,13 +480,19 @@ const handleDownloadCSV = () => {
                     Description
                   </TableHead>
                   <TableHead className="text-white print:text-black font-semibold">
-                    Method
+                    Bill No.
                   </TableHead>
                   <TableHead className="text-white print:text-black font-semibold">
                     Cheque No.
                   </TableHead>
                   <TableHead className="text-right text-white print:text-black font-semibold">
-                    Amount
+                    Gross Amount
+                  </TableHead>
+                  <TableHead className="text-right text-white print:text-black font-semibold">
+                    TDS Amount
+                  </TableHead>
+                  <TableHead className="text-right text-white print:text-black font-semibold">
+                    Net Amount
                   </TableHead>
                   <TableHead className="text-right text-white print:text-black font-semibold">
                     Due Balance
@@ -483,8 +515,8 @@ const handleDownloadCSV = () => {
                     <TableCell className="text-white print:text-black max-w-xs">
                       {transaction.desc || "No description"}
                     </TableCell>
-                    <TableCell className="text-white print:text-black capitalize">
-                      {transaction.method}
+                    <TableCell className="text-white print:text-black">
+                      {transaction.bill_no || "-"}
                     </TableCell>
                     <TableCell className="text-white print:text-black">
                       {transaction.cheque_number || "-"}
@@ -495,10 +527,21 @@ const handleDownloadCSV = () => {
                       )} print:text-black`}
                     >
                       {transaction.amount > 0 ? "-" : ""}NPR{" "}
-                      {Math.abs(transaction.amount).toLocaleString()}
+                      {Math.abs(transaction.amount).toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-orange-400 print:text-black">
+                      NPR {Math.abs(transaction.tds || 0).toFixed(2)}
+                    </TableCell>
+                    <TableCell
+                      className={`text-right font-semibold ${getTransactionTypeColor(
+                        transaction.net_amount || transaction.amount
+                      )} print:text-black`}
+                    >
+                      {(transaction.net_amount || transaction.amount) > 0 ? "-" : ""}NPR{" "}
+                      {Math.abs(transaction.net_amount || transaction.amount).toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right font-semibold text-white print:text-black">
-                      NPR {transaction.due.toLocaleString()}
+                      NPR {transaction.due.toFixed(2)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -511,12 +554,12 @@ const handleDownloadCSV = () => {
             <div className="w-80 bg-slate-800 p-6 rounded-lg print:bg-gray-100 print:border print:border-gray-200">
               <div className="space-y-1">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400 print:text-gray-600">
+                  {/* <span className="text-gray-400 print:text-gray-600">
                     Total Transactions:
                   </span>
                   <span className="font-semibold text-white print:text-black">
                     {data.debtor_transactions.length}
-                  </span>
+                  </span> */}
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 print:text-gray-600">
@@ -528,19 +571,48 @@ const handleDownloadCSV = () => {
                       data.debtor_transactions
                         .filter((t) => t.amount < 0)
                         .reduce((sum, t) => sum + t.amount, 0)
-                    ).toLocaleString()}
+                    ).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 print:text-gray-600">
-                    Total Amount paid:
+                    Gross Amount Paid:
                   </span>
                   <span className="font-semibold text-green-400 print:text-green-600">
                     NPR{" "}
                     {data.debtor_transactions
                       .filter((t) => t.amount > 0)
                       .reduce((sum, t) => sum + t.amount, 0)
-                      .toLocaleString()}
+                      .toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 print:text-gray-600">
+                    Total TDS Amount:
+                  </span>
+                  <span className="font-semibold text-orange-400 print:text-orange-600">
+                    NPR{" "}
+                    {data.debtor_transactions
+                      .filter((t) => t.amount > 0)
+                      .reduce((sum, t) => sum + Math.abs(t.tds || 0), 0)
+                      .toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 print:text-gray-600">
+                    Net Amount Paid:
+                  </span>
+                  <span className="font-semibold text-blue-400 print:text-blue-600">
+                    NPR{" "}
+                    {(() => {
+                      const grossPaid = data.debtor_transactions
+                        .filter((t) => t.amount > 0)
+                        .reduce((sum, t) => sum + t.amount, 0);
+                      const totalTDS = data.debtor_transactions
+                        .filter((t) => t.amount > 0)
+                        .reduce((sum, t) => sum + Math.abs(t.tds || 0), 0);
+                      return (grossPaid - totalTDS).toFixed(2);
+                    })()}
                   </span>
                 </div>
                 <hr className="border-slate-600 print:border-gray-300" />
@@ -549,7 +621,7 @@ const handleDownloadCSV = () => {
                     Current Due:
                   </span>
                   <span className="text-xl font-bold text-red-400 print:text-red-600">
-                    NPR {data.debtor_data.due.toLocaleString()}
+                    NPR {data.debtor_data.due.toFixed(2)}
                   </span>
                 </div>
               </div>

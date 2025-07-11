@@ -157,6 +157,7 @@ export default function AllSalesReturns() {
       </div>
     );
   }
+  console.log(returns[0])
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
@@ -282,8 +283,8 @@ export default function AllSalesReturns() {
                       </p>
                     </div>
                   </div>
-                  {returnItem.sales.length > 0 ? (
-                    returnItem.sales.map((sale, index) => (
+                  {returnItem.returned_sales.length > 0 ? (
+                    returnItem.returned_sales.map((sale, index) => (
                       <div
                         key={index}
                         className="mb-4 last:mb-0 p-3 lg:p-4 bg-slate-800 rounded-lg hover:bg-slate-750 transition-colors duration-300"
@@ -296,11 +297,11 @@ export default function AllSalesReturns() {
                             Quantity: {sale.quantity}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center text-sm text-slate-300">
+                        {/* <div className="flex justify-between items-center text-sm text-slate-300">
                           <span>
                             Unit Price: RS. {sale.unit_price.toLocaleString()}
                           </span>
-                        </div>
+                        </div> */}
                       </div>
                     ))
                   ) : (

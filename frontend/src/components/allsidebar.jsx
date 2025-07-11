@@ -17,9 +17,12 @@ import {
   X
 } from "lucide-react"
 import { Link, useNavigate, useLocation } from "react-router-dom"
+import BranchSelector from "./branchSelector"
+import { useBranchNavigate } from "../hooks/useBranchNavigate"
 
 export default function Sidebar() {
   const navigate = useNavigate()
+  const branchNavigate = useBranchNavigate()
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
 
@@ -54,8 +57,8 @@ export default function Sidebar() {
     { title: 'Sales', icon: TrendingUp, path: '/sales' },
     { title: 'SalesReturn', icon: TrendingDown, path: '/sales-returns' },
     { title: 'SalesReport', icon: TrendingUp, path: '/sales-report' }, // opens in new tab
-    { title: 'Staffs', icon: TrendingUp, path: '/staff' },
-    { title: 'StaffTransaction', icon: TrendingUp, path: '/staff-transactions' },
+    // { title: 'Staffs', icon: TrendingUp, path: '/staff' },
+    // { title: 'StaffTransaction', icon: TrendingUp, path: '/staff-transactions' },
     { title: 'Vendors', icon: BookUser, path: '/vendors' },
     { title: 'VendorTransactions', icon: BookUser, path: '/vendor-transactions' },
     { title: 'Debtors', icon: BookUser, path: '/debtors' },
@@ -82,7 +85,7 @@ export default function Sidebar() {
             variants={sidebarVariants}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
           >
-            <div className="p-6 pt-16 lg:pt-6">
+            <div className="pl-6 pt-16 lg:pt-6">
               <div 
                 className="text-2xl font-bold mb-6 text-white cursor-pointer" 
                 onClick={() => {
@@ -92,39 +95,29 @@ export default function Sidebar() {
               >
                 Inventory System
               </div>
+              
+              {/* Branch Selector */}
+              {/* <div className="mb-6">
+                <BranchSelector />
+              </div> */}
+
               <nav className="space-y-2">
                 {menuItems.map((item) => {
-                  const isSalesReport = item.title === 'SalesReport'
-                  if (isSalesReport) {
-                    return (
-                      <a
-                        key={item.path}
-                        href={item.path}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
-                        >
-                          <item.icon className="mr-2 h-4 w-4" />
-                          {item.title}
-                        </Button>
-                      </a>
-                    )
-                  }
+                  
 
                   return (
-                    <Link key={item.path} to={item.path}>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
-                        onClick={() => setIsOpen(false)}
-                      >
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {item.title}
-                      </Button>
-                    </Link>
+                    <Button
+                      key={item.path}
+                      variant="ghost"
+                      className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
+                      onClick={() => {
+                        branchNavigate(item.path);
+                        setIsOpen(false);
+                      }}
+                    >
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {item.title}
+                    </Button>
                   )
                 })}
               </nav>

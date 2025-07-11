@@ -83,18 +83,21 @@ class Purchase(models.Model):
 
 class SalesTransaction(models.Model):
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='all_sales_transaction')
-    name = models.CharField(max_length=255,null=True,blank=True)
-    phone_number = models.CharField(max_length=10,null=True,blank=True)
     total_amount = models.FloatField(null=True,blank=True)
     date = models.DateField()
     bill_no = models.IntegerField()
     branch = models.ForeignKey(Branch,related_name='sales_transaction',on_delete=models.CASCADE, null=True, blank=True)
     discount = models.FloatField(null=True,blank=True)
+    discount_percent = models.FloatField(null=True,blank=True,default=0)
+    bonus_percent = models.FloatField(null=True,blank=True,default=0)
     subtotal = models.FloatField(null=True,blank=True)
-    method = models.CharField(max_length=20,choices=(('cash','cash'),('online','online'),('card','card'),('credit','credit')),default='cash')
+    method = models.CharField(max_length=20,choices=(('cash','cash'),('cheque','cheque'),('card','card'),('credit','credit')),default='cash')
     debtor = models.ForeignKey('Debtor', on_delete=models.CASCADE, null=True, blank=True, related_name='all_sales_transaction')
     credited_amount = models.FloatField(null=True,blank=True,default=0)
     amount_paid = models.FloatField(null=True,blank=True,default=0)
+    cashout_date = models.DateField(null=True,blank=True)
+    cheque_number = models.CharField(max_length=20,null=True,blank=True)
+
     def __str__(self):
         return f"Sales Transaction {self.pk} of {self.enterprise.name}"
     
@@ -130,6 +133,7 @@ class Sales(models.Model):
     total_price = models.FloatField(null=True,blank=True)
     sales_transaction = models.ForeignKey(SalesTransaction, on_delete=models.CASCADE,related_name='sales')
     returned = models.BooleanField(default=False)
+    returned_quantity = models.IntegerField(default=0, null=True, blank=True)
     sales_return = models.ForeignKey(
         SalesReturn,
         on_delete=models.SET_NULL,   # or CASCADE
@@ -151,6 +155,12 @@ class Sales(models.Model):
 
         # Call save again to update the quantity field
         super().save()
+
+class Bonus(models.Model):
+    sales_transaction = models.ForeignKey(SalesTransaction, on_delete=models.CASCADE,related_name='bonus')
+    product = models.ForeignKey('allinventory.Product', on_delete=models.CASCADE)
+    quantity = models.IntegerField()
+
 
 class VendorTransactions(models.Model):
 
@@ -243,12 +253,16 @@ class DebtorTransaction(models.Model):
     desc = models.CharField(max_length=255, null=True, blank=True)
     inventory = models.CharField(max_length=20, choices=(('all','all'),('phone','phone')), null=True, blank=True)
     due = models.FloatField(null=True, blank=True, default=0)
+    tds = models.FloatField(null=True, blank=True, default=0)
+    net_amount = models.FloatField(null=True, blank=True, default=0)
+    bill_no = models.CharField(max_length=20, null=True, blank=True)
     
     def __str__(self):
         return f"Debtor Transaction {self.pk} of {self.debtor.name}"
     
     @transaction.atomic
     def delete(self, *args, **kwargs):
+        print("HERE FOR AMOUNT", self.amount)
         self.debtor.due = self.debtor.due + self.amount if self.debtor.due is not None else self.amount
         self.debtor.save() 
         super().delete(*args, **kwargs)

@@ -220,7 +220,7 @@ export default function AllDebtorTransactions() {
                 </CardContent>
                 <div className="p-4 text-white text-right">
                     {tx.amount > 0 ? 'Received' : 'Credited'}:
-                  RS. {parseFloat(tx.amount).toLocaleString()}
+                       RS. {Math.abs(tx.amount).toFixed(2)}
                 </div>
               </Card>
             ))
@@ -256,7 +256,7 @@ export default function AllDebtorTransactions() {
       {/* Add New Debtor Transaction */}
       <Button
         className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={() => navigate(`/debtor-transactions/branch/${branchId}/form/`)}
+        onClick={() => navigate(`/debtor-transactions/form/branch/${branchId}/`)}
       >
         <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
       </Button>

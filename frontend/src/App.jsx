@@ -25,7 +25,6 @@ import InvoicePage from "./pages/invoicePage";
 import EditProductForm from "./components/editProductForm";
 import AllSalesReturns from "./pages/allSalesReturn";
 import StaffPage from "./pages/staffs";
-import AllBranchSelectionPage from "./pages/allBranchSelect";
 import StaffTransactions from "./pages/stafftransactions";
 import StaffTransactionForm from "./pages/staffTransactionForm";
 import StaffTransactionEditForm from "./pages/editStaffTransactionForm";
@@ -35,83 +34,73 @@ import EditDebtorTransactionForm from "./pages/editAllDebtors";
 import DebtorTransactionForm from "./pages/allDebtorTransactionForm";
 import AllVendorStatementPage from "./pages/allVendorStatementPage";
 import AllDebtorStatementPage from "./pages/allDebtorStatementPage";
-
+import BranchSelection from "./pages/branchSelection";
 
 function App() {
-  const { isAuthenticated } = useSelector((state) => state.root);
+  const { isAuthenticated, branchSelected } = useSelector((state) => state.root);
   useGlobalKeyPress();
   return (
     <Routes>
       {/* Protected Routes */}
-      <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
+      <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} branchSelected={branchSelected} />}>
         {/* All Landing Page */}
         <Route path="/" element={<AllLandingPage />} />
 
-        <Route path="/purchases" element={<AllBranchSelectionPage pageName="purchases" />} />
+        <Route path="/purchases" element={<AllPurchaseTransactions />} />
         <Route path="/purchases/branch/:branchId" element={<AllPurchaseTransactions />} />
-
+        <Route path="/purchases/bform" element={<AllPurchaseTransactionForm />} />
         <Route path="/purchases/form/branch/:branchId" element={<AllPurchaseTransactionForm />} />
-        <Route path="purchases/branch/:branchId/editform/:purchaseId" element={<EditAllPurchaseTransactionForm />} />
+        <Route path="/purchases/editform/:purchaseId/branch/:branchId" element={<EditAllPurchaseTransactionForm />} />
 
-        <Route path = "purchase-returns" element = {<AllBranchSelectionPage pageName="purchase-returns" />}/>
-        <Route path = "purchase-returns/branch/:branchId" element = {<AllPurchaseReturns/>}/>
+        <Route path="/purchase-returns" element={<AllPurchaseReturns/>}/>
+        <Route path="/purchase-returns/branch/:branchId" element={<AllPurchaseReturns/>}/>
 
+        <Route path="/inventory" element={<AllInventoryPageComponent />} />
+        <Route path="/inventory/branch/:branchId" element={<AllInventoryPageComponent />} />
+        <Route path="/inventory/brand/:id" element={<AllBrandProducts />} />
+        <Route path="/inventory/brand/:id/branch/:branchId" element={<AllBrandProducts />} />
+        <Route path="/inventory/editproduct/:productId/branch/:branchId" element={<EditProductForm/>} />
 
-        <Route path="inventory" element={<AllBranchSelectionPage pageName="inventory" />} />
-        <Route path="inventory/branch/:branchId" element={<AllInventoryPageComponent />} />
+        <Route path="/sales" element={<AllSalesTransactions />} />
+        <Route path="/sales/branch/:branchId" element={<AllSalesTransactions />} />
+        <Route path="/sales/form" element={<AllSalesTransactionForm />} />
+        <Route path="/sales/form/branch/:branchId" element={<AllSalesTransactionForm />} />
+        <Route path="/sales/editform/:salesId/branch/:branchId" element={<EditAllSalesTransactionForm />} />
 
-        <Route path="inventory/branch/:branchId/brand/:id" element={<AllBrandProducts />} />
-        <Route path="/inventory/branch/:branchId/editproduct/:productId" element={<EditProductForm/>} />
+        <Route path="/sales-returns" element={<AllSalesReturns/>}/>
+        <Route path="/sales-returns/branch/:branchId" element={<AllSalesReturns/>}/>
+        <Route path="/sales-report/branch/:branchId" element={<AllSalesReport/>}/>
+        <Route path="/staff" element={<StaffPage/>}/>
+        <Route path="/staff/branch/:branchId" element={<StaffPage/>}/>
 
+        <Route path="/vendors" element={<AllVendorPage />} />
+        <Route path="/vendors/branch/:branchId" element={<AllVendorPage />} />
+        <Route path="/vendors/statement/:vendorId" element={<AllVendorStatementPage />} />
 
+        <Route path="/invoice/:transactionId" element={<InvoicePage />} />
 
-        <Route path="brand/:id" element={<AllBrandProducts />} />
+        <Route path="/vendor-transactions/branch/:branchId" element={<AllVendorTransactions />}/>
+        <Route path="/vendor-transactions/form/branch/:branchId" element={<AllVendorTransactionForm />} />
+        <Route path="/vendor-transactions/editform/:vendorTransactionId/branch/:branchId" element={<EditAllVendorTransactionForm />} />
+        <Route path="/vendor-transactions/branch/:branchId/editform/:vendorTransactionId" element={<EditAllVendorTransactionForm />} />
 
-        <Route path="sales" element={<AllBranchSelectionPage pageName="sales" />} />
-        <Route path="sales/branch/:branchId" element={<AllSalesTransactions />} />
+        <Route path="/staff-transactions" element={<StaffTransactions />}/>
+        <Route path="/staff-transactions/branch/:branchId" element={<StaffTransactions />}/>
+        <Route path="/staff-transactions/:id" element={<StaffTransactions />}/> 
+        <Route path="/staff-transactions/form" element={<StaffTransactionForm />}/>
+        <Route path="/staff-transactions/form/branch/:branchId" element={<StaffTransactionForm />}/>
+        <Route path="/staff-transactions/editform/:id" element={<StaffTransactionEditForm />}/> 
+        <Route path="/staff-transactions/branch/:branchId/editform/:id" element={<StaffTransactionEditForm />}/> 
 
-        <Route path="sales/form/branch/:branchId" element={<AllSalesTransactionForm />} />
-        <Route path="sales/branch/:branchId/editform/:salesId" element={<EditAllSalesTransactionForm />} />
-
-        <Route path = "sales-returns" element = {<AllBranchSelectionPage pageName="sales-returns" />}/>
-        <Route path = "sales-returns/branch/:branchId" element = {<AllSalesReturns/>}/>
-
-        <Route path = "sales-report" element = {<AllBranchSelectionPage pageName="sales-report" />}/>
-        <Route path = "sales-report/branch/:branchId" element = {<AllSalesReport/>}/>
-
-        <Route path = "staff" element = {<AllBranchSelectionPage pageName="staff" />}/>
-        <Route path = "staff/branch/:branchId" element = {<StaffPage/>}/>
-
-
-
-
-        <Route path="vendors/" element={<AllBranchSelectionPage pageName="vendors" />} />
-        <Route path="vendors/statement/:vendorId" element={<AllVendorStatementPage />} />
-        <Route path="vendors/branch/:branchId" element={<AllVendorPage />} />
-        {/* <Route path="vendors/branch/:branchId/brand/:id" element={<AllVendorBrand />} /> */}
-
-        <Route path="invoice/:transactionId" element={<InvoicePage />} />
-
-
-        <Route path="vendor-transactions" element={<AllBranchSelectionPage pageName="vendor-transactions" />} />
-
-        <Route path="vendor-transactions/branch/:branchId" element={<AllVendorTransactions />}/>
-        <Route path="vendor-transactions/branch/:branchId/form" element={<AllVendorTransactionForm />} />
-        <Route path="vendor-transactions/branch/:branchId/editform/:vendorTransactionId" element={<EditAllVendorTransactionForm />} />
-
-        <Route path = "staff-transactions" element = {<AllBranchSelectionPage pageName="staff-transactions" />}/>
-        <Route path = "staff-transactions/branch/:branchId" element = {<StaffTransactions />}/>
-        <Route path = "staff-transactions/:id" element = {<StaffTransactions />}/> 
-        <Route path = "staff-transactions/branch/:branchId/form" element = {<StaffTransactionForm />}/>
-        <Route path = "staff-transactions/branch/:branchId/editform/:id" element = {<StaffTransactionEditForm />}/> 
-
-        <Route path="debtors" element={<AllBranchSelectionPage pageName="debtors" />} />
-        <Route path="debtors/branch/:branchId" element={<AllDebtorsPage />} />
-        <Route path="debtor-transactions" element={<AllBranchSelectionPage pageName="debtor-transactions" />} />
-        <Route path="debtor-transactions/branch/:branchId" element={<AllDebtorTransactions />} />
-        <Route path="debtor-transactions/branch/:branchId/form" element={<DebtorTransactionForm />} />
-        <Route path="debtor-transactions/branch/:branchId/editform/:debtorTransactionId" element={<EditDebtorTransactionForm />} />
-        <Route path="debtors/statement/:debtorId" element={<AllDebtorStatementPage />} />
+        <Route path="/debtors" element={<AllDebtorsPage />} />
+        <Route path="/debtors/branch/:branchId" element={<AllDebtorsPage />} />
+        <Route path="/debtor-transactions" element={<AllDebtorTransactions />} />
+        <Route path="/debtor-transactions/branch/:branchId" element={<AllDebtorTransactions />} />
+        <Route path="/debtor-transactions/form" element={<DebtorTransactionForm />} />
+        <Route path="/debtor-transactions/form/branch/:branchId" element={<DebtorTransactionForm />} />
+        <Route path="/debtor-transactions/editform/:debtorTransactionId" element={<EditDebtorTransactionForm />} />
+        <Route path="/debtor-transactions/branch/:branchId/editform/:debtorTransactionId" element={<EditDebtorTransactionForm />} />
+        <Route path="/debtors/statement/:debtorId" element={<AllDebtorStatementPage />} />
 
 
         

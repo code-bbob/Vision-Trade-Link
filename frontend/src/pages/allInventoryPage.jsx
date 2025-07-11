@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, ArrowLeft, Trash2, List, Smartphone } from 'lucide-react'
 import useAxios from '../utils/useAxios'
+import { getBranchId } from '../hooks/useBranchNavigate'
+import { useBranchNavigate } from '../hooks/useBranchNavigate'
 import Sidebar from '../components/allsidebar'
 import {
   Dialog,
@@ -34,7 +36,9 @@ import {
 export function AllInventoryPageComponent() {
   const api = useAxios()
   const navigate = useNavigate()
-  const { branchId } = useParams()
+  const branchNavigate = useBranchNavigate()
+  const { branchId: urlBranchId } = useParams()
+  const branchId = getBranchId(urlBranchId)
   const [brands, setBrands] = useState([])
   const [filteredBrands, setFilteredBrands] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -227,7 +231,7 @@ export function AllInventoryPageComponent() {
               <BrandCard
                 key={brand.id}
                 brand={brand}
-                onClick={() => navigate(`brand/${brand.id}`)}
+                onClick={() => branchNavigate(`/inventory/brand/${brand.id}`)}
                 onDelete={(e) => {
                   e.stopPropagation()
                   e.preventDefault()

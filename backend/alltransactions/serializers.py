@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Vendor, Purchase, PurchaseTransaction,PurchaseReturn, Sales, SalesTransaction, VendorTransactions, SalesReturn
+from .models import Vendor, Purchase, PurchaseTransaction,PurchaseReturn, Sales, SalesTransaction, VendorTransactions, SalesReturn, Bonus
 from django.db import transaction
 from allinventory.models import Product,Brand
 from alltransactions.models import Staff,StaffTransactions, Debtor, DebtorTransaction
@@ -602,171 +602,26 @@ class SalesSerializer(serializers.ModelSerializer):
     product_name = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = Sales
-        fields = ['id', 'product', 'quantity', 'unit_price', 'total_price','product_name','returned']
+        fields = ['id', 'product', 'quantity', 'unit_price', 'total_price','product_name','returned','returned_quantity']
         read_only_fields = ['total_price', 'returned']
 
     def get_product_name(self, obj):
         return obj.product.name
 
-# class SalesTransactionSerializer(serializers.ModelSerializer):  
-#     sales = SalesSerializer(many=True)
-#     date = serializers.DateField()
+class BonusSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+    product_name = serializers.SerializerMethodField(read_only=True)
 
-#     class Meta:
-#         model = SalesTransaction
-#         fields = '__all__'
-#     @transaction.atomic
-#     def create(self, validated_data):
-        
-#         sales = validated_data.pop('sales')
-#         # print(sales)
-#         transaction = SalesTransaction.objects.create(**validated_data)
+    class Meta:
+        model = Bonus
+        fields = ['id','product_name','product', 'quantity']
 
-
-#         for sale in sales:
-#             saleobj = Sales.objects.create(sales_transaction=transaction, **sale)
-#             product = saleobj.product
-#             product.count = (product.count - saleobj.quantity) if product.stock is not None else saleobj.quantity
-#             product.stock = (product.stock - saleobj.quantity*product.selling_price) if product.stock is not None else saleobj.quantity*product.selling_price
-#             brand = product.brand
-#             brand.count = (brand.count - saleobj.quantity) if brand.stock is not None else saleobj.quantity
-#             brand.stock = (brand.stock - saleobj.quantity*product.selling_price) if brand.stock is not None else saleobj.quantity*product.selling_price
-#             product.save()
-#             brand.save() 
-    
-#         transaction.calculate_total_amount()
-
-
-#         return transaction
-    
-#     def update(self, instance, validated_data):
-#         sales_data = validated_data.pop('sales', [])
-        
-#         # Update transaction fields
-#         for attr, value in validated_data.items():
-#             setattr(instance, attr, value)
-#         instance.save()
-
-#         # Begin an atomic transaction
-#         with transaction.atomic():
-#             # Keep track of existing sales
-#             existing_sales = {sale.id: sale for sale in instance.sales.all()}
-#             new_sales_ids = []
-
-#             for sale_data in sales_data:
-#                 sale_id = sale_data.get('id', None)
-#                 if sale_id and sale_id in existing_sales:
-#                     # Update existing sale
-#                     sale_instance = existing_sales[sale_id]
-                    
-#                     # Store old values
-#                     old_product = sale_instance.product
-#                     old_quantity = sale_instance.quantity or 0
-
-#                     # Get new values
-#                     new_product = sale_data.get('product', old_product)
-#                     new_quantity = sale_data.get('quantity', old_quantity) or 0
-
-#                     # Adjust stock and count for old product and brand if product has changed
-#                     if old_product != new_product:
-#                         # Increase stock and count in old product and brand
-#                         old_product.count = (old_product.count or 0) + old_quantity
-#                         old_product.stock = (old_product.stock or 0) + old_quantity * (old_product.selling_price or 0)
-#                         old_product.save()
-
-#                         old_brand = old_product.brand
-#                         old_brand.count = (old_brand.count or 0) + old_quantity
-#                         old_brand.stock = (old_brand.stock or 0) + old_quantity * (old_product.selling_price or 0)
-#                         old_brand.save()
-
-#                         # Decrease stock and count from new product and brand
-#                         new_product_instance = Product.objects.get(id=new_product.id)
-#                         new_product_quantity = new_quantity or 0
-#                         new_product_instance.count = (new_product_instance.count or 0) - new_product_quantity
-#                         new_product_instance.stock = (new_product_instance.stock or 0) - new_product_quantity * (new_product_instance.selling_price or 0)
-#                         new_product_instance.save()
-
-#                         new_brand = new_product_instance.brand
-#                         new_brand.count = (new_brand.count or 0) - new_product_quantity
-#                         new_brand.stock = (new_brand.stock or 0) - new_product_quantity * (new_product_instance.selling_price or 0)
-#                         new_brand.save()
-#                     else:
-#                         # Product hasn't changed, adjust stock and count based on quantity changes
-#                         quantity_diff = (new_quantity or 0) - (old_quantity or 0)
-#                         stock_diff = quantity_diff * (old_product.selling_price or 0)
-
-#                         # Update product stock and count
-#                         old_product.count = (old_product.count or 0) - quantity_diff
-#                         old_product.stock = (old_product.stock or 0) - stock_diff
-#                         old_product.save()
-
-#                         # Update brand stock and count
-#                         old_brand = old_product.brand
-#                         old_brand.count = (old_brand.count or 0) - quantity_diff
-#                         old_brand.stock = (old_brand.stock or 0) - stock_diff
-#                         old_brand.save()
-
-#                     # Update sale instance
-#                     for attr, value in sale_data.items():
-#                         setattr(sale_instance, attr, value)
-#                     sale_instance.save()
-#                     new_sales_ids.append(sale_instance.id)
-#                     del existing_sales[sale_id]
-#                 else:
-#                     # Create new sale
-#                     sale_data['sales_transaction'] = instance
-#                     new_sale = Sales.objects.create(**sale_data)
-#                     new_product = new_sale.product
-#                     new_quantity = new_sale.quantity or 0
-
-#                     new_product.count = (new_product.count or 0) - new_quantity
-#                     new_product.stock = (new_product.stock or 0) - new_quantity * (new_product.selling_price or 0)
-#                     new_product.save()
-
-#                     new_brand = new_product.brand
-#                     new_brand.count = (new_brand.count or 0) - new_quantity
-#                     new_brand.stock = (new_brand.stock or 0) - new_quantity * (new_product.selling_price or 0)
-#                     new_brand.save()
-
-#                     new_sales_ids.append(new_sale.id)
-
-#             # Delete sales that are not in the new data
-#             for sale in existing_sales.values():
-#                 old_product = sale.product
-#                 old_quantity = sale.quantity or 0
-
-#                 # Increase stock and count in old product and brand
-#                 old_product.count = (old_product.count or 0) + old_quantity
-#                 old_product.stock = (old_product.stock or 0) + old_quantity * (old_product.selling_price or 0)
-#                 old_product.save()
-
-#                 old_brand = old_product.brand
-#                 old_brand.count = (old_brand.count or 0) + old_quantity
-#                 old_brand.stock = (old_brand.stock or 0) + old_quantity * (old_product.selling_price or 0)
-#                 old_brand.save()
-
-#                 # Delete the sale
-#                 sale.delete()
-
-#             # Recalculate total amount
-            
-
-#             # Update the transaction's total price
-#             instance.save()
-#             instance.refresh_from_db()
-#             instance.calculate_total_amount()
-
-#         return instance
-
-#     def to_representation(self, instance):
-#         representation = super().to_representation(instance)
-#         # Format the date in 'YYYY-MM-DD' format for the response
-#         representation['date'] = instance.date.strftime('%Y-%m-%d')
-#         return representation
-
+    def get_product_name(self, obj):
+        return obj.product.name
 
 class SalesTransactionSerializer(serializers.ModelSerializer):  
     sales = SalesSerializer(many=True)
+    bonus = BonusSerializer(many=True)
     date = serializers.DateField()
 
     class Meta:
@@ -784,6 +639,7 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def create(self, validated_data):
         sales = validated_data.pop('sales')
+        bonus = validated_data.pop('bonus', [])
         transaction = SalesTransaction.objects.create(**validated_data)
 
         products_cache = {}
@@ -812,21 +668,71 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
             brand.stock = (brand.stock or 0) - qty * price
             brand.save()
 
+        if bonus:
+            desc += f'Bonus :\n'
+        for sale in bonus:
+            desc += f"{sale.get('product', {})} - {sale.get('quantity', 0)} pcs, \n"
+            bonusobj = Bonus.objects.create(sales_transaction=transaction, **sale)
+
+            # lock product for bonus sale
+            product = self._get_locked_product(bonusobj.product.id, products_cache)
+            qty = bonusobj.quantity or 0
+            price = product.selling_price or 0
+            product.count = (product.count or 0) - qty
+            product.stock = (product.stock or 0) - qty * price
+            product.save()
+
+            # lock brand for bonus sale
+            brand_obj = product.brand
+            if brand_obj.id not in brands_cache:
+                brands_cache[brand_obj.id] = brand_obj
+            brand = brands_cache[brand_obj.id]
+            brand.count = (brand.count or 0) - qty
+            brand.stock = (brand.stock or 0) - qty * price
+            brand.save()
         transaction.calculate_total_amount()
 
-        if transaction.method == 'credit':
-            debtor_id = transaction.debtor.id
-            debtor = Debtor.objects.select_for_update().get(id=debtor_id)
-            DebtorTransactionSerializer().create({
-                'debtor': debtor,
-                'amount': -transaction.credited_amount,
-                'date': transaction.date,
-                'method': transaction.method,
-                'desc': desc,
-                'all_sales_transaction': transaction,
-                'branch': transaction.branch,
-                'enterprise': transaction.enterprise
-            })
+        debtor_id = transaction.debtor.id
+        debtor = Debtor.objects.select_for_update().get(id=debtor_id)
+        DebtorTransactionSerializer().create({
+            'debtor': debtor,
+            'amount': -transaction.total_amount,
+            'date': transaction.date,
+            'method': 'credit',
+            'desc': desc,
+            'all_sales_transaction': transaction,
+            'branch': transaction.branch,
+            'enterprise': transaction.enterprise,
+            'bill_no': transaction.bill_no
+        })
+
+        if transaction.amount_paid:
+            if transaction.method == 'cash':
+                DebtorTransactionSerializer().create({
+                    'debtor': debtor,
+                    'amount': transaction.amount_paid,
+                    'date': transaction.date,
+                    'method': 'cash',
+                    'desc': 'Paid for sales',
+                    'all_sales_transaction': transaction,
+                    'branch': transaction.branch,
+                    'enterprise': transaction.enterprise,
+                    'bill_no': transaction.bill_no
+                })
+            elif transaction.method == 'cheque':
+                DebtorTransactionSerializer().create({
+                    'debtor': debtor,
+                    'amount': transaction.amount_paid,
+                    'date': transaction.date,
+                    'method': 'cheque',
+                    'cheque_number': transaction.cheque_number,
+                    'cashout_date': transaction.cashout_date,
+                    'desc': 'Paid for sales',
+                    'all_sales_transaction': transaction,
+                    'branch': transaction.branch,
+                    'enterprise': transaction.enterprise,
+                    'bill_no': transaction.bill_no
+                })
         return transaction
 
     @transaction.atomic
@@ -1181,7 +1087,7 @@ class PurchaseReturnSerializer(serializers.ModelSerializer):
 class SalesReturnSerializer(serializers.ModelSerializer):
    
     sales_transaction = SalesTransactionSerializer(read_only=True)
-    sales = SalesSerializer(many=True, read_only=True)  ##related name
+
 
     # Write-only fields for accepting the IDs in the request
     sales_transaction_id = serializers.PrimaryKeyRelatedField(
@@ -1189,14 +1095,16 @@ class SalesReturnSerializer(serializers.ModelSerializer):
         write_only=True,
         source='sales_transaction'
     )
-    sales_ids = serializers.PrimaryKeyRelatedField(
-        many=True,
-        queryset=Sales.objects.all(),
-        write_only=True
-    )
+    
+    returns = serializers.ListField(
+        write_only=True,
+        required=False)
+    
+    returned_sales = serializers.SerializerMethodField(read_only=True)
+    
 
     class Meta:
-        model = PurchaseReturn
+        model = SalesReturn
         fields = [
             'id',
             'date',
@@ -1204,115 +1112,104 @@ class SalesReturnSerializer(serializers.ModelSerializer):
             'enterprise',
             'sales_transaction',
             'sales_transaction_id',  # for write
-            'sales',                 # for read
-            'sales_ids',             # for write
+            'returns',               # for write
+            'returned_sales'         # for read
+            
         ]
 
     @transaction.atomic
     def create(self, validated_data):
-        sales_ids = validated_data.pop('sales_ids', [])
-
-        # Create the SalesReturn instance
+        returns = validated_data.pop('returns', {})
+        st = validated_data.get('sales_transaction', None)
+        discount = st.discount_percent
+        bonus = st.bonus_percent
+        amount_diff = 0
+        desc = "Sales return for :\n"
         sales_return = SalesReturn.objects.create(**validated_data)
 
-        # Memory caches
-        products_cache = {}
-        brands_cache = {}
-        total_unit_price = 0
-
-        # Attach each sale to this return
-        for sale in sales_ids:
+        for dict in returns:
+            sale = Sales.objects.get(id=dict['id'])
             sale.sales_return = sales_return
             sale.returned = True
+            sale.returned_quantity = dict['quantity']
             sale.save()
-            total_unit_price += sale.unit_price * sale.quantity
+            desc += f"{dict['quantity']} x {sale.product.name}, \n"
 
+            sale.product.count = (sale.product.count or 0) + dict['quantity']
+            sale.product.stock = (sale.product.stock or 0) + dict['quantity'] * sale.product.selling_price
+            sale.product.save()
+            sale.product.brand.count = (sale.product.brand.count or 0) + dict['quantity']
+            sale.product.brand.stock = (sale.product.brand.stock or 0) + dict['quantity'] * sale.product.selling_price
+            sale.product.brand.save()
+            return_quantity = dict['quantity']
+            amount_diff += ((100 - discount) * sale.total_price ) / ( (100 + bonus ) * sale.quantity ) * return_quantity
 
-            # Cache product
-            product_id = sale.product.id
-            if product_id not in products_cache:
-                products_cache[product_id] = sale.product
-            product = products_cache[product_id]
-            product.count = (product.count or 0) + sale.quantity
-            product.stock = (product.stock or 0) + sale.quantity * product.selling_price
-
-            # Cache brand
-            brand_id = product.brand.id
-            if brand_id not in brands_cache:
-                brands_cache[brand_id] = product.brand
-            brand = brands_cache[brand_id]
-            brand.count = (brand.count or 0) + sale.quantity
-            brand.stock = (brand.stock or 0) + sale.quantity * product.selling_price
-
-        # Save all cached objects once
-        for product in products_cache.values():
-            product.save()
-        for brand in brands_cache.values():
-            brand.save()
-        
-        if sales_return.sales_transaction.debtor:
-            debtor = sales_return.sales_transaction.debtor
-        
+        if st.debtor:
+            debtor = st.debtor
             if debtor.due is None:
                 debtor.due = 0
 
             DebtorTransactionSerializer().create({
                 'debtor': debtor,
-                'date': sales_return.date,
-                'amount': total_unit_price,
-                'desc': f'Sales return for transaction {sales_return.sales_transaction.bill_no}',
-                'method': sales_return.sales_transaction.method,
-                'all_sales_transaction': sales_return.sales_transaction,
-                'enterprise': sales_return.enterprise,
-                'branch': sales_return.branch,
-                'type': 'return'
+                'date': st.date,
+                'amount': amount_diff,
+                'desc': desc,
+                'all_sales_transaction': st,
+                'branch': st.branch,
+                'enterprise': st.enterprise,
+                'type': 'return',
+                'bill_no': st.bill_no,
             })
-
+        
+        
         return sales_return
-
+    
     @transaction.atomic
     def delete(self, instance):
-        sales_ids = instance.sales.all()
+        sales = instance.sales.all()
+        amount_diff = 0
 
-        # Memory caches
-        products_cache = {}
-        brands_cache = {}
-
-        for sale in sales_ids:
+        for sale in sales:
             sale.returned = False
+            returned_quantity = sale.returned_quantity
+            sale.returned_quantity = 0
+            sale.sales_return = None
             sale.save()
+            sale.product.count = (sale.product.count or 0) - returned_quantity
+            sale.product.stock = (sale.product.stock or 0) - returned_quantity * sale.product.selling_price
+            sale.product.save()
+            sale.product.brand.count = (sale.product.brand.count or 0) - returned_quantity
+            sale.product.brand.stock = (sale.product.brand.stock or 0) - returned_quantity * sale.product.selling_price
+            sale.product.brand.save()
 
-            # Cache product
-            product_id = sale.product.id
-            if product_id not in products_cache:
-                products_cache[product_id] = sale.product
-            product = products_cache[product_id]
-            product.count = (product.count or 0) - sale.quantity
-            product.stock = (product.stock or 0) - sale.quantity * product.selling_price
-
-            # Cache brand
-            brand_id = product.brand.id
-            if brand_id not in brands_cache:
-                brands_cache[brand_id] = product.brand
-            brand = brands_cache[brand_id]
-            brand.count = (brand.count or 0) - sale.quantity
-            brand.stock = (brand.stock or 0) - sale.quantity * product.selling_price
-
-        # Save all cached objects once
-        for product in products_cache.values():
-            product.save()
-        for brand in brands_cache.values():
-            brand.save()
-
-        if instance.sales_transaction.debtor:
-            debtor = instance.sales_transaction.debtor
         dt = DebtorTransaction.objects.filter(all_sales_transaction=instance.sales_transaction, type="return")
         if dt:
             for d in dt:
                 d.delete()
 
         instance.delete()
-        return instance
+        return amount_diff
+    
+    def get_returned_sales(self, obj):
+        """
+        Custom method to get the returned sales for the SalesReturn instance.
+        """
+        
+        sales = obj.sales.all()
+        print(obj)
+        sales = Sales.objects.filter(sales_return = obj, returned=True)
+        print(sales)
+        list = []
+        for sale in sales:
+            if sale.returned:
+                list.append({
+                    'id': sale.id,
+                    'product_name': sale.product.name,
+                    'quantity': sale.returned_quantity,
+                    'unit_price': sale.unit_price,
+                    'total_price': sale.total_price
+                })
+        return list
 
 class StaffSerializer(serializers.ModelSerializer):
     class Meta:

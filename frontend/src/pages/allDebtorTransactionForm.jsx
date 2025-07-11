@@ -34,8 +34,11 @@ export default function DebtorTransactionForm() {
     date: new Date().toISOString().split("T")[0],
     method: "cash",
     cashout_date: new Date().toISOString().split("T")[0],
+    cheque_number: "",
     debtor: "",
     amount: "",
+    tds: "",
+    net_amount: "",
     desc: "",
     branch: branchId,
   });
@@ -51,6 +54,7 @@ export default function DebtorTransactionForm() {
   });
   const [openDebtor, setOpenDebtor] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [tdsPercent, setTdsPercent] = useState("");
 
   useEffect(() => {
     api
@@ -62,7 +66,38 @@ export default function DebtorTransactionForm() {
 
   const handleChange = e => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (name === 'tdsPercent') {
+      setTdsPercent(value);
+      // Calculate TDS amount and net amount
+      const amount = parseFloat(formData.amount) || 0;
+      const percent = parseFloat(value) || 0;
+      const tdsAmount = (amount * percent) / 100;
+      const netAmount = amount - tdsAmount;
+      
+      setFormData(prev => ({
+        ...prev,
+        tds: tdsAmount.toString(),
+        net_amount: netAmount.toString()
+      }));
+    } else {
+      setFormData(prev => {
+        const updated = { ...prev, [name]: value };
+        
+        // Calculate TDS and net amount when amount changes
+        if (name === 'amount') {
+          const amount = parseFloat(value) || 0;
+          const percent = parseFloat(tdsPercent) || 0;
+          const tdsAmount = (amount * percent) / 100;
+          const netAmount = amount - tdsAmount;
+          
+          updated.tds = tdsAmount.toString();
+          updated.net_amount = netAmount.toString();
+        }
+        
+        return updated;
+      });
+    }
   };
 
   const handleDebtorSelect = value => {
@@ -90,6 +125,7 @@ export default function DebtorTransactionForm() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      console.log("Submitting debtor transaction data:", formData);
       await api.post("alltransaction/debtortransaction/", formData);
       navigate(`/debtor-transactions/branch/${branchId}`);
     } catch {
@@ -163,22 +199,41 @@ export default function DebtorTransactionForm() {
               </div>
 
               {formData.method === "cheque" && (
-                <div className="flex flex-col">
-                  <Label
-                    htmlFor="cashout_date"
-                    className="text-sm font-medium text-white mb-2"
-                  >
-                    Cashout Date
-                  </Label>
-                  <Input
-                    type="date"
-                    id="cashout_date"
-                    name="cashout_date"
-                    value={formData.cashout_date}
-                    onChange={handleChange}
-                    className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
-                  />
-                </div>
+                <>
+                  <div className="flex flex-col">
+                    <Label
+                      htmlFor="cashout_date"
+                      className="text-sm font-medium text-white mb-2"
+                    >
+                      Cashout Date
+                    </Label>
+                    <Input
+                      type="date"
+                      id="cashout_date"
+                      name="cashout_date"
+                      value={formData.cashout_date}
+                      onChange={handleChange}
+                      className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <Label
+                      htmlFor="cheque_number"
+                      className="text-sm font-medium text-white mb-2"
+                    >
+                      Cheque Number
+                    </Label>
+                    <Input
+                      type="text"
+                      id="cheque_number"
+                      name="cheque_number"
+                      value={formData.cheque_number}
+                      onChange={handleChange}
+                      className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="Enter cheque number"
+                    />
+                  </div>
+                </>
               )}
             </div>
 
@@ -240,22 +295,6 @@ export default function DebtorTransactionForm() {
               </Popover>
             </div>
 
-            {/* Amount & Description */}
-            <div className="flex flex-col">
-              <Label htmlFor="amount" className="text-sm font-medium text-white mb-2">
-                Amount Received
-              </Label>
-              <Input
-                type="number"
-                id="amount"
-                name="amount"
-                value={formData.amount}
-                onChange={handleChange}
-                required
-                className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
-                placeholder="Enter amount"
-              />
-            </div>
             <div className="flex flex-col">
               <Label htmlFor="desc" className="text-sm font-medium text-white mb-2">
                 Description
@@ -269,6 +308,77 @@ export default function DebtorTransactionForm() {
                 className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
               />
             </div>
+
+            {/* Amount, TDS & Net Amount */}
+            <div className="flex flex-col">
+              <Label htmlFor="amount" className="text-sm font-medium text-white mb-2">
+                Gross Amount
+              </Label>
+              <Input
+                type="number"
+                id="amount"
+                name="amount"
+                value={formData.amount}
+                onChange={handleChange}
+                required
+                className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                placeholder="Enter gross amount"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="flex flex-col">
+                <Label htmlFor="tdsPercent" className="text-sm font-medium text-white mb-2">
+                  TDS Percentage (%)
+                </Label>
+                <Input
+                  type="number"
+                  id="tdsPercent"
+                  name="tdsPercent"
+                  value={tdsPercent}
+                  onChange={handleChange}
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="Enter TDS %"
+                />
+              </div>
+
+              <div className="flex flex-col">
+                <Label htmlFor="tdsAmount" className="text-sm font-medium text-white mb-2">
+                  TDS Amount
+                </Label>
+                <Input
+                  type="number"
+                  id="tdsAmount"
+                  value={formData.tds}
+                  readOnly
+                  className="bg-slate-600 border-slate-600 text-white cursor-not-allowed"
+                  placeholder="Auto-calculated"
+                />
+              </div>
+
+              <div className="flex flex-col">
+                <Label htmlFor="netAmount" className="text-sm font-medium text-white mb-2">
+                  Net Amount
+                </Label>
+                <Input
+                  type="number"
+                  id="netAmount"
+                  value={formData.net_amount}
+                  readOnly
+                  className="bg-slate-600 border-slate-600 text-white cursor-not-allowed"
+                  placeholder="Auto-calculated"
+                />
+              </div>
+            </div>
+            
+            <div className="text-sm text-slate-400 mt-2">
+              <p>Note: TDS amount and Net amount are automatically calculated based on the gross amount and TDS percentage.</p>
+            </div>
+
+            
 
             {/* Submit */}
             <Button

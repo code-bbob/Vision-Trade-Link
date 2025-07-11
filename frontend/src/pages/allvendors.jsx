@@ -14,7 +14,8 @@ import {
   Trash2,
 } from "lucide-react";
 import useAxios from "../utils/useAxios";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useBranchId } from "../hooks/useBranch";
 import { Button } from "@/components/ui/button";
 import Sidebar from "../components/allsidebar";
 import { Label } from "@/components/ui/label";
@@ -44,7 +45,7 @@ import { cn } from "@/lib/utils";
 
 export default function AllVendorPage() {
   const api = useAxios();
-  const { branchId, id } = useParams();
+  const branchId = useBranchId();
   const navigate = useNavigate();
 
   const [phones, setPhones] = useState([]);

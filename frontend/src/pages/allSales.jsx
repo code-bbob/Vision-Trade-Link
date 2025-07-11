@@ -11,10 +11,11 @@ import useAxios from '@/utils/useAxios'
 import { format } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '@/components/allsidebar'
-import { useParams } from 'react-router-dom';
+import { useBranchId } from '@/hooks/useBranch'
 
 export default function AllSalesTransactions() {
   const api = useAxios()
+  const branchId = useBranchId()
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -28,8 +29,6 @@ export default function AllSalesTransactions() {
     previous: null,
     count: 0
   })
-  const { branchId } = useParams();
-
 
   const navigate = useNavigate()
 
@@ -208,7 +207,7 @@ export default function AllSalesTransactions() {
         <div className="space-y-6">
           {transactions?.length > 0 ? (
             transactions?.map((transaction) => (
-              <Card key={`${transaction.id}-${transaction.date}`} onClick={() => navigate(`editform/${transaction.id}`)} className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <Card key={`${transaction.id}-${transaction.date}`} onClick={() => navigate(`/sales/editform/${transaction.id}/branch/${branchId}`)} className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="border-b border-slate-700">
                   <CardTitle className="text-lg lg:text-xl font-medium text-white flex flex-col lg:flex-row justify-between items-start lg:items-center">
                     <div>
@@ -231,9 +230,8 @@ export default function AllSalesTransactions() {
                       </div>
                     </div>
                   ))}
-                  <div className="mt-4 flex justify-between text-white font-bold">
-                    <Button onClick={(e)=> handleInvoice(e,transaction.id)} className="bg-purple-600 hover:bg-purple-700 text-white">View Invoice</Button>
-                    <div>Total Amount: RS. {transaction?.total_amount?.toLocaleString()}</div>
+                  <div className="mt-4 flex justify-end text-white font-bold">
+                    <div >Total Amount: RS. {transaction?.total_amount?.toLocaleString()}</div>
                   </div>
                 </CardContent>
               </Card>

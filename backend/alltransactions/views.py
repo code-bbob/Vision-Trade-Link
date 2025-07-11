@@ -65,7 +65,7 @@ class PurchaseTransactionView(APIView):
                 date__range=(start_date, end_date)
             )
 
-        transactions = transactions.order_by('-id')
+        transactions = transactions.order_by('-date','-id')
 
 
         paginator = PageNumberPagination()
@@ -186,7 +186,7 @@ class SalesTransactionView(APIView):
                 date__range=(start_date, end_date)
             )
 
-        transactions = transactions.order_by('-id')
+        transactions = transactions.order_by('-date','-id')
 
 
         paginator = PageNumberPagination()
@@ -214,33 +214,6 @@ class SalesTransactionView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors)
-        
-        # @transaction.atomic
-        # def delete(self,request,pk,format=None):
-        #     sales_transaction = SalesTransaction.objects.get(id=pk)
-        #     role = request.user.person.role
-        #     modify_stock = request.GET.get('flag')
-        #     if role != "Admin":
-        #         return Response("Unauthorized")
-        #     if modify_stock == 'false':
-        #         sales_transaction.delete()
-        #         return Response("Deleted")
-        #     sales = sales_transaction.sales.all()
-        #     for sale in sales:
-        #         if not sales.returned:
-        #             product = sale.product
-        #             product.count += sale.quantity
-        #             product.stock += sale.product.selling_price * sale.quantity
-        #             product.save()
-        #             brand = product.brand
-        #             brand.count += sale.quantity
-        #             brand.stock += sale.product.selling_price * sale.quantity
-        #             brand.save()
-        #     dt = DebtorTransaction.objects.filter(all_sales_transaction=sales_transaction).first()
-        #     if dt:
-        #         dt.delete()
-        #     sales_transaction.delete()
-        #     return Response("Deleted")
 
     @transaction.atomic
     def delete(self, request, pk, format=None):
@@ -254,10 +227,13 @@ class SalesTransactionView(APIView):
             return Response("Deleted")
 
         sales = sales_transaction.sales.all()
+        bonuses = sales_transaction.bonus.all()
 
         # Memory caches for products and brands
         products_cache = {}
         brands_cache = {}
+        bonus_product_cache = {}
+        bonus_brand_cache = {}
 
         for sale in sales:
             # preserve your original check
@@ -277,16 +253,31 @@ class SalesTransactionView(APIView):
                 brand = brands_cache[bid]
                 brand.count += sale.quantity
                 brand.stock += sale.product.selling_price * sale.quantity
+        
+        for sale in bonuses:
+            pid = sale.product.id
+            if pid not in products_cache:
+                products_cache[pid] = sale.product
+            product = products_cache[pid]
+            product.count += sale.quantity
+            product.stock += sale.product.selling_price * sale.quantity
 
+            # cache and update brand
+            bid = product.brand.id
+            if bid not in brands_cache:
+                brands_cache[bid] = product.brand
+            brand = brands_cache[bid]
+            brand.count += sale.quantity
+            brand.stock += sale.product.selling_price * sale.quantity
         # save each unique product and brand once
-        print(products_cache)
+
         for product in products_cache.values():
             product.save()
         for brand in brands_cache.values():
             brand.save()
 
-        dt = DebtorTransaction.objects.filter(all_sales_transaction=sales_transaction).first()
-        if dt:
+        dts = DebtorTransaction.objects.filter(all_sales_transaction=sales_transaction)
+        for dt in dts:
             dt.delete()
 
         sales_transaction.delete()
@@ -348,7 +339,7 @@ class VendorTransactionView(APIView):
                 date__range=(start_date, end_date)
             )
 
-        vendor_transactions = vendor_transactions.order_by('-id')
+        vendor_transactions = vendor_transactions.order_by('-date','-id')
 
         paginator = PageNumberPagination()
         paginator.page_size = 5  # Set the page size here
@@ -535,7 +526,7 @@ class PurchaseReturnView(APIView):
         # ---------------------------------
         # 3) Sort and Paginate the Results
         # ---------------------------------
-        purchase_returns = purchase_returns.order_by('-id')  # Sorting
+        purchase_returns = purchase_returns.order_by('-date','-id')  # Sorting
 
         paginator = PageNumberPagination()
         paginator.page_size = 5  # Set your desired page size
@@ -808,7 +799,7 @@ class SalesReturnView(APIView):
         # ---------------------------------
         # 3) Sort and Paginate the Results
         # ---------------------------------
-        sales_returns = sales_returns.order_by('-id')  # Sorting
+        sales_returns = sales_returns.order_by('-date','-id')  # Sorting
 
         paginator = PageNumberPagination()
         paginator.page_size = 5  # Set your desired page size
@@ -911,7 +902,7 @@ class DebtorTransactionView(APIView):
                 date__range=(start_date, end_date)
             )
 
-        debtor_transactions = debtor_transactions.order_by('-id')
+        debtor_transactions = debtor_transactions.order_by('-date','-id')
 
 
         paginator = PageNumberPagination()
@@ -1023,7 +1014,7 @@ class DebtorStatementView(APIView):
                 date__lte=end_date
             )
 
-        debtor_transactions = debtor_transactions.order_by('id')
+        debtor_transactions = debtor_transactions.order_by('-date','id')
         debtor = DebtorSerializer(debtor).data
         dts = DebtorTransactionSerializer(debtor_transactions, many=True).data
         return Response({'debtor_data': debtor, 'debtor_transactions': dts})

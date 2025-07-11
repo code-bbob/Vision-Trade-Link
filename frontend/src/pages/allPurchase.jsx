@@ -9,12 +9,17 @@ import { Label } from "@/components/ui/label"
 import { Calendar, ChevronLeft, ChevronRight, Search, Plus, ArrowLeft } from 'lucide-react'
 import useAxios from '@/utils/useAxios'
 import { format } from 'date-fns'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import Sidebar from '@/components/allsidebar'
-import { useParams } from 'react-router-dom';
+import { getBranchId } from '@/hooks/useBranchNavigate'
+import { useBranchNavigate } from '@/hooks/useBranchNavigate'
 
 export default function AllPurchaseTransactions() {
   const api = useAxios()
+  const navigate = useNavigate()
+  const branchNavigate = useBranchNavigate()
+  const { branchId: urlBranchId } = useParams()
+  const branchId = getBranchId(urlBranchId)
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -28,9 +33,6 @@ export default function AllPurchaseTransactions() {
     previous: null,
     count: 0
   })
-
-  const navigate = useNavigate()
-  const { branchId } = useParams()
 
   async function fetchPaginatedData(url) {
     setLoading(true)
@@ -196,7 +198,7 @@ export default function AllPurchaseTransactions() {
         <div className="space-y-6">
           {transactions.length > 0 ? (
             transactions.map((transaction) => (
-              <Card key={`${transaction.id}-${transaction.date}`} onClick={() => navigate(`editform/${transaction.id}`)} className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <Card key={`${transaction.id}-${transaction.date}`} onClick={() => branchNavigate(`/purchases/editform/${transaction.id}`)} className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="border-b border-slate-700">
                   <CardTitle className="text-lg lg:text-xl font-medium text-white flex flex-col lg:flex-row justify-between items-start lg:items-center">
                     <div>
@@ -254,7 +256,7 @@ export default function AllPurchaseTransactions() {
       </div>
       <Button
         className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={() => navigate(`/purchases/form/branch/${branchId}`)}
+        onClick={() => branchNavigate(`/purchases/form`)}
       >
         <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
       </Button>

@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search, ArrowLeft, Trash2, Plus, User } from "lucide-react";
 import useAxios from "../utils/useAxios";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useBranchId } from "../hooks/useBranch";
 import { Button } from "@/components/ui/button";
 import Sidebar from "../components/allsidebar";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,7 +21,7 @@ import { Label } from "@/components/ui/label";
 
 export default function AllDebtorsPage() {
   const api = useAxios();
-  const { branchId } = useParams();
+  const branchId = useBranchId();
   const navigate = useNavigate();
 
   const [debtors, setDebtors] = useState([]);

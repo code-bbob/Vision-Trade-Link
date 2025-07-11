@@ -41,7 +41,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import NewProductDialog from "@/components/newProductDialog";
 import { Checkbox } from "./ui/checkbox";
 
 export default function EditAllSalesTransactionForm() {
@@ -59,36 +58,24 @@ export default function EditAllSalesTransactionForm() {
     branch: "",
     sales: [],
     method: "",
-    // Debtor fields
     debtor: null,
     amount_paid: null,
     credited_amount: "",
+    bonusSales: [],
+    cheque_number: "",
+    cashout_date: "",
+    bonus_percent: 0,
+    discount_percent: 0,
   });
 
   // Data lists
   const [products, setProducts] = useState([]);
-  const [brands, setBrands] = useState([]);
   const [debtors, setDebtors] = useState([]);
-  const [branchList, setBranchList] = useState([]);
   const [userBranch, setUserBranch] = useState({});
 
   // UI state
   const [openProduct, setOpenProduct] = useState([]);
-  const [openBrand, setOpenBrand] = useState(false);
   const [openDebtor, setOpenDebtor] = useState(false);
-  const [showNewProductDialog, setShowNewProductDialog] = useState(false);
-  const [showNewBrandDialog, setShowNewBrandDialog] = useState(false);
-  const [showNewDebtorDialog, setShowNewDebtorDialog] = useState(false);
-
-  // New entity data
-  const [newProductData, setNewProductData] = useState({ name: "", brand: "" });
-  const [newBrandName, setNewBrandName] = useState("");
-  const [newDebtorData, setNewDebtorData] = useState({
-    name: "",
-    phone_number: "",
-    due: "",
-    branch: branchId, // Assuming debtor belongs to the same branch
-  });
 
   // Loading and errors
   const [loading, setLoading] = useState(true);
@@ -96,6 +83,11 @@ export default function EditAllSalesTransactionForm() {
   const [subLoading, setSubLoading] = useState(false);
   const [returns, setReturns] = useState([]);
   const [returned, setReturned] = useState(false);
+
+  // Return dialog state
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [currentReturnSale, setCurrentReturnSale] = useState(null);
+  const [returnQuantity, setReturnQuantity] = useState("");
 
   // Delete confirmation
   const [isChecked, setIsChecked] = useState(false);
@@ -108,18 +100,16 @@ export default function EditAllSalesTransactionForm() {
   const [discountValue, setDiscountValue] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
 
-  // Fetch initial data: products, brands, transaction, debtors
+  // Fetch initial data
   useEffect(() => {
     async function fetchData() {
       try {
-        const [prodRes, brandRes, saleRes, debtorRes] = await Promise.all([
+        const [prodRes, saleRes, debtorRes] = await Promise.all([
           api.get(`allinventory/product/branch/${branchId}/`),
-          api.get(`allinventory/brand/branch/${branchId}/`),
           api.get(`alltransaction/salestransaction/${salesId}/`),
           api.get(`alltransaction/debtors/branch/${branchId}/`),
         ]);
         setProducts(prodRes.data);
-        setBrands(brandRes.data);
         setDebtors(debtorRes.data);
 
         const data = saleRes.data;
@@ -143,6 +133,11 @@ export default function EditAllSalesTransactionForm() {
           amount_paid: data.amount_paid,
           discount: data.discount,
           credited_amount: data.credited_amount?.toString() || "",
+          bonusSales: data.bonus || [],
+          cheque_number: data.cheque_number || "",
+          cashout_date: data.cashout_date || "",
+          bonus_percent: data.bonus_percent || 0,
+          discount_percent: data.discount_percent || 0,
         });
         setDiscountValue(data.discount?.toString() || "");
         setOpenProduct(new Array(data.sales.length).fill(false));
@@ -160,11 +155,7 @@ export default function EditAllSalesTransactionForm() {
   useEffect(() => {
     async function fetchBranch() {
       try {
-        const [blRes, ubRes] = await Promise.all([
-          api.get("enterprise/branch/"),
-          api.get("enterprise/getbranch/"),
-        ]);
-        setBranchList(blRes.data);
+        const ubRes = await api.get("enterprise/getbranch/");
         setUserBranch(ubRes.data);
         if (ubRes.data.id) {
           setFormData((prev) => ({
@@ -214,26 +205,23 @@ export default function EditAllSalesTransactionForm() {
     }));
   }, [formData.amount_paid, totalAmount]);
 
-  // Handlers
   // Checkbox confirmation handlers
   const handleCheckboxClick = () => {
-    // Open confirmation dialog when checking
     if (!isChecked) {
       setIsDialogOpen(true);
     } else {
-      // Unchecking resets selection
       setIsChecked(false);
       setModifyStock(true);
     }
   };
+
   const handleConfirm = () => {
-    // User confirmed not to modify stock
     setIsChecked(true);
     setModifyStock(false);
     setIsDialogOpen(false);
   };
+
   const handleCancel = () => {
-    // Close confirmation without changing checkbox
     setIsDialogOpen(false);
   };
 
@@ -261,37 +249,62 @@ export default function EditAllSalesTransactionForm() {
   };
 
   const handleProductChange = (index, value) => {
-    if (value === "new") {
-      setShowNewProductDialog(true);
-    } else {
-      const prod = products.find((p) => p.id.toString() === value);
-      const updated = [...formData.sales];
-      updated[index] = {
-        ...updated[index],
-        product: value,
-        unit_price: prod
-          ? prod.selling_price.toString()
-          : updated[index].unit_price,
-      };
-      updated[index].total_price = calculateTotalPrice(
-        parseFloat(updated[index].unit_price),
-        parseFloat(updated[index].quantity) || 0
-      ).toString();
-      setFormData({ ...formData, sales: updated });
-    }
+    const prod = products.find((p) => p.id.toString() === value);
+    const updated = [...formData.sales];
+    updated[index] = {
+      ...updated[index],
+      product: value,
+      unit_price: prod
+        ? prod.selling_price.toString()
+        : updated[index].unit_price,
+    };
+    updated[index].total_price = calculateTotalPrice(
+      parseFloat(updated[index].unit_price),
+      parseFloat(updated[index].quantity) || 0
+    ).toString();
+    setFormData({ ...formData, sales: updated });
+
     const op = [...openProduct];
     op[index] = false;
     setOpenProduct(op);
   };
 
-  const appendReturn = (id) => {
-    setReturns((r) => [...r, id]);
+  // Modified return handlers
+  const handleReturnClick = (sale) => {
+    setCurrentReturnSale(sale);
+    setReturnQuantity("");
+    setReturnDialogOpen(true);
+  };
+
+  const handleReturnConfirm = () => {
+    if (!currentReturnSale || !returnQuantity) return;
+
+    const qty = parseFloat(returnQuantity);
+    const maxQty = parseFloat(currentReturnSale.quantity);
+
+    if (qty <= 0 || qty > maxQty) {
+      setError(`Return quantity must be between 1 and ${maxQty}`);
+      return;
+    }
+
+    setReturns((r) => [
+      ...r,
+      {
+        id: currentReturnSale.id,
+        quantity: qty,
+      },
+    ]);
+
     setFormData((prev) => ({
       ...prev,
       sales: prev.sales.map((s) =>
-        s.id === id ? { ...s, returned: true } : s
+        s.id === currentReturnSale.id ? { ...s, returned: true } : s
       ),
     }));
+
+    setReturnDialogOpen(false);
+    setCurrentReturnSale(null);
+    setReturnQuantity("");
   };
 
   const handleReturn = async (e) => {
@@ -299,7 +312,7 @@ export default function EditAllSalesTransactionForm() {
     setSubLoading(true);
     try {
       await api.post("alltransaction/sales-return/", {
-        sales_ids: returns,
+        returns: returns, // Changed to send array of {id, quantity}
         sales_transaction_id: salesId,
         branch: branchId,
       });
@@ -351,94 +364,6 @@ export default function EditAllSalesTransactionForm() {
     }
   };
 
-  const handleAddProduct = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await api.post("allinventory/product/", newProductData);
-      setProducts((p) => [...p, res.data]);
-      setNewProductData({ name: "", brand: "", branch: branchId });
-      setShowNewProductDialog(false);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to add new product");
-    }
-  };
-
-  const handleNewProductChange = (e) => {
-    const { name, value } = e.target;
-    setNewProductData({ ...newProductData, [name]: value });
-  };
-
-  const handleNewProductBrandChange = (value) => {
-    if (value === "new") {
-      setShowNewBrandDialog(true);
-    } else {
-      setNewProductData({ ...newProductData, brand: value });
-    }
-    setOpenBrand(false);
-  };
-
-  const handleAddBrand = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await api.post("allinventory/brand/", { name: newBrandName, branch: branchId });
-      setBrands((b) => [...b, res.data]);
-      setNewBrandName("");
-      setShowNewBrandDialog(false);
-      setNewProductData((prev) => ({ ...prev, brand: res.data.id.toString() }));
-    } catch (err) {
-      console.error(err);
-      setError("Failed to add new brand");
-    }
-  };
-
-  const addNewDebtor = async () => {
-    try {
-      const res = await api.post("alltransaction/debtors/", newDebtorData);
-      setDebtors((d) => [...d, res.data]);
-      setFormData((prev) => ({ ...prev, debtor: res.data.id }));
-      setNewDebtorData({ name: "", phone_number: "", due: "", branch: branchId });
-      setShowNewDebtorDialog(false);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to add debtor");
-    }
-  };
-  console.log("Form Data:", discountValue);
-  console.log("original Sales Data:", originalSalesData?.discount);
-  console.log(formData.discount == originalSalesData?.discount);
-  const hasFormChanged = () => {
-    if (!originalSalesData) return false;
-    // compare top-level fields
-    if (
-      formData.date !== originalSalesData.date ||
-      formData.name !== originalSalesData.name ||
-      formData.phone_number !== originalSalesData.phone_number?.toString() ||
-      formData.bill_no !== originalSalesData.bill_no ||
-      formData.branch !== originalSalesData.branch?.toString() ||
-      formData.method !== originalSalesData.method ||
-      formData.debtor !== originalSalesData.debtor ||
-      formData.amount_paid !== originalSalesData.amount_paid ||
-      parseFloat(discountValue || 0) !== parseFloat(originalSalesData.discount || 0) ||
-
-      formData.sales.length !== originalSalesData.sales.length
-    )
-      return true;
-    // compare each sale
-    for (let i = 0; i < formData.sales.length; i++) {
-      const s = formData.sales[i];
-      const o = originalSalesData.sales[i];
-      if (
-        s.product !== o.product.toString() ||
-        s.unit_price !== o.unit_price.toString() ||
-        s.quantity !== o.quantity.toString() ||
-        s.total_price !== o.total_price.toString()
-      )
-        return true;
-    }
-    return false;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubLoading(true);
@@ -463,7 +388,9 @@ export default function EditAllSalesTransactionForm() {
     }
   };
 
-  if (loading) return <div className="text-white min-h-screen">Loading...</div>;
+  if (loading) return <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
+        Loading...
+      </div>;
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-gradient-to-br from-slate-900 to-slate-800">
@@ -483,6 +410,7 @@ export default function EditAllSalesTransactionForm() {
             Edit Sales Transaction
           </h2>
           {error && <p className="text-red-400 mb-4">{error}</p>}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Date */}
             <div className="flex flex-col">
@@ -502,40 +430,68 @@ export default function EditAllSalesTransactionForm() {
                 required
               />
             </div>
-            {/* Name */}
+
+            {/* Debtor */}
             <div className="flex flex-col">
               <Label
-                htmlFor="name"
-                className="text-lg font-medium text-white mb-2"
+                htmlFor="debtor"
+                className="text-sm font-medium text-white mb-2"
               >
-                Customer's Name
+                Debtor
               </Label>
-              <Input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="w-full bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
-              />
+              <Popover open={openDebtor} onOpenChange={setOpenDebtor}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openDebtor}
+                    className="w-full justify-between bg-slate-600 border-slate-500 text-white hover:bg-slate-500"
+                  >
+                    {formData?.debtor
+                      ? debtors.find((d) => d.id === formData.debtor)?.name
+                      : "Select a debtor..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0 bg-slate-700 border-slate-600">
+                  <Command className="bg-slate-700 border-slate-600">
+                    <CommandInput
+                      placeholder="Search debtor..."
+                      className="bg-slate-700 text-white"
+                    />
+                    <CommandList>
+                      <CommandEmpty>No debtor found.</CommandEmpty>
+                      <CommandGroup>
+                        {debtors.map((debtor) => (
+                          <CommandItem
+                            key={debtor.id}
+                            onSelect={() => {
+                              setFormData({
+                                ...formData,
+                                debtor: debtor.id.toString(),
+                              });
+                              setOpenDebtor(false);
+                            }}
+                            className="text-white hover:bg-slate-600"
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                formData.debtor === debtor?.id?.toString()
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            {debtor.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
-            {/* Phone */}
-            <div className="flex flex-col">
-              <Label
-                htmlFor="phone_number"
-                className="text-lg font-medium text-white mb-2"
-              >
-                Customer's Phone number
-              </Label>
-              <Input
-                type="text"
-                id="phone_number"
-                name="phone_number"
-                value={formData.phone_number}
-                onChange={handleChange}
-                className="w-full bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
-              />
-            </div>
+
             {/* Bill No */}
             <div className="flex flex-col">
               <Label
@@ -554,6 +510,7 @@ export default function EditAllSalesTransactionForm() {
                 required
               />
             </div>
+
             {/* Sales items */}
             <h3 className="text-xl font-semibold mb-2 text-white">Sales</h3>
             {formData.sales.map((sale, index) => (
@@ -565,31 +522,16 @@ export default function EditAllSalesTransactionForm() {
                   <h4 className="text-lg font-semibold text-white">
                     Sale {index + 1}
                   </h4>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button className="bg-blue-500" disabled={sale.returned}>
-                        Returned
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-slate-800 text-white">
-                      <DialogHeader>
-                        <DialogTitle>Are you absolutely sure?</DialogTitle>
-                        <DialogDescription>
-                          This action cannot be undone. This will permanently
-                          save your purchase as returned.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <DialogClose asChild>
-                        <Button
-                          onClick={() => appendReturn(sale.id)}
-                          className="w-full bg-red-600 hover:bg-red-700 text-white mt-6"
-                        >
-                          Yes
-                        </Button>
-                      </DialogClose>
-                    </DialogContent>
-                  </Dialog>
+                  <Button
+                    type="button"
+                    className="bg-blue-500 hover:bg-blue-600"
+                    disabled={sale.returned}
+                    onClick={() => handleReturnClick(sale)}
+                  >
+                    Return
+                  </Button>
                 </div>
+
                 {/* Product */}
                 <div className="space-y-4">
                   <div className="flex flex-col">
@@ -651,21 +593,13 @@ export default function EditAllSalesTransactionForm() {
                                   {p.name}
                                 </CommandItem>
                               ))}
-                              <CommandItem
-                                onSelect={() =>
-                                  handleProductChange(index, "new")
-                                }
-                                className="text-white hover:bg-slate-600"
-                              >
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Add a new product
-                              </CommandItem>
                             </CommandGroup>
                           </CommandList>
                         </Command>
                       </PopoverContent>
                     </Popover>
                   </div>
+
                   {/* Unit price */}
                   <div className="flex flex-col">
                     <Label
@@ -685,6 +619,7 @@ export default function EditAllSalesTransactionForm() {
                       required
                     />
                   </div>
+
                   {/* Quantity */}
                   <div className="flex flex-col">
                     <Label
@@ -704,6 +639,7 @@ export default function EditAllSalesTransactionForm() {
                       required
                     />
                   </div>
+
                   {/* Total price */}
                   <div className="flex flex-col">
                     <Label
@@ -722,6 +658,7 @@ export default function EditAllSalesTransactionForm() {
                     />
                   </div>
                 </div>
+
                 {/* Remove sale */}
                 {index > 0 && !sale.returned && (
                   <Button
@@ -737,6 +674,7 @@ export default function EditAllSalesTransactionForm() {
                 )}
               </div>
             ))}
+
             {/* Totals and discount */}
             <div className="bg-slate-700 text-white p-4 rounded-md shadow mb-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -761,7 +699,7 @@ export default function EditAllSalesTransactionForm() {
                     htmlFor="discount"
                     className="text-sm font-medium mb-2"
                   >
-                    Discount
+                    Discount ({formData.discount_percent ? formData.discount_percent : 0}%)
                   </Label>
                   <div className="flex space-x-2">
                     <select
@@ -810,153 +748,130 @@ export default function EditAllSalesTransactionForm() {
                     }
                     value={formData.method}
                     required
-                    className="bg-slate-600 border-slate-500 p-2 rounded text-white"
                   >
                     <SelectTrigger className="w-full bg-slate-600 border-slate-500">
                       <SelectValue placeholder="Select payment method" />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800 text-white border-slate-700">
                       <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="card">Card</SelectItem>
-                      <SelectItem value="online">Online</SelectItem>
+                      <SelectItem value="cheque">Cheque</SelectItem>
                       <SelectItem value="credit">Credit</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
             </div>
-            {formData.method === "credit" && (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                              <div className="flex flex-col">
-                                <Label
-                                  htmlFor="debtor"
-                                  className="text-sm font-medium text-white mb-2"
-                                >
-                                  Debtor
-                                </Label>
-                                <Popover open={openDebtor} onOpenChange={setOpenDebtor}>
-                                  <PopoverTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      role="combobox"
-                                      aria-expanded={openDebtor}
-                                      className="w-full justify-between bg-slate-600 border-slate-500 text-white hover:bg-slate-500"
-                                    >
-                                      {formData?.debtor
-                                        ? debtors.find(
-                                            (d) => d.id === formData.debtor
-                                          )?.name
-                                        : "Select a debtor..."}
-                                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-full p-0 bg-slate-700 border-slate-600">
-                                    <Command className="bg-slate-700 border-slate-600">
-                                      <CommandInput
-                                        placeholder="Search debtor..."
-                                        className="bg-slate-700 text-white"
-                                      />
-                                      <CommandList>
-                                        <CommandEmpty>No debtor found.</CommandEmpty>
-                                        <CommandGroup>
-                                          {debtors.map((debtor) => (
-                                            <CommandItem
-                                              key={debtor.id}
-                                              onSelect={() => {
-                                                setFormData({
-                                                  ...formData,
-                                                  debtor: debtor.id.toString(),
-                                                });
-                                                setOpenDebtor(false);
-                                              }}
-                                              className="text-white hover:bg-slate-600"
-                                            >
-                                              <Check
-                                                className={cn(
-                                                  "mr-2 h-4 w-4",
-                                                  formData.debtor === debtor?.id?.toString()
-                                                    ? "opacity-100"
-                                                    : "opacity-0"
-                                                )}
-                                              />
-                                              {debtor.name}
-                                            </CommandItem>
-                                          ))}
-                                          <CommandItem
-                                            onSelect={() => {
-                                              setShowNewDebtorDialog(true);
-                                              setOpenDebtor(false);
-                                            }}
-                                            className="text-white hover:bg-slate-600"
-                                          >
-                                            <PlusCircle className="mr-2 h-4 w-4" />
-                                            Add a new debtor
-                                          </CommandItem>
-                                        </CommandGroup>
-                                      </CommandList>
-                                    </Command>
-                                  </PopoverContent>
-                                </Popover>
+
+            {formData.method !== "credit" && (
+              <>
+                <div className="flex flex-col">
+                  <Label className="text-sm font-medium text-white mb-2">
+                    Amount Paid
+                  </Label>
+                  <Input
+                    type="number"
+                    value={formData.amount_paid}
+                    onChange={(e) =>
+                      setFormData((f) => ({
+                        ...f,
+                        amount_paid: e.target.value,
+                      }))
+                    }
+                    className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <Label className="text-sm font-medium text-white mb-2">
+                    Credited Amount
+                  </Label>
+                  <Input
+                    type="text"
+                    value={formData.credited_amount}
+                    readOnly
+                    className="bg-slate-600 border-slate-500 text-white focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+              </>
+            )}
+
+            {formData.method === "cheque" && (
+              <div className="bg-slate-700 text-white p-4 rounded-md shadow mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col">
+                    <Label className="text-sm font-medium text-white mb-2">
+                      Cheque Number
+                    </Label>
+                    <Input
+                      type="text"
+                      value={formData.cheque_number}
+                      onChange={(e) =>
+                        setFormData((f) => ({
+                          ...f,
+                          cheque_number: e.target.value,
+                        }))
+                      }
+                      className="bg-slate-600 border-slate-500 text-white"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <Label className="text-sm font-medium text-white mb-2">
+                      Cashout Date
+                    </Label>
+                    <Input
+                      type="date"
+                      value={formData.cashout_date}
+                      onChange={(e) =>
+                        setFormData((f) => ({
+                          ...f,
+                          cashout_date: e.target.value,
+                        }))
+                      }
+                      className="bg-slate-600 border-slate-500 text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
             
-                                
-                              </div>
-                              <div className="flex flex-col">
-                                <Label
-                                  htmlFor="amount_paid"
-                                  className="text-sm font-medium text-white mb-2"
-                                >
-                                  Amount Paid
-                                </Label>
-                                <Input
-                                  type="number"
-                                  id="amount_paid"
-                                  name="amount_paid"
-                                  value={formData.amount_paid}
-                                  onChange={(e) =>
-                                    setFormData({
-                                      ...formData,
-                                      amount_paid: e.target.value,
-                                    })
-                                  }
-                                  className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
-                                  
-                                />
-                                </div>
-                              <div className="flex flex-col">
-                                <Label
-                                  htmlFor="cashout_date"
-                                  className="text-sm font-medium text-white mb-2"
-                                >
-                                  Credited Amount
-                                </Label>
-                                <Input
-                                  type="number"
-                                  id="credited_amount"
-                                  name="credited_amount"
-                                  value={formData.credited_amount}
-                                  className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
-                                  required
-                                />
-                              </div>
-                            </div>
-                          )}
-            {/* Add sale & submit */}
-            <Button
-              type="button"
-              onClick={handleAddSale}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-            >
-              <PlusCircle className="w-4 h-4 mr-2" />
-              Add Another Sale
-            </Button>
-            <Button
-              type="submit"
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
-              disabled={!hasFormChanged() || subLoading || returned}
-            >
-              Update Sales Transaction
-            </Button>
+              {formData.bonusSales.length > 0 && (
+                <div className="bg-slate-700 text-white p-4 rounded-md shadow mb-4">
+                  <h3 className="text-xl font-semibold mb-4">Bonus Items ({formData.bonus_percent?formData.bonus_percent:0}%)</h3>
+
+                  {/* Header Row */}
+                  <div className="grid grid-cols-2 gap-4 font-medium border-b border-slate-600 pb-2">
+                    <span>Product</span>
+                    <span>Quantity</span>
+                  </div>
+
+                  {/* Items */}
+                  <div className="divide-y divide-slate-600">
+                    {formData.bonusSales.map((b, idx) => {
+                      
+                        
+                      return (
+                        <div key={idx} className="grid grid-cols-2 gap-4 py-2">
+                          <span className="truncate">{b.product_name}</span>
+                          <span className="">{b.quantity}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <p className="text-sm text-gray-300 mt-3">
+                    * Bonus items do not affect totals.
+                  </p>
+                </div>
+              )}
+
           </form>
+
+          {
+            returned && (
+              <p className="text-red-400 mt-4">
+                Returned sales cannot be modified or deleted. Please delete the sales return if you want to make changes.
+              </p>
+            )
+          }
           {/* Return & delete actions */}
           <Button
             type="button"
@@ -964,11 +879,12 @@ export default function EditAllSalesTransactionForm() {
             disabled={returns.length === 0 || subLoading || returned}
             className="w-full bg-green-600 hover:bg-green-700 text-white mt-4"
           >
-            Return Sales
+            Process Returns
           </Button>
+
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="w-full bg-red-600 hover:bg-red-700 text-white mt-4">
+              <Button disabled={subLoading || returned} className="w-full bg-red-600 hover:bg-red-700 text-white mt-4">
                 Delete Transaction
               </Button>
             </DialogTrigger>
@@ -978,159 +894,69 @@ export default function EditAllSalesTransactionForm() {
                 <DialogDescription className="text-slate-300">
                   This action cannot be undone. Permanently delete this
                   transaction.
-                  <div className="flex items-center my-4 space-x-2">
-                    <Checkbox
-                      id="terms"
-                      checked={isChecked}
-                      onCheckedChange={handleCheckboxClick}
-                      className="border-white"
-                    />
-                    <Label htmlFor="terms" className="text-sm leading-none">
-                      Do not modify stock
-                    </Label>
-                  </div>
-                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Confirm Action</DialogTitle>
-                        <DialogDescription>
-                          Are you sure you do not want to modify the stock?
-                        </DialogDescription>
-                      </DialogHeader>
-                      <DialogFooter className="flex justify-end space-x-2">
-                        <Button onClick={handleCancel}>Cancel</Button>
-                        <Button
-                          onClick={handleConfirm}
-                          className="bg-red-700 hover:bg-red-900"
-                        >
-                          Confirm
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                  
+                  
                 </DialogDescription>
               </DialogHeader>
-              <DialogClose asChild>
+              <DialogFooter className="flex justify-end space-x-2">
+                <DialogClose asChild>
+                  <Button variant="outline" className="bg-white text-black">Cancel</Button>
+                </DialogClose>
                 <Button
                   onClick={handleDelete}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white"
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  disabled={subLoading}
                 >
-                  Delete Transaction
+                  {subLoading ? "Deleting..." : "Delete Transaction"}
                 </Button>
-              </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Return Quantity Dialog */}
+          <Dialog open={returnDialogOpen} onOpenChange={setReturnDialogOpen}>
+            <DialogContent className="bg-slate-800 text-white">
+              <DialogHeader>
+                <DialogTitle>Return Item</DialogTitle>
+                <DialogDescription className="text-slate-300">
+                  Enter the quantity you'd like to return for this item. Maximum
+                  allowed: {currentReturnSale?.quantity}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="mt-4">
+                <Label htmlFor="returnQuantity" className="text-sm mb-1 block">
+                  Quantity to return
+                </Label>
+                <Input
+                  id="returnQuantity"
+                  type="number"
+                  value={returnQuantity}
+                  min="1"
+                  max={currentReturnSale?.quantity}
+                  onChange={(e) => setReturnQuantity(e.target.value)}
+                  className="bg-slate-600 border-slate-500 text-white"
+                />
+              </div>
+              {error && <p className="text-red-400 mt-2">{error}</p>}
+              <DialogFooter className="flex justify-end space-x-2 mt-4">
+                <Button
+                  onClick={() => setReturnDialogOpen(false)}
+                  variant="outline"
+                  className="text-white bg-gray-600 hover:bg-gray-700 hover:text-white"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleReturnConfirm}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  Confirm Return
+                </Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
       </div>
-      {/* New Product Dialog */}
-      <NewProductDialog
-        open={showNewProductDialog}
-        setOpen={setShowNewProductDialog}
-        newProductData={newProductData}
-        handleNewProductChange={handleNewProductChange}
-        handleNewProductBrandChange={handleNewProductBrandChange}
-        handleAddProduct={handleAddProduct}
-        brands={brands}
-        openBrand={openBrand}
-        setOpenBrand={setOpenBrand}
-        branches={branchList}
-        userBranch={userBranch}
-      />
-      {/* New Brand Dialog */}
-      <Dialog open={showNewBrandDialog} onOpenChange={setShowNewBrandDialog}>
-        <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
-          <DialogHeader>
-            <DialogTitle>Add New Brand</DialogTitle>
-            <DialogDescription>Enter brand name.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="newBrandName" className="text-right">
-                Brand Name
-              </Label>
-              <Input
-                id="newBrandName"
-                value={newBrandName}
-                onChange={(e) => setNewBrandName(e.target.value)}
-                className="col-span-3 bg-slate-700 border-slate-600 text-white"
-                placeholder="Enter brand name"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={handleAddBrand}
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
-            >
-              Add Brand
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      {/* New Debtor Dialog */}
-      <Dialog open={showNewDebtorDialog} onOpenChange={setShowNewDebtorDialog}>
-        <DialogContent className="sm:max-w-[425px] bg-slate-800 text-white">
-          <DialogHeader>
-            <DialogTitle>Add New Debtor</DialogTitle>
-            <DialogDescription>
-              Fill in the debtor's details below.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="debtor_name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="debtor_name"
-                value={newDebtorData.name}
-                onChange={(e) =>
-                  setNewDebtorData({ ...newDebtorData, name: e.target.value })
-                }
-                className="col-span-3 bg-slate-700 border-slate-600 text-white"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="debtor_phone" className="text-right">
-                Phone Number
-              </Label>
-              <Input
-                id="debtor_phone"
-                value={newDebtorData.phone_number}
-                onChange={(e) =>
-                  setNewDebtorData({
-                    ...newDebtorData,
-                    phone_number: e.target.value,
-                  })
-                }
-                className="col-span-3 bg-slate-700 border-slate-600 text-white"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="debtor_due" className="text-right">
-                Due
-              </Label>
-              <Input
-                id="debtor_due"
-                type="number"
-                value={newDebtorData.due}
-                onChange={(e) =>
-                  setNewDebtorData({ ...newDebtorData, due: e.target.value })
-                }
-                className="col-span-3 bg-slate-700 border-slate-600 text-white"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={addNewDebtor}
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
-            >
-              Add Debtor
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

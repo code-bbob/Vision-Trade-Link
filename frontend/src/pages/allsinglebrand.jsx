@@ -139,7 +139,7 @@ export default function AllBrandProducts() {
   };
 
   const handleEdit = (product) => {
-    navigate(`/inventory/branch/${product.branch}/editproduct/${product.id}`);
+    navigate(`/inventory/editproduct/${product.id}/branch/${branchId}`);
   };
 
   const handlePrintBarcode = () => {

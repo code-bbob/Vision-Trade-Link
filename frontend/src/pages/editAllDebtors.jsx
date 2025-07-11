@@ -40,10 +40,14 @@ export default function EditDebtorTransactionForm() {
     date: "",
     method: "",
     cashout_date: "",
+    cheque_number: "",
     debtor: "",
     amount: "",
+    tds: "",
+    net_amount: "",
     desc: "",
     branch: branchId,
+    bill_no: "",
   });
   const [debtors, setDebtors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +61,7 @@ export default function EditDebtorTransactionForm() {
   });
   const [openDebtor, setOpenDebtor] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [tdsPercent, setTdsPercent] = useState("");
 
   useEffect(() => {
     async function fetchData() {
@@ -73,11 +78,22 @@ export default function EditDebtorTransactionForm() {
           payment_date: data.payment_date || "",
           sales_transaction: data.sales_transaction?.toString() || "",
           method: data.method,
+          cashout_date: data.cashout_date || "",
+          cheque_number: data.cheque_number || "",
           debtor: data?.debtor?.toString(),
           amount: data.amount.toString(),
+          tds: data.tds?.toString() || "",
+          net_amount: data.net_amount?.toString() || "",
           desc: data.desc || "",
           branch: branchId,
+          bill_no: data.bill_no || "",
         });
+        
+        // Calculate TDS percentage if TDS amount exists
+        if (data.tds && data.amount) {
+          const percent = (parseFloat(data.tds) / parseFloat(data.amount)) * 100;
+          setTdsPercent(percent.toString());
+        }
       } catch (err) {
         console.error(err);
         setError("Failed to load transaction details.");
@@ -90,7 +106,38 @@ export default function EditDebtorTransactionForm() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (name === 'tdsPercent') {
+      setTdsPercent(value);
+      // Calculate TDS amount and net amount
+      const amount = parseFloat(formData.amount) || 0;
+      const percent = parseFloat(value) || 0;
+      const tdsAmount = (amount * percent) / 100;
+      const netAmount = amount - tdsAmount;
+      
+      setFormData(prev => ({
+        ...prev,
+        tds: tdsAmount.toString(),
+        net_amount: netAmount.toString()
+      }));
+    } else {
+      setFormData(prev => {
+        const updated = { ...prev, [name]: value };
+        
+        // Calculate TDS and net amount when amount changes
+        if (name === 'amount') {
+          const amount = parseFloat(value) || 0;
+          const percent = parseFloat(tdsPercent) || 0;
+          const tdsAmount = (amount * percent) / 100;
+          const netAmount = amount - tdsAmount;
+          
+          updated.tds = tdsAmount.toString();
+          updated.net_amount = netAmount.toString();
+        }
+        
+        return updated;
+      });
+    }
   };
 
   const handleDebtorSelect = (value) => {
@@ -114,6 +161,7 @@ export default function EditDebtorTransactionForm() {
       setError("Failed to add debtor");
     }
   };
+  console.log("formData", formData.bill_no);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -145,9 +193,13 @@ export default function EditDebtorTransactionForm() {
       formData.date !== originalData.date ||
       formData.payment_date !== (originalData.payment_date || "") ||
       formData.method !== originalData.method ||
+      formData.cashout_date !== (originalData.cashout_date || "") ||
+      formData.cheque_number !== (originalData.cheque_number || "") ||
       formData.debtor !== originalData.debtor.toString() ||
       formData.sales_transaction !== (originalData.sales_transaction?.toString() || "") ||
       formData.amount !== originalData.amount.toString() ||
+      formData.tds !== (originalData.tds?.toString() || "") ||
+      formData.net_amount !== (originalData.net_amount?.toString() || "") ||
       formData.desc !== (originalData.desc || "")
     );
   };
@@ -205,18 +257,33 @@ export default function EditDebtorTransactionForm() {
                   <option value="bank_transfer">Bank Transfer</option>
                 </select>
               </div>
-              { formData.method === 'cheque' && <div className="flex flex-col">
-                <Label htmlFor="payment_date" className="text-sm font-medium text-white mb-2">Cashout Date</Label>
-                <Input
-                  type="date"
-                  id="payment_date"
-                  name="payment_date"
-                  value={formData.cashout_date}
-                  onChange={handleChange}
-                  required
-                  className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>}
+              { formData.method === 'cheque' && (
+                <>
+                  <div className="flex flex-col">
+                    <Label htmlFor="cashout_date" className="text-sm font-medium text-white mb-2">Cashout Date</Label>
+                    <Input
+                      type="date"
+                      id="cashout_date"
+                      name="cashout_date"
+                      value={formData.cashout_date}
+                      onChange={handleChange}
+                      className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <Label htmlFor="cheque_number" className="text-sm font-medium text-white mb-2">Cheque Number</Label>
+                    <Input
+                      type="text"
+                      id="cheque_number"
+                      name="cheque_number"
+                      value={formData.cheque_number}
+                      onChange={handleChange}
+                      className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="Enter cheque number"
+                    />
+                  </div>
+                </>
+              )}
 
             </div>
 
@@ -263,7 +330,7 @@ export default function EditDebtorTransactionForm() {
             </div>
 
             <div className="flex flex-col">
-              <Label htmlFor="amount" className="text-sm font-medium text-white mb-2">Amount</Label>
+              <Label htmlFor="amount" className="text-sm font-medium text-white mb-2">Gross Amount</Label>
               <Input
                 type="number"
                 id="amount"
@@ -272,8 +339,60 @@ export default function EditDebtorTransactionForm() {
                 onChange={handleChange}
                 required
                 className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
-                placeholder="Enter amount"
+                placeholder="Enter gross amount"
               />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="flex flex-col">
+                <Label htmlFor="tdsPercent" className="text-sm font-medium text-white mb-2">
+                  TDS Percentage (%)
+                </Label>
+                <Input
+                  type="number"
+                  id="tdsPercent"
+                  name="tdsPercent"
+                  value={tdsPercent}
+                  onChange={handleChange}
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  className="bg-slate-700 border-slate-600 text-white focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="Enter TDS %"
+                />
+              </div>
+
+              <div className="flex flex-col">
+                <Label htmlFor="tdsAmount" className="text-sm font-medium text-white mb-2">
+                  TDS Amount
+                </Label>
+                <Input
+                  type="number"
+                  id="tdsAmount"
+                  value={formData.tds}
+                  readOnly
+                  className="bg-slate-600 border-slate-600 text-white cursor-not-allowed"
+                  placeholder="Auto-calculated"
+                />
+              </div>
+
+              <div className="flex flex-col">
+                <Label htmlFor="netAmount" className="text-sm font-medium text-white mb-2">
+                  Net Amount
+                </Label>
+                <Input
+                  type="number"
+                  id="netAmount"
+                  value={formData.net_amount}
+                  readOnly
+                  className="bg-slate-600 border-slate-600 text-white cursor-not-allowed"
+                  placeholder="Auto-calculated"
+                />
+              </div>
+            </div>
+            
+            <div className="text-sm text-slate-400 mt-2">
+              <p>Note: TDS amount and Net amount are automatically calculated based on the gross amount and TDS percentage.</p>
             </div>
 
             <div className="flex flex-col">
@@ -288,15 +407,23 @@ export default function EditDebtorTransactionForm() {
               />
             </div>
 
-            <Button type="submit" disabled={!hasChanged() || submitting} className="w-full bg-green-600 hover:bg-green-700 text-white">
+          {
+            formData.bill_no && (
+              <div className="mt-4 text-red-400">
+                This transaction is linked to a bill number: <strong>{formData.bill_no}</strong>. You cannot delete or modify this transaction. Please delete the sale first.
+              </div>
+            )
+          }
+            <Button type="submit" disabled={true} className="w-full bg-green-600 hover:bg-green-700 text-white">
               Update Debtor Transaction
             </Button>
           </form>
 
+
           {/* Delete Confirmation */}
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="w-full bg-red-600 mt-6 hover:bg-red-700 text-white">Delete Transaction</Button>
+              <Button className="w-full bg-red-600 mt-6 hover:bg-red-700 text-white" disabled={formData.bill_no}>Delete Transaction</Button>
             </DialogTrigger>
             <DialogContent className="bg-slate-800 text-white">
               <DialogHeader>
@@ -305,7 +432,7 @@ export default function EditDebtorTransactionForm() {
                   This action cannot be undone. Are you sure you want to delete this debtor transaction?
                 </DialogDescription>
               </DialogHeader>
-              <Button className="w-full bg-red-600 hover:bg-red-700 mt-6 text-white" onClick={handleDelete}>
+              <Button className="w-full bg-red-600 hover:bg-red-700 mt-6 text-white" onClick={handleDelete} disabled={formData.bill_no}>
                 Delete Transaction
               </Button>
             </DialogContent>
