@@ -209,13 +209,24 @@ export default function AllSalesTransactions() {
             transactions?.map((transaction) => (
               <Card key={`${transaction.id}-${transaction.date}`} onClick={() => navigate(`/sales/editform/${transaction.id}/branch/${branchId}`)} className="bg-gradient-to-b from-slate-800 to-slate-900 border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader className="border-b border-slate-700">
-                  <CardTitle className="text-lg lg:text-xl font-medium text-white flex flex-col lg:flex-row justify-between items-start lg:items-center">
-                    <div>
-                      <p>{transaction.name}</p>
-                      <p className='text-sm text-gray-400'>Bill No: {transaction.bill_no}</p>
+                  <CardTitle className="text-lg lg:text-xl font-medium text-white">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-2 lg:space-y-0">
+                      <div className="flex flex-col">
+                        <div className="flex items-center space-x-2">
+                          <p>{transaction.debtor_name || 'Walk-in Customer'}</p>
+                          {transaction.method && (
+                            <span className="bg-slate-700 text-slate-300 px-2 py-1 rounded text-xs uppercase">
+                              {transaction.method}
+                            </span>
+                          )}
+                        </div>
+                        <p className='text-sm text-gray-400'>Bill No: {transaction.bill_no}</p>
+                      </div>
+                      <div className="flex flex-col lg:items-end">
+                        <span className="text-base">{transaction.debtor?.phone_number || transaction.phone_number}</span>
+                        <span className="text-sm lg:text-base">{format(new Date(transaction.date), 'dd MMM yyyy')}</span>
+                      </div>
                     </div>
-                    <span className="mt-2 lg:mt-0">{transaction.phone_number}</span>
-                    <span className="mt-2 lg:mt-0 text-sm lg:text-base">{format(new Date(transaction.date), 'dd MMM yyyy')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4">
@@ -223,15 +234,65 @@ export default function AllSalesTransactions() {
                     <div key={`${transaction.id}-${index}`} className="mb-4 last:mb-0 p-3 lg:p-4 bg-slate-800 rounded-lg hover:bg-slate-750 transition-colors duration-300">
                       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-2">
                         <span className="text-white font-medium mb-2 lg:mb-0">{item.product_name}</span>
+                        {item.returned && (
+                          <span className="text-red-400 text-xs font-medium bg-red-900/30 px-2 py-1 rounded">
+                            RETURNED
+                          </span>
+                        )}
                       </div>
-                      <div className="flex justify-between items-center text-sm text-slate-300">
-                        <span>Unit Price: RS. {item.unit_price.toLocaleString()}</span>
-                        <span> Quantity : {item.quantity}</span>
+                      <div className="space-y-2 text-sm text-slate-300">
+                        <div className="flex justify-between items-center">
+                          <span>Unit Price: RS. {item.unit_price.toLocaleString()}</span>
+                          <span>Total: RS. {item.total_price?.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <div className="flex space-x-4">
+                            <span className="text-white">Qty: {item.quantity}</span>
+                            {transaction.bonus_percent > 0 && (
+                              <span className="text-green-300">
+                                Bonus Qty: {Math.floor(item.quantity * transaction.bonus_percent / 100)}
+                              </span>
+                            )}
+                            {item.returned_quantity > 0 && (
+                              <span className="text-red-300">
+                                Returned: {item.returned_quantity}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
-                  <div className="mt-4 flex justify-end text-white font-bold">
-                    <div >Total Amount: RS. {transaction?.total_amount?.toLocaleString()}</div>
+                  <div className="mt-4 space-y-2">
+                    {/* Transaction totals and bonus info */}
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end space-y-2 lg:space-y-0">
+                      <div className="text-sm text-slate-300">
+                        {transaction.bonus_percent > 0 && (
+                          <div className="flex items-center space-x-2">
+                            <span className="bg-green-900/30 text-green-300 px-2 py-1 rounded text-xs">
+                              Bonus: {transaction.bonus_percent}%
+                            </span>
+                          </div>
+                        )}
+                        {transaction.discount_percent > 0 && (
+                          <div className="flex items-center space-x-2 mt-1">
+                            <span className="bg-blue-900/30 text-blue-300 px-2 py-1 rounded text-xs">
+                              Discount: {transaction.discount_percent}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-white font-bold">
+                        <div className="text-right">
+                          {transaction.subtotal && (
+                            <div className="text-sm text-slate-300 mb-1">
+                              Subtotal: RS. {transaction.subtotal.toLocaleString()}
+                            </div>
+                          )}
+                          <div>Total Amount: RS. {transaction?.total_amount?.toLocaleString()}</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

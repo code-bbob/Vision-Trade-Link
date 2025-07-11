@@ -623,6 +623,7 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
     sales = SalesSerializer(many=True)
     bonus = BonusSerializer(many=True)
     date = serializers.DateField()
+    debtor_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = SalesTransaction
@@ -898,6 +899,9 @@ class SalesTransactionSerializer(serializers.ModelSerializer):
         rep = super().to_representation(instance)
         rep['date'] = instance.date.strftime('%Y-%m-%d')
         return rep
+    
+    def get_debtor_name(self, obj):
+        return obj.debtor.name if obj.debtor else 'No Debtor'
 
 
 class VendorTransactionSerializer(serializers.ModelSerializer):
