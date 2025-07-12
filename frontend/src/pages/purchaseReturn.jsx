@@ -225,7 +225,7 @@ export default function PurchaseReturns() {
                 <CardHeader className="border-b border-slate-700">
                   <CardTitle className="text-lg lg:text-xl font-medium text-white flex flex-col lg:flex-row justify-between items-start lg:items-center">
                     <div>
-                      <p>{returnItem.purchase_transaction.vendor_name}</p>
+                      <p>{returnItem.purchase_transaction.vendor.name}</p>
                       <p className="text-sm text-gray-400">Bill No: {returnItem.purchase_transaction.bill_no}</p>
                     </div>
                     <span className="mt-2 lg:mt-0 text-sm lg:text-base">
@@ -235,7 +235,7 @@ export default function PurchaseReturns() {
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="mb-4">
-                    <p className="text-blue-500 hover:text-blue-800" onClick={()=>{navigate(`/mobile/purchases/branch/${branchId}/editform/${returnItem.purchase_transaction.id}`)}}>
+                    <p className="text-blue-500 hover:text-blue-800 cursor-pointer" onClick={()=>{navigate(`/mobile/purchases/branch/${branchId}/editform/${returnItem.purchase_transaction.id}`)}}>
                       Original Transaction: {returnItem.purchase_transaction.id}
                     </p>
                     <div className="flex justify-between items-center text-sm mt-1 text-slate-300">
@@ -245,18 +245,19 @@ export default function PurchaseReturns() {
                     <p className="text-white">Payment Method: {returnItem.purchase_transaction.method}</p>
                     </div>
                   </div>
-                  {returnItem.purchases.length > 0 ? (
+                  {returnItem?.purchases?.length > 0 ? (
                     returnItem.purchases.map((purchase, index) => (
                       <div
                         key={index}
                         className="mb-4 last:mb-0 p-3 lg:p-4 bg-slate-800 rounded-lg hover:bg-slate-750 transition-colors duration-300"
                       >
                         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-2">
-                          <span className="text-white font-medium mb-2 lg:mb-0">{purchase.phone_name}</span>
-                          <span className="text-purple-400 text-sm">IMEI: {purchase.imei_number}</span>
+                          <span className="text-white font-medium mb-2 lg:mb-0">{purchase.product.name}</span>
+                          <span className="text-purple-400 text-sm">Quantity Returned: {purchase.returned_quantity}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm text-slate-300">
                           <span>Unit Price: RS. {purchase.unit_price.toLocaleString()}</span>
+                          <span>Total: RS. {(purchase.unit_price * purchase.returned_quantity).toLocaleString()}</span>
                         </div>
                       </div>
                     ))

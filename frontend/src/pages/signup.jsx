@@ -6,6 +6,7 @@ import { Loader, Github, Chrome } from "lucide-react"
 import { Input } from "../components/ui/input"
 import { Button } from "../components/ui/button"
 import { Link } from 'react-router-dom'
+import config from '../config/env.js'
 
 export default function Signup() {
   const [email, setEmail] = useState("")
@@ -20,7 +21,7 @@ export default function Signup() {
 
     try {
       const response = await axios.post(
-        `https://ezinventory.pythonanywhere.com/userauth/signup/`,
+        config.getSignupUrl(),
         { email },
         { withCredentials: true }
       )

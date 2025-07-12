@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import config from '../config/env.js';
+
 const  useRefreshToken = () => {
   const [accessToken, setAccessToken] = useState(localStorage.getItem('accessToken') || '');
   const [refreshToken, setRefreshToken] = useState(localStorage.getItem('refreshToken') || '');
@@ -9,7 +11,7 @@ const  useRefreshToken = () => {
     const refresh = async () => {
         console.log('refreshing token....................');
       try {
-        const response = await axios.post('http://127.0.0.1:8000/api/userauth/refresh-token/', {
+        const response = await axios.post(config.getRefreshTokenUrl(), {
           refresh: refreshToken
         });
         const newAccessToken = response.data.access;

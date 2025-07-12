@@ -2,8 +2,9 @@ import axios from 'axios';
 import {jwtDecode} from 'jwt-decode';
 import dayjs from 'dayjs';
 import { useState } from 'react';
+import config from '../config/env.js';
 
-const baseURL =  'http://127.0.0.1:8000/'; //'https://ezinventory.pythonanywhere.com/' or 'http://127.0.0.1:8000/'
+const baseURL = config.API_BASE_URL.endsWith('/') ? config.API_BASE_URL : `${config.API_BASE_URL}/`;
 
 const useAxios = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -21,7 +22,7 @@ const useAxios = () => {
             console.log("Refreshing Token ......");
             setIsRefreshing(true);
             try {
-                const response = await axios.post(`${baseURL}/userauth/refresh-token/`, {
+                const response = await axios.post(config.getRefreshTokenUrl(), {
                     refresh: localStorage.getItem('refreshToken'),
                 });
                 localStorage.setItem('accessToken', response.data.access);

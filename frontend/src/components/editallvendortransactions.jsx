@@ -47,6 +47,7 @@ export default function EditAllVendorTransactionForm() {
     method: "",
     vendor: "",
     desc:"",
+    bill_no: "",
   });
   const [vendors, setVendors] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -78,7 +79,8 @@ export default function EditAllVendorTransactionForm() {
           vendor: vendorTransactionResponse.data.vendor.toString(),
           amount: vendorTransactionResponse.data.amount.toString(),
           method: vendorTransactionResponse.data.method,
-          desc: vendorTransactionResponse.data.desc
+          desc: vendorTransactionResponse.data.desc,
+          bill_no: vendorTransactionResponse.data.bill_no || "",
         });
         setLoading(false);
       } catch (error) {
@@ -402,6 +404,14 @@ export default function EditAllVendorTransactionForm() {
                 />
               </div>
 
+              {
+            formData.bill_no && (
+              <div className="mt-4 text-red-400">
+                This transaction is linked to a bill number: <strong>{formData.bill_no}</strong>. You cannot delete or modify this transaction. Please delete the sale first.
+              </div>
+            )
+          }
+
               <Button
                 type="submit"
                 disabled={!hasFormChanged() || subLoading}
@@ -414,6 +424,7 @@ export default function EditAllVendorTransactionForm() {
             <Dialog>
               <DialogTrigger asChild>
                 <Button
+                  disabled={formData.bill_no}
                   type="button"
                   className="w-full bg-red-600 mt-6 hover:bg-red-700 text-white"
                 >

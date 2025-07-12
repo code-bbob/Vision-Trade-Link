@@ -5,7 +5,8 @@ import { login, logout } from "../redux/accessSlice";
 import { motion } from "framer-motion";
 import { Loader, Lock, Mail } from "lucide-react";
 import { Button } from '../components/ui/button';
-import { Input } from "../components/ui/input"
+import { Input } from "../components/ui/input";
+import config from '../config/env.js';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -14,7 +15,7 @@ const Login = () => {
   const [isLoading,setIsLoading] = useState(false)
   const navigate = useNavigate('');
   const dispatch = useDispatch();
-  const url = `http://127.0.0.1:8000/userauth/login/`;
+  const url = config.getLoginUrl();
 
   const handleSubmit = async (e) => {
     

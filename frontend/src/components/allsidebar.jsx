@@ -56,7 +56,7 @@ export default function Sidebar() {
     { title: 'PurchaseReturn', icon: ShoppingCart, path: '/purchase-returns' },
     { title: 'Sales', icon: TrendingUp, path: '/sales' },
     { title: 'SalesReturn', icon: TrendingDown, path: '/sales-returns' },
-    { title: 'SalesReport', icon: TrendingUp, path: '/sales-report' }, // opens in new tab
+    // { title: 'SalesReport', icon: TrendingUp, path: '/sales-report' }, // opens in new tab
     // { title: 'Staffs', icon: TrendingUp, path: '/staff' },
     // { title: 'StaffTransaction', icon: TrendingUp, path: '/staff-transactions' },
     { title: 'Vendors', icon: BookUser, path: '/vendors' },

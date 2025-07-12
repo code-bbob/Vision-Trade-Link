@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { login, logout } from "../redux/accessSlice";
+import config from '../config/env.js';
 import {
     InputOTP,
     InputOTPGroup,
@@ -49,7 +50,7 @@ const UserRegister = () => {
         // Replace the following code with your actual API call
         try{
         const response = await axios.post(
-            "http://127.0.0.1:8000/api/userauth/register/",
+            config.getRegisterUrl(),
             {
                
                name: name,
