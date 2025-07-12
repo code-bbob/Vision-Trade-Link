@@ -569,73 +569,114 @@ class SalesReportView(APIView):
     def get(self,request,branch=None):
         
         search = request.GET.get('search')
+        phone = request.GET.get('phone')
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
         product = request.GET.get('product')
+        include_returns = request.GET.get('include_returns', 'false').lower() == 'true'
 
-        sales = Sales.objects.filter(sales_transaction__enterprise = request.user.person.enterprise,returned = False)
+        # Get all sales (including returned ones if specified)
+        if include_returns:
+            sales = Sales.objects.filter(sales_transaction__enterprise = request.user.person.enterprise)
+        else:
+            sales = Sales.objects.filter(sales_transaction__enterprise = request.user.person.enterprise, returned = False)
+        
         if branch:
             sales = sales.filter(sales_transaction__branch = branch)
+        
         if search:
-            first_date_of_month = timezone.now().date().replace(day=1)
-            today = timezone.now().date()
+            # Search by brand name
             sales = sales.filter(product__brand__name__icontains = search)
-            sales = sales.filter(sales_transaction__date__range=(first_date_of_month,today))
+        
+        if phone:
+            # Search by debtor phone number
+            sales = sales.filter(sales_transaction__debtor__phone_number__icontains = phone)
         
         if product:
             sales = sales.filter(product__name__startswith = product)
-
 
         if start_date and end_date:
             start_date = parse_date(start_date)
             end_date = parse_date(end_date)
             sales = sales.filter(sales_transaction__date__range=(start_date, end_date))
-
         
-        if not search and not start_date and not end_date:
+        # If no date filter is applied, show today's sales
+        if not start_date and not end_date:
             sales = sales.filter(sales_transaction__date = timezone.now().date())
+
+        # Order by most recent first
+        sales = sales.order_by('-sales_transaction__date', '-sales_transaction__id')
 
         count = sales.count()
 
-        # total_profit = 0
+        # Calculate totals
         total_sales = 0
         total_discount = 0
         cash_sales = 0
-        sales_transaction = []
-        cash_transaction = []
-        list = []
+        total_returns = 0
+        sales_transaction_ids = []
+        cash_transaction_ids = []
+        sales_list = []
+
         for sale in sales:
-            # purchase = Purchase.objects.filter(product = sale.product).first()
-            # profit = (sale.unit_price - purchase.unit_price) * sale.quantity
-            # total_profit += profit
-            total_sales += sale.total_price
-            list.append({
+            # No profit calculation needed
+            sale_amount = sale.total_price
+            if sale.returned:
+                total_returns += sale_amount
+            else:
+                total_sales += sale_amount
+            
+            # Get debtor information
+            debtor_name = sale.sales_transaction.debtor.name if sale.sales_transaction.debtor else "Cash Customer"
+            debtor_phone = sale.sales_transaction.debtor.phone_number if sale.sales_transaction.debtor else "N/A"
+            
+            # Build the sales data
+            sales_list.append({
+                "id": sale.id,
+                "type": "return" if sale.returned else "sale",
                 "date": sale.sales_transaction.date,
                 "brand": sale.product.brand.name,
-                "quantity": sale.quantity,
                 "product": sale.product.name,
+                "imei_number": sale.product.uid,  # Using UID as IMEI
+                "phone": debtor_phone,
+                "customer_name": debtor_name,
+                "quantity": sale.quantity,
+                "returned_quantity": sale.returned_quantity,
                 "unit_price": sale.unit_price,
-                "total_price": sale.total_price,
-                "method": sale.sales_transaction.method
+                "total_price": sale_amount,
+                "method": sale.sales_transaction.method,
+                "bill_no": sale.sales_transaction.bill_no,
+                "discount": sale.sales_transaction.discount or 0,
+                "is_returned": sale.returned
             })
-            if sale.sales_transaction.id not in sales_transaction:
-                total_discount += sale.sales_transaction.discount
-                sales_transaction.append(sale.sales_transaction.id)
-            #add up the total cash transactions minus the discount on those transactions
-            if sale.sales_transaction.method == "cash" and sale.sales_transaction.id not in cash_transaction:
-                cash_transaction.append(sale.sales_transaction.id)
-                cash_sales += sale.total_price - sale.sales_transaction.discount
             
+            # Track unique transactions for discount calculation
+            if sale.sales_transaction.id not in sales_transaction_ids:
+                total_discount += sale.sales_transaction.discount or 0
+                sales_transaction_ids.append(sale.sales_transaction.id)
+            
+            # Calculate cash sales
+            if sale.sales_transaction.method == "cash" and sale.sales_transaction.id not in cash_transaction_ids:
+                cash_transaction_ids.append(sale.sales_transaction.id)
+                cash_sales += sale.sales_transaction.total_amount or 0
         
-        list.append({
-            # "total_profit": total_profit,
+        # Summary data
+        summary = {
             "count": count,
+            "sales_count": Sales.objects.filter(sales_transaction__enterprise = request.user.person.enterprise, returned = False).count(),
+            "returns_count": Sales.objects.filter(sales_transaction__enterprise = request.user.person.enterprise, returned = True).count(),
             "subtotal_sales": total_sales,
+            "total_returns": total_returns,
             "total_discount": total_discount,
             "total_sales": total_sales - total_discount,
+            "net_sales": total_sales - total_returns - total_discount,
             "cash_sales": cash_sales
-        })
-        return Response(list)
+        }
+        
+        # Add summary to the end of the sales list
+        sales_list.append(summary)
+        
+        return Response(sales_list)
      
 class NextBillNo(APIView):
     def get(self,request):

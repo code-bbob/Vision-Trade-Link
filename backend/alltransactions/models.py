@@ -58,6 +58,7 @@ class Purchase(models.Model):
     total_price = models.FloatField(blank=True,null=True)
     purchase_transaction = models.ForeignKey(PurchaseTransaction, on_delete=models.CASCADE,related_name='purchase')
     returned = models.BooleanField(default=False)
+    returned_quantity = models.IntegerField(default=0, null=True, blank=True)
     purchase_return = models.ForeignKey(
         PurchaseReturn,
         on_delete=models.SET_NULL,   # or CASCADE
@@ -177,6 +178,7 @@ class VendorTransactions(models.Model):
     base = models.BooleanField(default=False)
     type = models.CharField(max_length=20,choices=(('base','base'),('return','return'),('payment','payment')),default='base')
     due = models.FloatField(null=True,blank=True,default=0)
+    bill_no = models.CharField(max_length=20, null=True, blank=True)
     def __str__(self):
         return f"Vendor Transaction {self.pk} of {self.vendor.name}"
     

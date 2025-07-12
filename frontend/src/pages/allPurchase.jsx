@@ -44,8 +44,14 @@ export default function AllPurchaseTransactions() {
         previous: response.data.previous,
         count: response.data.count
       })
-      setTotalPages(response.data.total_pages) // Assuming 10 items per page
-      setCurrentPage(response.data.page)
+      
+      // Calculate current page from URL or use default
+      const currentPageFromUrl = url.includes('page=') 
+        ? parseInt(url.split('page=')[1].split('&')[0]) 
+        : 1
+      
+      setCurrentPage(currentPageFromUrl)
+      setTotalPages(Math.ceil(response.data.count / 10)) // Assuming 10 items per page
     } catch (err) {
       setError('Failed to fetch data')
     } finally {
@@ -63,8 +69,8 @@ export default function AllPurchaseTransactions() {
         previous: response.data.previous,
         count: response.data.count
       })
-      setTotalPages(response.data.total_pages) // Assuming 10 items per page
-      setCurrentPage(response.data.page)
+      setCurrentPage(1) // Initial page is always 1
+      setTotalPages(Math.ceil(response.data.count / 10)) // Assuming 10 items per page
     } catch (err) {
       setError('Failed to fetch initial data')
     } finally {
@@ -238,16 +244,19 @@ export default function AllPurchaseTransactions() {
           <Button
             onClick={() => fetchPaginatedData(metadata.previous)}
             disabled={!metadata.previous}
-            className="bg-slate-700 hover:bg-slate-600 text-white"
+            className="bg-slate-700 hover:bg-slate-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-4 h-4 mr-2" />
             Previous
           </Button>
-          <span className="text-white self-center">Page {currentPage} of {totalPages}</span>
+          <div className="flex items-center space-x-2 text-white">
+            <span>Page {currentPage} of {totalPages}</span>
+            <span className="text-slate-400">({metadata.count} total items)</span>
+          </div>
           <Button
             onClick={() => fetchPaginatedData(metadata.next)}
             disabled={!metadata.next}
-            className="bg-slate-700 hover:bg-slate-600 text-white"
+            className="bg-slate-700 hover:bg-slate-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
             <ChevronRight className="w-4 h-4 ml-2" />
