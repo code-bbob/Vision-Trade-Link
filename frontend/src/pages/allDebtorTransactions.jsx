@@ -130,7 +130,7 @@ export default function AllDebtorTransactions() {
             Debtor Transactions
           </h1>
           <Button
-            onClick={() => navigate('/inventory')}
+            onClick={() => navigate('/')}
             variant="outline"
             className="w-full lg:w-auto px-5 text-black border-white hover:bg-gray-700 hover:text-white"
           >

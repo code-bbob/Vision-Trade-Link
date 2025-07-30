@@ -184,6 +184,11 @@ class VendorTransactions(models.Model):
     
     @transaction.atomic
     def delete(self, *args, **kwargs):
+        #lets start
+        vts = VendorTransactions.objects.filter(vendor=self.vendor, id__gt=self.pk)
+        for vt in vts:
+            vt.due += self.amount if vt.due is not None else self.amount
+            vt.save()
         self.vendor.due = self.vendor.due + self.amount if self.vendor.due is not None else self.amount
         self.vendor.save() 
         super().delete(*args, **kwargs)
@@ -264,7 +269,10 @@ class DebtorTransaction(models.Model):
     
     @transaction.atomic
     def delete(self, *args, **kwargs):
-        print("HERE FOR AMOUNT", self.amount)
+        dts = DebtorTransaction.objects.filter(debtor=self.debtor, id__gt=self.pk)
+        for vt in dts:
+            vt.due += self.amount if vt.due is not None else self.amount
+            vt.save()
         self.debtor.due = self.debtor.due + self.amount if self.debtor.due is not None else self.amount
         self.debtor.save() 
         super().delete(*args, **kwargs)

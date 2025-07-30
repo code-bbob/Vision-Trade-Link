@@ -161,7 +161,7 @@ export default function PurchaseReturns() {
         >
           <h1 className="text-3xl lg:text-4xl font-bold text-white mb-4 lg:mb-0">Purchase Returns</h1>
           <Button
-            onClick={() => navigate("/mobile/")}
+            onClick={() => navigate("/")}
             variant="outline"
             className="w-full lg:w-auto px-5 text-black border-white hover:bg-gray-700 hover:text-white"
           >
@@ -236,7 +236,7 @@ export default function PurchaseReturns() {
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="mb-4">
-                    <p className="text-blue-500 hover:text-blue-800 cursor-pointer" onClick={()=>{navigate(`/mobile/purchases/branch/${branchId}/editform/${returnItem.purchase_transaction.id}`)}}>
+                    <p className="text-blue-500 hover:text-blue-800 cursor-pointer" onClick={()=>{navigate(`/purchases/editform/${returnItem.purchase_transaction.id}/branch/${branchId}`)}}>
                       Original Transaction: {returnItem.purchase_transaction.id}
                     </p>
                     <div className="flex justify-between items-center text-sm mt-1 text-slate-300">

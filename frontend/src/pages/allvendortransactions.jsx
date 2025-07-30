@@ -162,7 +162,7 @@ export default function AllVendorTransactions() {
             className="w-full lg:w-auto px-5 text-black border-white hover:bg-gray-700 hover:text-white"
           >
             <ArrowLeft className="mr-2 h-4 w-3" />
-            Back to Dashboard
+          Back to Dashboard
           </Button>
         </motion.div>
 
@@ -270,7 +270,7 @@ export default function AllVendorTransactions() {
       </div>
       <Button
         className="fixed bottom-8 right-8 rounded-full w-14 h-14 lg:w-16 lg:h-16 shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-        onClick={() => navigate(`/vendor-transactions/form`)}
+        onClick={() => navigate(`/vendor-transactions/form/branch/${branchId}`)}
       >
         <Plus className="w-6 h-6 lg:w-8 lg:h-8" />
       </Button>

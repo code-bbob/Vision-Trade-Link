@@ -115,7 +115,7 @@ export default function AllVendorPage() {
       setShowNewVendorDialog(false);
     } catch (err) {
       console.error("Error adding vendor:", err);
-      setError("Failed to add new vendor");
+      // setError("Failed to add new vendor");
     }
   };
 
@@ -201,11 +201,11 @@ export default function AllVendorPage() {
               />
             </div>
             <Button
-              onClick={() => navigate("/vendors")}
+              onClick={() => navigate("/")}
               variant="outline"
               className="w-full sm:w-auto px-5 text-slate-900 border-white hover:bg-gray-500"
             >
-              <ArrowLeft className="mr-2 h-4 w-3" /> Back to Brands
+              <ArrowLeft className="mr-2 h-4 w-3" /> Back to Dashboard
             </Button>
             <Button
               onClick={() => setIsDeleteDialogOpen(true)}
@@ -299,6 +299,7 @@ export default function AllVendorPage() {
                 onChange={handleNewVendorChange}
                 className="col-span-3 bg-slate-700 border-slate-600 text-white"
                 placeholder="Enter vendor name"
+                required
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">

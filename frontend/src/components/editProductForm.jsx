@@ -59,12 +59,12 @@ const EditProductForm = () => {
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 to-slate-800">
       <Sidebar />
       <Button
-        onClick={() => navigate("/")}
+        onClick={() => navigate(-1)}
         variant="outline"
         className="mb-4 w-48 md:ml-80 px-5 my-4 text-black border-white hover:bg-gray-700 hover:text-white"
       >
         <ArrowLeft className="mr-2 h-4 w-3" />
-        Back to Dashboard
+        Back to inventory
       </Button>
 
       <form onSubmit={handleSubmit} className="space-y-6 mx-10 my-10 md:ml-80 p-5 bg-slate-800">

@@ -175,7 +175,7 @@ function EditAllPurchaseTransactionForm() {
 
   const handleDelete = (e) => {
     api.delete(`alltransaction/purchasetransaction/${purchaseId}/`);
-    navigate("/purchases/");
+    navigate("/purchases/branch/" + branchId);
   };
 
   const handleChange = (e) => {
@@ -298,7 +298,7 @@ function EditAllPurchaseTransactionForm() {
         formData
       );
       console.log("Response:", response.data);
-      navigate("/purchases");
+      navigate("/purchases/branch/" + branchId);
     } catch (error) {
       console.error("Error updating data:", error);
       setError("Failed to update purchase transaction. Please try again.");
@@ -462,7 +462,7 @@ function EditAllPurchaseTransactionForm() {
         <div className="max-w-4xl mx-auto lg:ml-64">
           <div className="mb-6 flex justify-end">
             <Button
-            onClick={() => navigate("/purchases")}
+            onClick={() => navigate("/purchases/branch/" + branchId)}
               variant="outline"
               className="px-4 py-2 text-black text-right border-white hover:bg-gray-700 hover:text-white"
             >

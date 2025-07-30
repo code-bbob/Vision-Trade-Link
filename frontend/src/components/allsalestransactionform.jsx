@@ -287,7 +287,7 @@ export default function AllSalesTransactionForm() {
         total_amount: totalAmount,
       };
       await api.post("alltransaction/salestransaction/", payload);
-      navigate("/sales");
+      navigate("/sales/branch/" + branchId);
     } catch {
       setError("Failed to submit transaction");
     } finally {
@@ -309,12 +309,12 @@ export default function AllSalesTransactionForm() {
       <div className="flex-grow p-4 lg:p-6 lg:ml-64 overflow-auto">
         <div className="max-w-4xl mx-auto">
           <Button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/sales/branch/" + branchId)}
             variant="outline"
             className="mb-6 px-4 py-2 text-black border-white hover:bg-gray-700 hover:text-white"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
+            Back to Sales
           </Button>
           <div className="bg-slate-800 p-6 rounded-lg shadow-lg">
             <h2 className="text-2xl lg:text-3xl font-bold mb-6 text-white">

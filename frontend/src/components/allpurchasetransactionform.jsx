@@ -301,7 +301,7 @@ function AllPurchaseTransactionForm() {
         submissionData
       );
       console.log("Response:", response.data);
-      navigate("/purchases");
+      navigate("/purchases/branch/" + branchId);
     } catch (error) {
       console.error("Error posting data:", error);
       setError("Failed to submit purchase transaction. Please try again.");
@@ -390,12 +390,12 @@ function AllPurchaseTransactionForm() {
       <div className="flex-grow p-4 lg:p-6 lg:ml-64 overflow-auto">
         <div className="max-w-4xl mx-auto">
           <Button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/purchases/branch/" + branchId)}
             variant="outline"
             className="mb-6 px-4 py-2 text-black border-white hover:bg-gray-700 hover:text-white"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
+            Back to Purchases
           </Button>
 
           <div className="bg-slate-800 p-6 rounded-lg shadow-lg">
