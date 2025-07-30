@@ -19,10 +19,12 @@ import {
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import BranchSelector from "./branchSelector"
 import { useBranchNavigate } from "../hooks/useBranchNavigate"
+import { useBranchId } from "../hooks/useBranch"
 
 export default function Sidebar() {
   const navigate = useNavigate()
   const branchNavigate = useBranchNavigate()
+  const branchId = useBranchId()
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
 
@@ -102,24 +104,42 @@ export default function Sidebar() {
               </div> */}
 
               <nav className="space-y-2">
-                {menuItems.map((item) => {
-                  
+                {React.useMemo(() => 
+                  menuItems.map((item) => {
+                    // Construct the URL with branch ID (memoized for performance)
+                    const pathParts = item.path.split('/');
+                    const basePath = pathParts[1]; // e.g., 'inventory', 'sales', etc.
+                    const remainingPath = pathParts.slice(2).join('/'); // everything after base path
+                    
+                    let fullPath = item.path;
+                    if (branchId && basePath) {
+                      if (remainingPath) {
+                        fullPath = `/${basePath}/${remainingPath}/branch/${branchId}`;
+                      } else {
+                        fullPath = `/${basePath}/branch/${branchId}`;
+                      }
+                    }
 
-                  return (
-                    <Button
-                      key={item.path}
-                      variant="ghost"
-                      className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700"
-                      onClick={() => {
-                        branchNavigate(item.path);
-                        setIsOpen(false);
-                      }}
-                    >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {item.title}
-                    </Button>
-                  )
-                })}
+                    return (
+                      <a
+                        key={item.path}
+                        href={fullPath}
+                        className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700 flex items-center px-4 py-2 rounded-md transition-colors duration-200"
+                        onClick={(e) => {
+                          // Only prevent default if it's a normal click (not Ctrl+click or right-click)
+                          if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                            e.preventDefault();
+                            branchNavigate(item.path);
+                            setIsOpen(false);
+                          }
+                        }}
+                      >
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {item.title}
+                      </a>
+                    )
+                  }), [branchId, branchNavigate, setIsOpen]
+                )}
               </nav>
             </div>
           </motion.div>
