@@ -415,7 +415,7 @@ function EditAllPurchaseTransactionForm() {
         purchase_transaction_id: purchaseId,
         branch: branchId,
       });
-      navigate("/purchases/branch" + branchId);
+      navigate("/purchases/branch/" + branchId);
     } catch (err) {
       console.error(err);
       setError("Failed to process return. Please try again.");
