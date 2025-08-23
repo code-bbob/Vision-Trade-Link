@@ -275,9 +275,9 @@ function StatCard({ title, value, subValue, icon, onClick }) {
           {title!== "Profit" && <div className="text-xl lg:text-2xl font-bold text-white group-hover:text-purple-300 transition-colors duration-300">
             {value}
           </div>}
-          {title== "Profit" && <div className="text-xl lg:text-2xl font-bold text-white group-hover:text-purple-300 transition-colors duration-300">
-           RS. {value}
-          </div>}
+          {/* {title== "Profit" && <div className="text-xl lg:text-2xl font-bold text-white group-hover:text-purple-300 transition-colors duration-300"> */}
+           {/* RS. {value} */}
+          {/* </div>} */}
           {subValue !== undefined && (
             <div className="text-xs lg:text-sm text-slate-400 mt-1 group-hover:text-purple-200 transition-colors duration-300">
               Rs. {subValue.toFixed(2)}

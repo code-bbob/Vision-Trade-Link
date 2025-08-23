@@ -471,6 +471,7 @@ const handleDownloadCSV = () => {
                 {transactionsWithBalance.map((transaction, index) => (
                   <TableRow
                     key={transaction.id}
+                    onClick={() => navigate(`/vendor-transactions/branch/1/editform/${transaction.id}`)}
                     className={`${
                       index % 2 === 0
                         ? "bg-slate-800 print:bg-white"
