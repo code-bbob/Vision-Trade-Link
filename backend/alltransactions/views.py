@@ -172,10 +172,11 @@ class SalesTransactionView(APIView):
         
         if search:
             product_transactions = transactions.filter(sales__product__name__startswith = search)
-            customer_transactions = transactions.filter(name__icontains = search)
+            customer_transactions = transactions.filter(debtor__name__icontains = search)
             phone_transactions = transactions.filter(phone_number__icontains = search)
-            transactions = product_transactions.union(customer_transactions,phone_transactions)
-        
+            bill_number_transactions = transactions.filter(bill_number__iexact = search)
+            transactions = product_transactions.union(customer_transactions,phone_transactions,bill_number_transactions)
+
         if start_date and end_date:
             start_date = parse_date(start_date)
             end_date = parse_date(end_date)
