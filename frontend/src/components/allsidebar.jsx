@@ -67,6 +67,40 @@ export default function Sidebar() {
     { title: 'DebtorTransactions', icon: BookUser, path: '/debtor-transactions' },
   ]
 
+  // Memoize menu links outside JSX for robust hook order
+  const menuLinks = React.useMemo(() =>
+    menuItems.map((item) => {
+      const pathParts = item.path.split('/');
+      const basePath = pathParts[1];
+      const remainingPath = pathParts.slice(2).join('/');
+      let fullPath = item.path;
+      if (branchId && basePath) {
+        if (remainingPath) {
+          fullPath = `/${basePath}/${remainingPath}/branch/${branchId}`;
+        } else {
+          fullPath = `/${basePath}/branch/${branchId}`;
+        }
+      }
+      return (
+        <a
+          key={item.path}
+          href={fullPath}
+          className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700 flex items-center px-4 py-2 rounded-md transition-colors duration-200"
+          onClick={(e) => {
+            if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+              e.preventDefault();
+              branchNavigate(item.path);
+              setIsOpen(false);
+            }
+          }}
+        >
+          <item.icon className="mr-2 h-4 w-4" />
+          {item.title}
+        </a>
+      );
+    }), [branchId, branchNavigate, setIsOpen]
+  );
+
   return (
     <>
       <Button
@@ -97,49 +131,12 @@ export default function Sidebar() {
               >
                 Inventory System
               </div>
-              
               {/* Branch Selector */}
-              {/* <div className="mb-6">
+              <div className="mb-6">
                 <BranchSelector />
-              </div> */}
-
+              </div>
               <nav className="space-y-2">
-                {React.useMemo(() => 
-                  menuItems.map((item) => {
-                    // Construct the URL with branch ID (memoized for performance)
-                    const pathParts = item.path.split('/');
-                    const basePath = pathParts[1]; // e.g., 'inventory', 'sales', etc.
-                    const remainingPath = pathParts.slice(2).join('/'); // everything after base path
-                    
-                    let fullPath = item.path;
-                    if (branchId && basePath) {
-                      if (remainingPath) {
-                        fullPath = `/${basePath}/${remainingPath}/branch/${branchId}`;
-                      } else {
-                        fullPath = `/${basePath}/branch/${branchId}`;
-                      }
-                    }
-
-                    return (
-                      <a
-                        key={item.path}
-                        href={fullPath}
-                        className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700 flex items-center px-4 py-2 rounded-md transition-colors duration-200"
-                        onClick={(e) => {
-                          // Only prevent default if it's a normal click (not Ctrl+click or right-click)
-                          if (!e.ctrlKey && !e.metaKey && e.button === 0) {
-                            e.preventDefault();
-                            branchNavigate(item.path);
-                            setIsOpen(false);
-                          }
-                        }}
-                      >
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {item.title}
-                      </a>
-                    )
-                  }), [branchId, branchNavigate, setIsOpen]
-                )}
+                {menuLinks}
               </nav>
             </div>
           </motion.div>
