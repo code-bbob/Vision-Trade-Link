@@ -87,7 +87,7 @@ const AllDebtorStatementPage = () => {
   };
 
 const handleDownloadCSV = () => {
-  if (!data || !data.debtor_transactions.length) {
+  if (!data || !transactionsWithBalance.length) {
     console.warn("No data available for CSV export");
     return;
   }
@@ -108,8 +108,8 @@ const handleDownloadCSV = () => {
     'Due Balance'
   ].map(escapeField).join(',') + '\n';
 
-  // 2) Data rows
-  data.debtor_transactions.forEach(tx => {
+  // 2) Data rows (use transactionsWithBalance for due)
+  transactionsWithBalance.forEach(tx => {
     const sign = tx.amount > 0 ? '-' : '';
     const grossAmt = `${sign}NPR ${Math.abs(tx.amount).toFixed(2)}`;
     const tdsAmt = `NPR ${Math.abs(tx.tds || 0).toFixed(2)}`;
@@ -132,7 +132,7 @@ const handleDownloadCSV = () => {
   csvContent += [
     ['Debtor Name:', data.debtor_data.name],
     ['Phone:',       data.debtor_data.phone_number || 'N/A'],
-    ['Current Due:', `NPR ${data.debtor_data.due.toFixed(2)}`]
+    ['Current Due:', `NPR ${transactionsWithBalance.length ? transactionsWithBalance[transactionsWithBalance.length-1].due.toFixed(2) : '0.00'}`]
   ]
     .map(pair => pair.map(escapeField).join(','))
     .join('\n') + '\n';
@@ -183,7 +183,8 @@ const handleDownloadCSV = () => {
     const headers = [
       ["Date", "Description", "Bill No.", "Cheque No.", "Gross Amount", "TDS Amount", "Net Amount", "Due Balance"],
     ];
-    const tableData = data.debtor_transactions.map((tx) => [
+    // Use transactionsWithBalance for due
+    const tableData = transactionsWithBalance.map((tx) => [
       tx.date,
       tx.desc || "N/A",
       tx.bill_no || "-",
@@ -220,7 +221,8 @@ const handleDownloadCSV = () => {
       .filter((t) => t.amount > 0)
       .reduce((sum, t) => sum + Math.abs(t.tds || 0), 0);
     const netAmountPaid = grossAmountPaid - totalTDS;
-    const currentDue = data.debtor_data.due;
+  // Use last calculated due for summary
+  const currentDue = transactionsWithBalance.length ? transactionsWithBalance[transactionsWithBalance.length-1].due : 0;
 
     // — Styled Summary Block (right-justified under table) —
     const finalY = doc.lastAutoTable.finalY || 35;
@@ -282,11 +284,24 @@ const handleDownloadCSV = () => {
   };
 
   const calculateRunningBalance = (transactions) => {
+    // Start from the initial due (from debtor_data.due or 0 if not available)
     let runningBalance = 0;
-    return transactions.map((transaction) => {
-      runningBalance = transaction.due;
-      return { ...transaction, runningBalance };
-    });
+    // If there is an initial due from backend, use it as starting point
+    // Otherwise, start from 0
+    // We'll reverse-calculate: start from the first transaction and accumulate
+    // If you want to start from the oldest due, you may need to pass it in
+    return transactions.reduce((acc, transaction, idx) => {
+      // For the first transaction, use the previous due if available
+      if (idx === 0) {
+        runningBalance = transaction.previous_due !== undefined ? transaction.previous_due : 0;
+      }
+      // Add or subtract the transaction amount
+      // If amount > 0, it's a payment (reduces due), if < 0, it's a sale (increases due)
+      runningBalance -= transaction.amount;
+      // Optionally, handle TDS or other adjustments here if needed
+      acc.push({ ...transaction, due: runningBalance });
+      return acc;
+    }, []);
   };
 
   const getTransactionTypeColor = (amount) => {
@@ -307,8 +322,12 @@ const handleDownloadCSV = () => {
     );
   if (!data) return null;
 
+  // Find the previous due before the first transaction
+  // If backend provides it, use it, else default to 0
+  const previousDue = data.debtor_data?.previous_due !== undefined ? data.debtor_data.previous_due : 0;
+  // Attach previousDue to the first transaction for calculation
   const transactionsWithBalance = calculateRunningBalance(
-    data.debtor_transactions
+    data.debtor_transactions.map((tx, idx) => idx === 0 ? { ...tx, previous_due: previousDue } : tx)
   );
 
   return (
