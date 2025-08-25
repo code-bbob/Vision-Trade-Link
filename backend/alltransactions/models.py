@@ -238,6 +238,7 @@ class Customer(models.Model):
 class Debtor(models.Model):
     name = models.CharField(max_length=255)
     phone_number = models.CharField(max_length=10,blank=True)
+    address = models.CharField(max_length=255,null=True,blank=True)
     due = models.FloatField(null=True,blank=True,default=0)
     enterprise = models.ForeignKey(Enterprise, on_delete=models.CASCADE,related_name='debtors')
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True, blank=True)

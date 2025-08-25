@@ -124,7 +124,7 @@ export default function AllSalesTransactionForm() {
       }
     };
     fetchData();
-  }, [ branchId]);
+  }, [branchId]);
 
 
 
@@ -143,10 +143,10 @@ export default function AllSalesTransactionForm() {
       discountType === "percent"
         ? subtotal * ((parseFloat(discountValue) || 0) / 100)
         : parseFloat(discountValue) || 0;
-      if (discountType === "percent") {
-        
-        setFormData((f) => ({ ...f, discount_percent: discountValue ? parseFloat(discountValue) : 0 }));
-      }
+    if (discountType === "percent") {
+
+      setFormData((f) => ({ ...f, discount_percent: discountValue ? parseFloat(discountValue) : 0 }));
+    }
     setTotalAmount(subtotal - discAmt);
   }, [subtotal, discountType, discountValue]);
 
@@ -295,7 +295,7 @@ export default function AllSalesTransactionForm() {
     }
   };
 
- if (loading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
         Loading...
@@ -338,8 +338,8 @@ export default function AllSalesTransactionForm() {
                       >
                         {formData.debtor
                           ? debtors.find(
-                              (d) => d.id.toString() === formData.debtor
-                            )?.name
+                            (d) => d.id.toString() === formData.debtor
+                          )?.name
                           : "Select a debtor..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -451,8 +451,8 @@ export default function AllSalesTransactionForm() {
                           >
                             {sale.product
                               ? products.find(
-                                  (p) => p.id.toString() === sale.product
-                                )?.name
+                                (p) => p.id.toString() === sale.product
+                              )?.name
                               : "Select a product..."}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
@@ -824,6 +824,22 @@ export default function AllSalesTransactionForm() {
                         setNewDebtorData((d) => ({
                           ...d,
                           phone_number: e.target.value,
+                        }))
+                      }
+                      className="col-span-3 bg-slate-700 border-slate-600 text-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="debtor_address" className="text-right">
+                      Address
+                    </Label>
+                    <Input
+                      id="debtor_address"
+                      value={newDebtorData.address}
+                      onChange={(e) =>
+                        setNewDebtorData((d) => ({
+                          ...d,
+                          address: e.target.value,
                         }))
                       }
                       className="col-span-3 bg-slate-700 border-slate-600 text-white"

@@ -186,8 +186,9 @@ export default function AllDebtorsPage() {
             <div className="grid grid-cols-12 gap-2 border-b border-slate-700 p-2 sm:p-4 text-slate-300 text-xs sm:text-sm font-medium">
               <div className="col-span-1" />
               <div className="col-span-4 lg:col-span-4">Name</div>
-              <div className="col-span-3 lg:col-span-3">Phone Number</div>
-              <div className="col-span-4 lg:col-span-4 text-right">
+              <div className="col-span-3 lg:col-span-2">Phone Number</div>
+              <div className="col-span-4 lg:col-span-3">Address</div>
+              <div className="col-span-4 lg:col-span-2 text-right">
                 Due Amount
               </div>
             </div>
@@ -211,16 +212,19 @@ export default function AllDebtorsPage() {
                     className="border-gray-400"
                   />
                 </div>
-                <div className="col-span-4 lg:col-span-4 flex items-center">
+                <div className="col-span-3 lg:col-span-4 flex items-center">
                   <User className="mr-2 flex-shrink-0 text-purple-400 h-4 w-4" />
                   <span className="truncate text-white text-sm lg:text-base">
                     {debtor.name}
                   </span>
                 </div>
-                <div className="col-span-3 lg:col-span-3 text-white text-sm lg:text-base">
+                <div className="col-span-3 lg:col-span-2 text-white text-sm lg:text-base">
                   {debtor.phone_number}
                 </div>
-                <div className="col-span-4 lg:col-span-4 text-right text-white text-sm lg:text-base">
+                <div className="col-span-3 lg:col-span-3 text-white text-sm lg:text-base">
+                  {debtor.address}
+                </div>
+                <div className="col-span-4 lg:col-span-2 text-right text-white text-sm lg:text-base">
                   {`RS. ${parseFloat(debtor.due).toLocaleString()}`}
                 </div>
               </motion.div>
@@ -261,6 +265,10 @@ export default function AllDebtorsPage() {
               <div>
                 <p className="font-semibold">Phone Number:</p>
                 <p>{selectedDebtor?.phone_number}</p>
+              </div>
+              <div>
+                <p className="font-semibold">Address:</p>
+                <p>{selectedDebtor?.address}</p>
               </div>
               <div>
                 <p className="font-semibold">Due Amount:</p>
@@ -351,6 +359,19 @@ export default function AllDebtorsPage() {
                   value={newDebtorData.phone_number}
                   onChange={handleNewDebtorChange}
                   placeholder="Enter phone number"
+                  className="col-span-3 bg-slate-700 border-slate-600"
+                />
+              </div>
+               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="newDebtorPhone" className="text-right">
+                  Address
+                </Label>
+                <Input
+                  id="newDebtorPhone"
+                  name="address"
+                  value={newDebtorData.address}
+                  onChange={handleNewDebtorChange}
+                  placeholder="Enter address"
                   className="col-span-3 bg-slate-700 border-slate-600"
                 />
               </div>

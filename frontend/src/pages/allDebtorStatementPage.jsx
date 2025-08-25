@@ -168,11 +168,16 @@ const handleDownloadCSV = () => {
     doc.setTextColor(33, 33, 33); // dark charcoal
     doc.text(`${data.debtor_data.name}`, 15, 22);
 
+    doc.setFont("times", "italic");
+    doc.setFontSize(14);
+    doc.setTextColor(100,100,100);
+    doc.text(`${data.debtor_data.address || "N/A"}`, 15, 28);
+
     // Statement Date (italic, right-aligned)
     doc.setFont("times", "italic");
     doc.setFontSize(11);
     doc.setTextColor(100, 100, 100); // medium gray
-    doc.text(`Statement Date: ${format(new Date(), "MMMM d, yyyy")}`, 15, 28);
+    doc.text(`Statement Date: ${format(new Date(), "MMMM d, yyyy")}`, 15, 32);
 
     // — Main Statement Table —
     const headers = [
@@ -323,6 +328,9 @@ const handleDownloadCSV = () => {
             <Building2 className="h-8 w-8" />
             Debtor Statement - {data.debtor_data.name}
           </CardTitle>
+          <p className="text-sm text-gray-400 print:text-black">
+            Address: {data.debtor_data.address || "N/A"}
+          </p>
           <p className="text-sm text-gray-400 print:text-gray-600">
             Statement Date: {format(new Date(), "MMMM d, yyyy")}
           </p>
